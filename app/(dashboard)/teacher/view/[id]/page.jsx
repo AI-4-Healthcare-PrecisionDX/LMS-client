@@ -1,4 +1,5 @@
 "use client";
+export const runtime = 'edge';
 
 import api from "@/lib/axios-config";
 import { Viewer } from "@react-pdf-viewer/core";
