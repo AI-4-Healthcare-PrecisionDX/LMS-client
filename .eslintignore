@@ -1,0 +1,13 @@
+.next
+.cache
+package-lock.json
+public
+node_modules
+next-env.d.ts
+next.config.ts
+package-lock.json
+.eslintrc.json 
+.lintstagedrc.json
+.prettierrc.js
+components/ui/*
+lib
