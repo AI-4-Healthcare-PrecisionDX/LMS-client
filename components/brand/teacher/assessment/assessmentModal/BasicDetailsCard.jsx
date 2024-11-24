@@ -24,7 +24,7 @@ export function BasicDetailsCard({ state, dispatch, category }) {
     newDate.setHours(hours, minutes);
 
     dispatch({
-      type: type === "startTime" ? "SET_START_TIME" : "SET_DEADLINE",
+      type: type === "start_time" ? "SET_START_TIME" : "SET_DEADLINE",
       payload: newDate,
     });
   };
@@ -60,13 +60,13 @@ export function BasicDetailsCard({ state, dispatch, category }) {
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full mt-1">
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(state.startTime, "PPP")}
+                  {format(state.start_time, "PPP")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={state.startTime}
+                  selected={state.start_time}
                   onSelect={(date) =>
                     date && dispatch({ type: "SET_START_TIME", payload: date })
                   }
@@ -79,9 +79,9 @@ export function BasicDetailsCard({ state, dispatch, category }) {
             <Label className="text-base">Start Time</Label>
             <Input
               type="time"
-              value={format(state.startTime, "HH:mm")}
+              value={format(state.start_time, "HH:mm")}
               onChange={(e) =>
-                handleTimeChange(state.startTime, e.target.value, "startTime")
+                handleTimeChange(state.start_time, e.target.value, "start_time")
               }
               className="mt-1"
             />

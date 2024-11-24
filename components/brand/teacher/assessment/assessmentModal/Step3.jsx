@@ -15,18 +15,19 @@ export default function Step3({
   onBack,
   category,
 }) {
+  //STATE HANDLING
   const [state, dispatch] = useReducer(reducer, {
     ...initialState,
     title: assignmentDetails.assignment_title || "",
-    startTime: assignmentDetails.startTime
-      ? parseISO(assignmentDetails.startTime)
+    start_time: assignmentDetails.start_time
+      ? parseISO(assignmentDetails.start_time)
       : new Date(),
     deadline: assignmentDetails.deadline
       ? parseISO(assignmentDetails.deadline)
       : new Date(),
   });
-  // console.log(assignmentDetails);
-  // Calculate totals
+
+  // UTILS
   const totalQuestions =
     category === "ai-generated"
       ? Object.values(state.patternCounts).reduce((a, b) => a + b, 0)
@@ -41,7 +42,7 @@ export default function Step3({
     onPublish({
       assignment_title: state.assignment_title,
       totalMarks,
-      startTime: format(state.startTime, "yyyy-MM-dd'T'HH:mm:ss"),
+      start_time: format(state.start_time, "yyyy-MM-dd'T'HH:mm:ss"),
       deadline: format(state.deadline, "yyyy-MM-dd'T'HH:mm:ss"),
       questions: state.questions,
       ...(category === "ai-generated" && {
@@ -79,7 +80,7 @@ export default function Step3({
               <TabsTrigger
                 value="questions"
                 className="text-lg py-3"
-                disabled={category === "custom" && !state.assignment_title}
+                disabled={category === "manual" && !state.assignment_title}
               >
                 <Edit3 className="w-4 h-4 mr-2" />
                 Questions

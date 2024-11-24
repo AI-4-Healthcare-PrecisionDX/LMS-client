@@ -1,38 +1,37 @@
 # LMS - DIAGNOTECH-AI
 
-## Project Setup
+---
 
-This is a Next.js project. Follow the steps below to set up the project:
+**Project Setup Update: JavaScript to TypeScript**
 
-1. **Clone the repository:**
+The **main branch** is updated and deployed with the project setup now switched to **TypeScript**. All new code should be written in **TS**. Keep the existing JS code as is for now; we'll convert it later.
+
+### Steps to Update Your Code:
+
+1. **Clone the Project** into a separate folder:
+
    ```bash
-   git clone git@github.com:AI-4-Healthcare-PrecisionDX/LMS-client.git
-   cd LMS-client
+   git clone git@github.com:AI-4-Healthcare-PrecisionDX/Learning-Platform-extension.git
    ```
 
-2. **Install dependencies:**
+2. **Create a New Branch**:
+
    ```bash
-   npm install
+   git checkout -b <your-branch-name>
    ```
 
-3. **Run the development server:**
+3. **Copy Your Changes** from the previous codebase and **paste them** into the new branch.
+
+4. **Push Your Changes**:
+
    ```bash
-   npm run dev
+   git add .
+   git commit -m "Code update"
+   git push origin <your-branch-name>
    ```
 
-   Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. **Submit a Pull Request** to merge the changes.
 
-4. **Build for production:**
-   ```bash
-   npm run build
-   ```
+---
 
-5. **Start the production server:**
-   ```bash
-   npm start
-   ```
-
-6. **Lint the code:**
-   ```bash
-   npm run lint
-   ```
+Let me know if you need any help!

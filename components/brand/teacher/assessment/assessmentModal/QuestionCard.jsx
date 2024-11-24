@@ -38,16 +38,16 @@ export default function QuestionCard({ question, index, onUpdate, onDelete }) {
     onUpdate(index, "images", newImages);
   };
 
-  const handleCorrectAnswerToggle = (option) => {
-    const currentAnswers = Array.isArray(question.correctAnswers)
-      ? question.correctAnswers
-      : [question.correctAnswer].filter(Boolean);
+  const handleExpectedAnswerToggle = (option) => {
+    const currentExpectedAnswers = Array.isArray(question.expected_answer)
+      ? question.expected_answer
+      : [];
 
-    const newAnswers = currentAnswers.includes(option)
-      ? currentAnswers.filter((answer) => answer !== option)
-      : [...currentAnswers, option];
+    const newAnswers = currentExpectedAnswers.includes(option)
+      ? currentExpectedAnswers.filter((answer) => answer !== option)
+      : [...currentExpectedAnswers, option];
 
-    onUpdate(index, "correctAnswers", newAnswers);
+    onUpdate(index, "expected_answer", newAnswers);
   };
 
   const navigateImages = (direction) => {
@@ -85,7 +85,9 @@ export default function QuestionCard({ question, index, onUpdate, onDelete }) {
             <div className="flex items-center space-x-4">
               <Badge variant="outline">Question {index + 1}</Badge>
               <Badge>
-                {question.type === "mcq" ? "Multiple Choice" : "Broad Question"}
+                {question.question_type === "mcq"
+                  ? "Multiple Choice"
+                  : "Broad Question"}
               </Badge>
               <div className="flex items-center space-x-2">
                 <Label>Marks:</Label>
@@ -109,6 +111,20 @@ export default function QuestionCard({ question, index, onUpdate, onDelete }) {
               Delete
             </Button>
           </div>
+
+          {/* Question Description (Optional) */}
+          {/* <div className="mb-4">
+            <Label className="text-base">Description (Optional)</Label>
+            <Textarea
+              value={question.question_description || ""}
+              onChange={(e) =>
+                onUpdate(index, "question_description", e.target.value)
+              }
+              rows={2}
+              className="mt-2"
+              placeholder="Add additional context or instructions for this question..."
+            />
+          </div> */}
 
           {/* Image Upload Section */}
           <div className="space-y-4 mb-4">
@@ -171,67 +187,69 @@ export default function QuestionCard({ question, index, onUpdate, onDelete }) {
             <div>
               <Label className="text-base">Question Text</Label>
               <Textarea
-                value={question.question}
-                onChange={(e) => onUpdate(index, "question", e.target.value)}
+                value={question.question_text}
+                onChange={(e) =>
+                  onUpdate(index, "question_text", e.target.value)
+                }
                 rows={3}
                 className="mt-2"
               />
             </div>
 
-            {question.type === "mcq" && (
+            {question.question_type === "mcq" && (
               <div className="space-y-4">
                 <Label className="text-base">Options</Label>
                 <div className="grid gap-3">
-                  {question.options.map((option, optionIndex) => (
-                    <div
-                      key={optionIndex}
-                      className="flex items-center space-x-3"
-                    >
-                      <div className="flex-1">
-                        <Input
-                          value={option}
-                          onChange={(e) => {
-                            const newOptions = [...question.options];
-                            newOptions[optionIndex] = e.target.value;
-                            onUpdate(index, "options", newOptions);
-                          }}
-                          placeholder={`Option ${optionIndex + 1}`}
-                        />
-                      </div>
-                      <Button
-                        variant={
-                          (
-                            Array.isArray(question.correctAnswers)
-                              ? question.correctAnswers.includes(option)
-                              : question.correctAnswer === option
-                          )
-                            ? "default"
-                            : "outline"
-                        }
-                        onClick={() => handleCorrectAnswerToggle(option)}
-                        className="min-w-[100px]"
+                  {(question.options_for_mcq || []).map(
+                    (option, optionIndex) => (
+                      <div
+                        key={optionIndex}
+                        className="flex items-center space-x-3"
                       >
-                        {(Array.isArray(question.correctAnswers)
-                          ? question.correctAnswers.includes(option)
-                          : question.correctAnswer === option) && (
-                          <CheckCircle2 className="w-4 h-4 mr-2" />
-                        )}
-                        Correct
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="flex-1">
+                          <Input
+                            value={option}
+                            onChange={(e) => {
+                              const newOptions = [...question.options_for_mcq];
+                              newOptions[optionIndex] = e.target.value;
+                              onUpdate(index, "options_for_mcq", newOptions);
+                            }}
+                            placeholder={`Option ${optionIndex + 1}`}
+                          />
+                        </div>
+                        <Button
+                          variant={
+                            question.expected_answer?.includes(option)
+                              ? "default"
+                              : "outline"
+                          }
+                          onClick={() => handleExpectedAnswerToggle(option)}
+                          className="min-w-[100px]"
+                        >
+                          {question.expected_answer?.includes(option) && (
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                          )}
+                          Correct
+                        </Button>
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
             )}
 
-            {question.type === "broad" && (
+            {question.question_type === "broad" && (
               <div className="space-y-4">
                 <div>
                   <Label className="text-base">Expected Answer</Label>
                   <Textarea
-                    value={question.expectedAnswer}
+                    value={
+                      Array.isArray(question.expected_answer)
+                        ? question.expected_answer[0] || ""
+                        : question.expected_answer || ""
+                    }
                     onChange={(e) =>
-                      onUpdate(index, "expectedAnswer", e.target.value)
+                      onUpdate(index, "expected_answer", [e.target.value])
                     }
                     rows={4}
                     className="mt-2"

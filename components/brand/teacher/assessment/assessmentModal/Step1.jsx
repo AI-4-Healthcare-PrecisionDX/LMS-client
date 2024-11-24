@@ -67,9 +67,9 @@ export default function Step1({ onNext }) {
 
             <Card
               className={`cursor-pointer transition-all hover:shadow-lg ${
-                category === "custom" ? "ring-2 ring-primary" : ""
+                category === "manual" ? "ring-2 ring-primary" : ""
               }`}
-              onClick={() => setCategory("custom")}
+              onClick={() => setCategory("manual")}
             >
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold mb-2">Manual</h3>

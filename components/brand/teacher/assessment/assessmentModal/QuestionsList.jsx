@@ -13,9 +13,9 @@ export default function QuestionsList({ state, dispatch, category }) {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center">
             <Pencil className="w-5 h-5 mr-2" />
-            {category === "custom" ? "Questions" : "Generated Questions"}
+            {category === "manual" ? "Questions" : "Generated Questions"}
           </div>
-          {category === "custom" && <QuestionTypeButtons dispatch={dispatch} />}
+          {category === "manual" && <QuestionTypeButtons dispatch={dispatch} />}
           <Badge variant="outline" className="px-4 py-2">
             {state.questions.length} Questions
           </Badge>

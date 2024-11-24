@@ -15,8 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useAuth } from "@/hooks/use-auth";
+import api from "@/lib/axios-config";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Filter, MoreHorizontal } from "lucide-react";
 import { useReducer } from "react";
+import { toast } from "sonner";
 import Step1 from "./assessmentModal/Step1";
 import Step2 from "./assessmentModal/Step2";
 import Step3 from "./assessmentModal/Step3";
@@ -27,7 +31,7 @@ import SubmissionDialog from "./SubmissionDialog";
 // Utility Functions
 const getSortLabel = (sortBy) => {
   const labels = {
-    startTime: "Start Date",
+    start_time: "Start Date",
     deadline: "Deadline",
     name: "Exam Name",
   };
@@ -36,16 +40,65 @@ const getSortLabel = (sortBy) => {
 
 const sortAssignments = (assignments, sortBy) => {
   return [...assignments].sort((a, b) => {
-    if (sortBy === "startTime" || sortBy === "deadline") {
+    if (sortBy === "start_time" || sortBy === "deadline") {
       return new Date(a[sortBy]) - new Date(b[sortBy]);
     }
-    return sortBy === "name" ? a.name.localeCompare(b.name) : 0;
+    return sortBy === "name"
+      ? a.assignment_title.localeCompare(b.assignment_title)
+      : 0;
   });
 };
 
+const useCreateAssignment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (assignmentData) => {
+      // Format dates to ISO string
+      const formattedData = {
+        ...assignmentData,
+        start_time: new Date(assignmentData.start_time).toISOString(),
+        deadline: new Date(assignmentData.deadline).toISOString(),
+        questions: assignmentData.questions.map((q) => ({
+          ...q,
+          marks: Number(q.marks),
+          options: q.options?.map((opt) => ({
+            ...opt,
+            isCorrect: Boolean(opt.isCorrect),
+          })),
+        })),
+      };
+
+      console.log("Sending data:", formattedData); // For debugging
+
+      const response = await api.post(
+        "/assignment/create-assignment",
+        formattedData,
+      );
+      return response.data;
+    },
+    onError: (error) => {
+      if (error.response?.status === 422) {
+        console.error("Validation errors:", error.response.data.detail);
+      }
+      throw error;
+    },
+  });
+};
+
+const fetchAssignments = async (sectionId) => {
+  const { data } = await api.get(
+    `/assignment/section/${sectionId}/assignments`,
+  );
+  return data;
+};
+
 // Main Component
-export default function AssignmentDashboard({ examEvaluation }) {
+export default function AssignmentDashboard({ examEvaluation, sectionId }) {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const { isAuthenticated } = useAuth();
+
+  const queryClient = useQueryClient();
 
   const handleAddAssignment = () => {
     dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: true });
@@ -62,7 +115,7 @@ export default function AssignmentDashboard({ examEvaluation }) {
       payload:
         details.assessmentType === "viva"
           ? 4
-          : details.category === "custom"
+          : details.category === "manual"
             ? 3
             : 2,
     });
@@ -74,7 +127,7 @@ export default function AssignmentDashboard({ examEvaluation }) {
       // If we're in VivaStep (step 4), go back to step 1
       if (state.currentStep === 4) {
         dispatch({ type: ACTIONS.SET_CURRENT_STEP, payload: 1 });
-      } else if (details.category === "custom" && state.currentStep === 3) {
+      } else if (details.category === "manual" && state.currentStep === 3) {
         dispatch({
           type: ACTIONS.SET_CURRENT_STEP,
           payload: 1,
@@ -100,8 +153,9 @@ export default function AssignmentDashboard({ examEvaluation }) {
       },
     });
     dispatch({ type: ACTIONS.SET_CURRENT_STEP, payload: 3 });
-    // console.log("details", details);
   };
+
+  const { mutate: createAssignment, isPending } = useCreateAssignment();
 
   const handlePublish = (finalAssignment) => {
     if (state.editingAssignment) {
@@ -111,26 +165,62 @@ export default function AssignmentDashboard({ examEvaluation }) {
       });
     } else {
       const newAssignmentEntry = {
-        id: state.assignments.length + 1,
         assignment_type: state.newAssignment.category,
         assignment_title:
           finalAssignment.assignment_title ||
           `New ${state.newAssignment.questionType} Assignment`,
-        // assignment_question_type: state.newAssignment.category,
-        number_of_questions: finalAssignment.questions.length,
-        totalMarks: finalAssignment.totalMarks,
-        startTime: finalAssignment.startTime,
+        number_of_questions: Number(finalAssignment.questions.length),
+        total_marks: Number(finalAssignment.totalMarks),
+        start_time: finalAssignment.start_time,
         deadline: finalAssignment.deadline,
-        section_id: 123,
-        // submitted: 0,
-        // questions: finalAssignment.questions,
-        // files: finalAssignment.files,
+        section_id: sectionId,
+        questions: finalAssignment.questions,
       };
-      dispatch({ type: ACTIONS.ADD_ASSIGNMENT, payload: newAssignmentEntry });
-      // console.log("New Assignment:", newAssignmentEntry);
-      console.log("questions:", finalAssignment.questions);
+
+      createAssignment(newAssignmentEntry, {
+        onSuccess: () => {
+          dispatch({
+            type: ACTIONS.ADD_ASSIGNMENT,
+            payload: newAssignmentEntry,
+          });
+          dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
+          toast.success("Assignment created successfully");
+          console.log(newAssignmentEntry);
+        },
+        onError: (error) => {
+          // Handle the error appropriately in your UI
+          console.error("Assignment creation failed:", error);
+        },
+      });
     }
-    dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
+  };
+
+  const {
+    data: Assignments,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: queryClient.invalidateQueries(["assignments", sectionId]),
+    queryFn: () => fetchAssignments(sectionId),
+    enabled: !!sectionId && isAuthenticated,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    retry: 2,
+  });
+
+  const { mutate: deleteAssignment, isLoading: isDeleting } = useMutation({
+    mutationFn: (assignmentId) => api.delete(`/assignment/${assignmentId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries(["assignments", sectionId]);
+      toast.success("Assignment deleted successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to delete assignment");
+      console.error(error);
+    },
+  });
+
+  const handleDelete = (assignmentId) => {
+    deleteAssignment(assignmentId);
   };
 
   const handleEdit = (id) => {
@@ -148,9 +238,9 @@ export default function AssignmentDashboard({ examEvaluation }) {
     dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: true });
   };
 
-  const handleDelete = (id) => {
-    dispatch({ type: ACTIONS.DELETE_ASSIGNMENT, payload: id });
-  };
+  // const handleDelete = (id) => {
+  //   dispatch({ type: ACTIONS.DELETE_ASSIGNMENT, payload: id });
+  // };
 
   const handleCheckSubmission = (assignmentId) => {
     const assignment = state.assignments.find((a) => a.id === assignmentId);
@@ -158,7 +248,10 @@ export default function AssignmentDashboard({ examEvaluation }) {
     dispatch({ type: ACTIONS.SET_SUBMISSION_MODAL_OPEN, payload: true });
   };
 
-  const sortedAssignments = sortAssignments(state.assignments, state.sortBy);
+  // const sortedAssignments = sortAssignments(Assignments, state.sortBy);
+  const sortedAssignments = Assignments
+    ? sortAssignments(Assignments, state.sortBy)
+    : [];
 
   return (
     <div className="container mx-auto py-10">
@@ -174,7 +267,7 @@ export default function AssignmentDashboard({ examEvaluation }) {
           <DropdownMenuContent>
             <DropdownMenuItem
               onClick={() =>
-                dispatch({ type: ACTIONS.SET_SORT_BY, payload: "startTime" })
+                dispatch({ type: ACTIONS.SET_SORT_BY, payload: "start_time" })
               }
             >
               Start Date
@@ -210,41 +303,51 @@ export default function AssignmentDashboard({ examEvaluation }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sortedAssignments.map((assignment) => (
-            <TableRow key={assignment.id}>
-              <TableCell onClick={examEvaluation}>
-                {assignment.assignment_title}
-              </TableCell>
-              <TableCell>{assignment.startTime}</TableCell>
-              <TableCell>{assignment.deadline}</TableCell>
-              <TableCell>{assignment.totalMarks}</TableCell>
-              <TableCell>{assignment.submitted}</TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleEdit(assignment.id)}>
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleDelete(assignment.id)}
-                    >
-                      Delete
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onClick={() => handleCheckSubmission(assignment.id)}
-                    >
-                      Check Submission
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+          {isLoading ? (
+            <TableRow>
+              <TableCell colSpan={6}>Loading assignments...</TableCell>
             </TableRow>
-          ))}
+          ) : (
+            sortedAssignments.map((assignment) => (
+              <TableRow key={assignment.assignmnent_id}>
+                <TableCell onClick={examEvaluation}>
+                  {assignment.assignment_title}
+                </TableCell>
+                <TableCell>{assignment.start_time}</TableCell>
+                <TableCell>{assignment.deadline}</TableCell>
+                <TableCell>{assignment.total_marks}</TableCell>
+                <TableCell>{assignment.submitted}</TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => handleEdit(assignment.assignment_id)}
+                      >
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDelete(assignment.assignment_id)}
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          handleCheckSubmission(assignment.assignment_id)
+                        }
+                      >
+                        Check Submission
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
         </TableBody>
       </Table>
 

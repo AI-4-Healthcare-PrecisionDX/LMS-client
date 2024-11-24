@@ -1,11 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useReducer, useCallback } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,10 +14,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -29,26 +25,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  PlusCircle,
-  ChevronDown,
-  ChevronRight,
-  AlertCircle,
-  FileUp,
-  Save,
-  EyeOff,
-  Eye,
-  Info,
-} from "lucide-react";
-import { extractPDFTableOfContents } from "@/lib/getTOC";
-import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Switch } from "@/components/ui/switch";
+import { extractPDFTableOfContents } from "@/lib/getTOC";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  AlertCircle,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  FileUp,
+  Info,
+  PlusCircle,
+  Save,
+} from "lucide-react";
+import React, { useCallback, useReducer } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
 
 const tocEntrySchema: z.ZodSchema<any> = z.lazy(() =>
   z.object({
@@ -591,34 +592,13 @@ export default function TOC() {
           )}
         </div>
         <div className="mb-4">
-          <Label htmlFor="departmentName">Department</Label>
-          <Select onValueChange={(value) => setValue("departmentName", value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a department" />
-            </SelectTrigger>
-            <SelectContent>
-              {departments.map((dept) => (
-                <SelectItem key={dept} value={dept}>
-                  {dept}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="departmentName">Description</Label>
+          <Textarea placeholder="Type your message here." />
           {errors.departmentName && (
             <p className="text-red-500">{errors.departmentName.message}</p>
           )}
         </div>
-        <div className="mb-4">
-          <Label htmlFor="courseName">Course Name</Label>
-          <Input
-            id="courseName"
-            {...register("courseName")}
-            placeholder="Enter course name"
-          />
-          {errors.courseName && (
-            <p className="text-red-500">{errors.courseName.message}</p>
-          )}
-        </div>
+        
         <PrivacySection
           isPrivate={state.isPrivate}
           onToggle={handlePrivacyToggle}

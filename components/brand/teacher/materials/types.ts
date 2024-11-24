@@ -9,6 +9,7 @@ export type LibraryItem = {
 }
 
 export type SectionExclusiveContent = {
+  section_id: string
   title: string
   description: string
   library_item: LibraryItem

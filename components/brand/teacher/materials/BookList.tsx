@@ -1,24 +1,27 @@
 'use client'
 
-import { TourProvider } from "@reactour/tour"
-import { useQuery } from "@tanstack/react-query"
-import { Book, Search } from 'lucide-react'
-import { useState, type ReactElement } from "react"
-import { pdfjs } from "react-pdf"
+import { TourProvider } from "@reactour/tour";
+import { useQuery } from "@tanstack/react-query";
+import { Book, Search } from "lucide-react";
+import { useState, type ReactElement } from "react";
+import { pdfjs } from "react-pdf";
 
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-import { Button } from "@/components/ui/button"
-import api from "@/lib/axios-config"
-import Link from "next/link"
-import { LibraryItem, Props, Step } from "./types"
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import Link from "next/link";
+import TOC from "./TOC";
+import { SectionExclusiveContent, Step } from "./types";
+
 
 // Set up the worker for react-pdf
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const steps: Step[] = [
   {
@@ -37,79 +40,63 @@ const steps: Step[] = [
     selector: ".inspect-button",
     content: "Click here to inspect the materials for this book.",
   },
-]
+];
 
-const truncateString = (str: string | undefined, maxLength: number): string => 
-  str && str.length > maxLength ? str.slice(0, maxLength) + "..." : str || ""
+const truncateString = (str: string | undefined, maxLength: number): string =>
+  str && str.length > maxLength ? str.slice(0, maxLength) + "..." : str || "";
 
-function BookList({ section_exclusive_contents }: Props) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterMaterialType, setFilterMaterialType] = useState("all")
-  const [filterVisibility, setFilterVisibility] = useState("all")
-  const [pdfUrl, setPdfUrl] = useState<string>("")
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
-  const [numPages, setNumPages] = useState<number | null>(null)
-
+function BookList({
+  section_exclusive_contents,
+  sectionId,
+}: {
+  section_exclusive_contents: SectionExclusiveContent[];
+  sectionId: string;
+}): ReactElement {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterMaterialType, setFilterMaterialType] = useState("all");
+  const [filterVisibility, setFilterVisibility] = useState("all");
   const { data: filteredContents } = useQuery({
-    queryKey: ['filteredContents', searchTerm, filterVisibility, filterMaterialType],
+    queryKey: [
+      "filteredContents",
+      searchTerm,
+      filterVisibility,
+      filterMaterialType,
+    ],
     queryFn: () => {
-      return section_exclusive_contents.filter(content => {
-        const matchesSearch = searchTerm === "" || (
+      return section_exclusive_contents.filter((content) => {
+        const matchesSearch =
+          searchTerm === "" ||
           content.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          content.library_item.material_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          content.library_item.author.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+          content.library_item.material_title
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          content.library_item.author
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
 
-        const matchesMaterialType = filterMaterialType === "all" ||
-          content.library_item.material_type === filterMaterialType
+        const matchesMaterialType =
+          filterMaterialType === "all" ||
+          content.library_item.material_type === filterMaterialType;
 
-        const matchesVisibility = filterVisibility === "all" ||
-          (filterVisibility === "visible" ? content.library_item.visibility : !content.library_item.visibility)
+        const matchesVisibility =
+          filterVisibility === "all" ||
+          (filterVisibility === "visible"
+            ? content.library_item.visibility
+            : !content.library_item.visibility);
 
-        return matchesSearch && matchesMaterialType && matchesVisibility
-      })
+        return matchesSearch && matchesMaterialType && matchesVisibility;
+      });
     },
     enabled: !!section_exclusive_contents,
-  })
+  });
 
-  const uniqueMaterialTypes = Array.from(new Set(
-    section_exclusive_contents.map(content => content.library_item.material_type)
-  ))
-
-  const handleViewContent = async (id: string, title: string) => {
-    try {
-      const fetchPDF = async (): Promise<LibraryItem> => {
-        const response = await api.get(`/utils/library_course_section/file/${id}`);
-        return response.data;
-      };
-
-      const pdfData = await fetchPDF();
-      console.log(pdfData.file_url);
-      // Fetch PDF as a blob
-      const pdfResponse = await fetch(pdfData.file_url);
-      const blob = await pdfResponse.blob();
-      
-      setPdfUrl(pdfData.file_url);
-      setPdfBlob(blob);
-    } catch (error) {
-      console.error("Error fetching PDF:", error);
-    }
-  }
-
-  const handleDownloadPDF = () => {
-    if (pdfBlob) {
-      const url = window.URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = "document.pdf";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-    }
-    console.log(pdfBlob);
-  }
+  const uniqueMaterialTypes = Array.from(
+    new Set(
+      section_exclusive_contents.map(
+        (content) => content.library_item.material_type,
+      ),
+    ),
+  );
 
   return (
     <div className="container mx-auto pt-8">
@@ -125,7 +112,7 @@ function BookList({ section_exclusive_contents }: Props) {
             />
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary w-5 h-5" />
           </div>
-          
+
           <div className="flex flex-wrap gap-3 items-center filter-options">
             <Select onValueChange={setFilterMaterialType}>
               <SelectTrigger className="w-[180px]">
@@ -133,8 +120,10 @@ function BookList({ section_exclusive_contents }: Props) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                {uniqueMaterialTypes.map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                {uniqueMaterialTypes.map((type, index) => (
+                  <SelectItem key={index} value={type as string}>
+                    {type as string}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -145,16 +134,28 @@ function BookList({ section_exclusive_contents }: Props) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
-                <SelectItem value="visible">Visible</SelectItem>
-                <SelectItem value="hidden">Hidden</SelectItem>
+                <SelectItem value="visible">Public</SelectItem>
+                <SelectItem value="hidden">Private</SelectItem>
               </SelectContent>
             </Select>
+            <Dialog>
+          <DialogTrigger asChild>
+            <Button className="dark:text-white upload-content-button">
+              Upload PDF
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="w-[90vw] h-full p-0 sm:max-w-none sm:max-h-none sm:p-4">
+            <ScrollArea>
+                <TOC sectionId={sectionId} />
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-1">
-        {filteredContents?.map((content, index) => (
+        {filteredContents?.map((content: SectionExclusiveContent, index: number) => (
           <Card
             key={index}
             className="flex flex-col h-full hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300"
@@ -193,7 +194,7 @@ function BookList({ section_exclusive_contents }: Props) {
                   {content.library_item.material_type}
                 </Badge>
                 <Badge variant="secondary">
-                  {content.library_item.visibility ? 'Visible' : 'Hidden'}
+                  {content.library_item.visibility ? "Visible" : "Hidden"}
                 </Badge>
               </div>
               <p className="text-sm text-gray-600">
@@ -203,31 +204,35 @@ function BookList({ section_exclusive_contents }: Props) {
 
             <CardFooter className="p-4 mx-auto">
               <Link
-              target="_blank"
+                target="_blank"
                 href={`/teacher/view/${encodeURIComponent(content.library_item.library_id)}`}
-              ><Button
-              className="w-full read-book-button"
-              variant="outline"
-            >
-              Read Book
-            </Button></Link>
+              >
+                <Button className="w-full read-book-button" variant="outline">
+                  Read Book
+                </Button>
+              </Link>
             </CardFooter>
           </Card>
         ))}
       </div>
-      
     </div>
-  )
+  );
 }
 
-export default function BookListWithTour({ 
-  section_exclusive_contents 
-}: { 
-  section_exclusive_contents: Props["section_exclusive_contents"]
+export default function BookListWithTour({
+  section_exclusive_contents,
+  sectionId,
+}: {
+  section_exclusive_contents: SectionExclusiveContent[];
+  sectionId: string;
 }): ReactElement {
   return (
     <TourProvider steps={steps}>
-      <BookList section_exclusive_contents={section_exclusive_contents} />
+      <BookList
+        section_exclusive_contents={section_exclusive_contents}
+        sectionId={sectionId}
+      />
     </TourProvider>
-  )
+  );
 }
+

@@ -75,6 +75,7 @@ const CoursePage = ({ params }: PageProps) => {
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     retry: 2, // Retry twice before failing
   });
+  // console.log(sectionData?.section_id);
 
   if (isLoading) {
     return <LoadingSection />;
@@ -92,6 +93,7 @@ const CoursePage = ({ params }: PageProps) => {
       <CourseDetails
         courseName={sectionData.template_course.template_name}
         section={sectionData.section_name}
+        sectionId={sectionData?.section_id}
         totalStudents={sectionData.student_count}
         instructor={sectionData.teacher.user.first_name}
         section_exclusive_contents={sectionData.section_exclusive_contents}

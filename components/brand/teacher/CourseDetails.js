@@ -15,6 +15,7 @@ import TeacherInbox from "./TeacherInbox";
 export default function CourseDetails({
   courseName,
   section,
+  sectionId,
   totalStudents,
   instructor,
   section_exclusive_contents,
@@ -22,6 +23,7 @@ export default function CourseDetails({
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isDashboard, setIsDashboard] = useState(true);
+  // console.log(sectionId);
 
   const handleAssignmentClick = () => {
     if (isDashboard) setIsDashboard(false);
@@ -74,7 +76,7 @@ export default function CourseDetails({
         </TabsContent>
         <TabsContent value="assignments">
           {isDashboard && (
-            <AssignmentDashboard examEvaluation={handleAssignmentClick} />
+            <AssignmentDashboard examEvaluation={handleAssignmentClick} sectionId={sectionId} />
           )}
           {!isDashboard && (
             <div className="space-y-2">
@@ -84,7 +86,7 @@ export default function CourseDetails({
           )}
         </TabsContent>
         <TabsContent value="materials">
-          <BookListWithTour section_exclusive_contents={section_exclusive_contents}/>
+          <BookListWithTour section_exclusive_contents={section_exclusive_contents} sectionId={sectionId}/>
         </TabsContent>
         <TabsContent value="performance">
           <PerformanceDashboard />
