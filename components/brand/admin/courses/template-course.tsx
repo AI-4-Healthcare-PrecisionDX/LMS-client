@@ -1,10 +1,6 @@
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useReducer } from "react";
-import { z } from "zod";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +8,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -22,7 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -30,13 +25,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Search, Trash2, Edit } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import api from "@/lib/axios-config";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Edit, Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { useReducer, useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { Course, courseSchema, Department, State } from "./types";
-import { reducer } from "./reducer";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { z } from "zod";
 import { CourseMateriels } from "./course-materials";
+import { reducer } from "./reducer";
+import { Course, courseSchema, Department, State } from "./types";
 
 const initialState: State = {
   searchTerm: "",
@@ -335,7 +335,7 @@ export default function TemplateCourse() {
           </div>
         </div>
 
-        <Select
+        {/* <Select
           onValueChange={(value) =>
             dispatch({ type: "SET_YEAR", payload: value })
           }
@@ -350,7 +350,8 @@ export default function TemplateCourse() {
             <SelectItem value="2025">2025</SelectItem>
             <SelectItem value="2026">2026</SelectItem>
           </SelectContent>
-        </Select>
+        </Select> */}
+
         <Select
           onValueChange={(value) =>
             dispatch({ type: "SET_DEPARTMENT", payload: value })
