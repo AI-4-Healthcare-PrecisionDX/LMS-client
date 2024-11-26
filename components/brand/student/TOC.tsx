@@ -14,7 +14,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,93 +24,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import useFileUpload from "@/hooks/use-upload";
 import { extractPDFTableOfContents } from "@/lib/getTOC";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertCircle,
   ChevronDown,
   ChevronRight,
-  Eye,
-  EyeOff,
   FileUp,
-  Info,
   PlusCircle,
   Save,
 } from "lucide-react";
 import React, { useCallback, useReducer } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { z } from "zod";
-
-const tocEntrySchema: z.ZodSchema<any> = z.lazy(() =>
-  z.object({
-    id: z.string(),
-    title: z.string().min(1, "Title is required"),
-    pageRanges: z.object({
-      start: z.number().min(1, "Start page must be at least 1"),
-      end: z.number().min(1, "End page must be at least 1"),
-    }),
-    sections: z.array(tocEntrySchema).optional(),
-  }),
-);
-
-const tocSchema = z.object({
-  bookName: z.string().min(1, "Book name is required"),
-  authors: z.string().optional(),
-  category: z.string().min(1, "Category is required"),
-  departmentName: z.string().min(1, "Department is required"),
-  courseName: z.string().min(1, "Course name is required"),
-  pdfFile: z
-    .instanceof(File)
-    .refine((file) => file.type === "application/pdf", {
-      message: "The file must be a PDF",
-    }),
-  toc: z.array(tocEntrySchema),
-  isPrivate: z.boolean().default(false),
-});
-
-type TOCSchema = z.infer<typeof tocSchema>;
-type TOCEntry = z.infer<typeof tocEntrySchema>;
-
-type State = {
-  toc: TOCEntry[];
-  fileName: string;
-  error: string;
-  expandedItems: Record<string, boolean>;
-  isLoading: boolean;
-  selectedItems: string[];
-  jsonData: string;
-  apiResponse: string;
-  isPrivate: boolean;
-};
-
-type Action =
-  | { type: "SET_TOC"; payload: TOCEntry[] }
-  | { type: "SET_FILE_NAME"; payload: string }
-  | { type: "SET_ERROR"; payload: string }
-  | { type: "TOGGLE_EXPAND"; payload: string }
-  | { type: "SET_LOADING"; payload: boolean }
-  | { type: "SET_SELECTED_ITEMS"; payload: string[] }
-  | { type: "SET_JSON_DATA"; payload: string }
-  | { type: "SET_API_RESPONSE"; payload: string }
-  | { type: "SET_IS_PRIVATE"; payload: boolean }
-  | {
-      type: "ADD_ENTRY";
-      payload: { parentId: string | null; newEntry: TOCEntry };
-    }
-  | {
-      type: "UPDATE_ENTRY";
-      payload: { id: string; field: string; value: string | number };
-    }
-  | { type: "DELETE_ENTRIES"; payload: string[] };
+import PrivarySection from "./library/privacy-card";
+import { reducer } from "./library/reducer";
+import { State, TOCEntry, tocSchema, TOCSchema } from "./library/types";
 
 const initialState: State = {
   toc: [],
@@ -125,156 +55,12 @@ const initialState: State = {
   isPrivate: false,
 };
 
-function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case "SET_TOC":
-      return { ...state, toc: action.payload };
-    case "SET_FILE_NAME":
-      return { ...state, fileName: action.payload };
-    case "SET_ERROR":
-      return { ...state, error: action.payload };
-    case "TOGGLE_EXPAND":
-      return {
-        ...state,
-        expandedItems: {
-          ...state.expandedItems,
-          [action.payload]: !state.expandedItems[action.payload],
-        },
-      };
-    case "SET_LOADING":
-      return { ...state, isLoading: action.payload };
-    case "SET_SELECTED_ITEMS":
-      return { ...state, selectedItems: action.payload };
-    case "SET_JSON_DATA":
-      return { ...state, jsonData: action.payload };
-    case "SET_API_RESPONSE":
-      return { ...state, apiResponse: action.payload };
-    case "ADD_ENTRY":
-      return {
-        ...state,
-        toc: addEntryToToc(
-          state.toc,
-          action.payload.parentId,
-          action.payload.newEntry,
-        ),
-      };
-    case "UPDATE_ENTRY":
-      return {
-        ...state,
-        toc: updateEntryInToc(
-          state.toc,
-          action.payload.id,
-          action.payload.field,
-          action.payload.value,
-        ),
-      };
-    case "DELETE_ENTRIES":
-      return {
-        ...state,
-        toc: deleteEntriesFromToc(state.toc, action.payload),
-        selectedItems: [],
-      };
-    case "SET_IS_PRIVATE":
-      return { ...state, isPrivate: action.payload };
-    default:
-      return state;
-  }
-}
-
-function addEntryToToc(
-  toc: TOCEntry[],
-  parentId: string | null,
-  newEntry: TOCEntry,
-): TOCEntry[] {
-  if (parentId === null) {
-    return [...toc, newEntry];
-  }
-  return toc.map((item) => {
-    if (item.id === parentId) {
-      return {
-        ...item,
-        sections: [...(item.sections || []), newEntry],
-      };
-    }
-    if (item.sections && item.sections.length > 0) {
-      return {
-        ...item,
-        sections: addEntryToToc(item.sections, parentId, newEntry),
-      };
-    }
-    return item;
-  });
-}
-
-function updateEntryInToc(
-  toc: TOCEntry[],
-  id: string,
-  field: string,
-  value: string | number,
-): TOCEntry[] {
-  return toc.map((item) => {
-    if (item.id === id) {
-      if (field === "start" || field === "end") {
-        return {
-          ...item,
-          pageRanges: {
-            ...item.pageRanges,
-            [field]: parseInt(value.toString()) || 1,
-          },
-        };
-      }
-      return { ...item, [field]: value };
-    }
-    if (item.sections && item.sections.length > 0) {
-      return {
-        ...item,
-        sections: updateEntryInToc(item.sections, id, field, value),
-      };
-    }
-    return item;
-  });
-}
-
-function deleteEntriesFromToc(
-  toc: TOCEntry[],
-  idsToDelete: string[],
-): TOCEntry[] {
-  return toc.filter((item) => {
-    if (idsToDelete.includes(item.id)) {
-      return false;
-    }
-    if (item.sections && item.sections.length > 0) {
-      item.sections = deleteEntriesFromToc(item.sections, idsToDelete);
-    }
-    return true;
-  });
-}
-
-const departments = [
-  "Anatomy",
-  "Biochemistry",
-  "Physiology",
-  "Pathology",
-  "Microbiology",
-  "Pharmacology",
-  "Community Medicine",
-  "Internal Medicine",
-  "Surgery",
-  "Pediatrics",
-  "Obstetrics and Gynecology",
-  "Psychiatry",
-  "Radiology",
-  "Anesthesiology",
-  "Dermatology",
-  "Ophthalmology",
-  "Otorhinolaryngology",
-  "Orthopedics",
-];
-
 const category = ["Book", "Journal", "Thesis", "Notes", "Slides", "Others"];
 
 export default function TOC() {
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  const { uploadFile, error, loading } = useFileUpload();
 
   const {
     register,
@@ -287,8 +73,7 @@ export default function TOC() {
       bookName: "",
       authors: "",
       category: "",
-      departmentName: "",
-      courseName: "",
+      description: "",
       toc: [],
       isPrivate: false,
     },
@@ -297,6 +82,7 @@ export default function TOC() {
   const handlePrivacyToggle = useCallback(
     (checked: boolean) => {
       setValue("isPrivate", checked);
+      dispatch({ type: "SET_IS_PRIVATE", payload: checked });
     },
     [setValue],
   );
@@ -492,44 +278,40 @@ export default function TOC() {
     dispatch({ type: "SET_LOADING", payload: true });
     dispatch({ type: "SET_ERROR", payload: "" });
 
+    const jsonString = JSON.stringify(data.toc, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const jsonfile = new File([blob], `${data.bookName}.json`, {
+      type: "application/json",
+    });
+
+    console.info("Uploading files:", data.pdfFile, jsonfile);
+
+    console.log(jsonfile.type, jsonfile.size, jsonfile.name);
+
     try {
-      const formData = new FormData();
-      formData.append("file", data.pdfFile);
-
-      // Create JSON file with TOC data
-      const tocData = {
-        bookName: data.bookName,
-        authors: data.authors,
-        category: data.category,
-        departmentName: data.departmentName,
-        courseName: data.courseName,
-        toc: data.toc,
-        isPrivate: data.isPrivate,
-      };
-      const jsonBlob = new Blob([JSON.stringify(tocData)], {
-        type: "application/json",
+      const result = await uploadFile({
+        pdfFile: data.pdfFile,
+        jsonFile: jsonfile,
+        author: data.authors,
+        materialType: data.category,
+        visibility: data.isPrivate,
+        materialTitle: data.bookName,
       });
-      const jsonFile = new File([jsonBlob], "toc.json", {
-        type: "application/json",
-      });
-      formData.append("json_file", jsonFile);
 
-      const response = await fetch(
-        "https://lms-backend.diagnotech-ai.com/v1/users/upload",
-        {
-          method: "POST",
-          body: formData,
-          headers: {
-            accept: "application/json",
-          },
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (error) {
+        dispatch({
+          type: "SET_ERROR",
+          payload: error,
+        });
       }
 
-      const result = await response.json();
+      if (loading) {
+        dispatch({
+          type: "SET_LOADING",
+          payload: true,
+        });
+      }
+
       dispatch({
         type: "SET_API_RESPONSE",
         payload: JSON.stringify(result, null, 2),
@@ -592,14 +374,20 @@ export default function TOC() {
           )}
         </div>
         <div className="mb-4">
-          <Label htmlFor="departmentName">Description</Label>
-          <Textarea placeholder="Type your message here." />
-          {errors.departmentName && (
-            <p className="text-red-500">{errors.departmentName.message}</p>
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            placeholder="Type your message here."
+            {...register("description")}
+            id="description"
+            rows={3}
+            className="w-full"
+          />
+          {errors.description && (
+            <p className="text-red-500">{errors.description.message}</p>
           )}
         </div>
-        
-        <PrivacySection
+
+        <PrivarySection
           isPrivate={state.isPrivate}
           onToggle={handlePrivacyToggle}
         />
@@ -708,61 +496,3 @@ export default function TOC() {
     </div>
   );
 }
-interface PrivacySectionProps {
-  isPrivate: boolean;
-  onToggle: (checked: boolean) => void;
-}
-
-const PrivacySection: React.FC<PrivacySectionProps> = ({
-  isPrivate,
-  onToggle,
-}) => {
-  return (
-    <Card className="mb-6">
-      <CardContent className="pt-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-primary/10 rounded-full">
-              {isPrivate ? (
-                <EyeOff className="h-5 w-5 text-primary" />
-              ) : (
-                <Eye className="h-5 w-5 text-primary" />
-              )}
-            </div>
-            <div>
-              <h3 className="font-medium">Privacy Settings</h3>
-              <p className="text-sm text-muted-foreground">
-                {isPrivate
-                  ? "Only you can access this material"
-                  : "Anyone with the link can access this material"}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-4 w-4 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Private materials are only visible to you.</p>
-                  <p>
-                    Public materials can be accessed by anyone with the link.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <Switch
-              checked={isPrivate}
-              onCheckedChange={onToggle}
-              className="ml-2"
-            />
-            <Label className="text-sm font-medium">
-              {isPrivate ? "Private" : "Public"}
-            </Label>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
