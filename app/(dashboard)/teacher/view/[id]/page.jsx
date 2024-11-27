@@ -1,5 +1,5 @@
 // "use client";
-// export const runtime = "edge";
+export const runtime = "edge";
 // import api from "@/lib/axios-config";
 // import { useParams } from "next/navigation";
 // import * as pdfjsLib from "pdfjs-dist";
