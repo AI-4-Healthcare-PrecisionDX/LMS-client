@@ -100,7 +100,6 @@ export default function Component() {
         dispatch({ type: "SET_SECTIONS", payload: response.data });
         return response.data;
       } catch (error) {
-        toast.error("Failed to fetch sections. Please try again later.");
         throw error;
       }
     },
@@ -264,19 +263,6 @@ export default function Component() {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2Icon className="animate-spin" />
-      </div>
-    );
-  }
-
-  if (sectionsError || coursesError || teachersError) {
-    return (
-      <div className="text-red-500 p-4">
-        An error occurred while fetching data. Please try refreshing the page.
-        <p>
-          {sectionsError?.message ??
-            coursesError?.message ??
-            teachersError?.message}
-        </p>
       </div>
     );
   }
@@ -486,6 +472,32 @@ export default function Component() {
         </div>
       </div>
 
+      {
+        // Show error message if there's an error fetching sections
+        sectionsError && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+            An error occurred while fetching sections. Please try again.
+          </div>
+        )
+      }
+
+      {
+        // Show error message if there's an error fetching courses
+        coursesError && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+            An error occurred while fetching courses. Please try again.
+          </div>
+        )
+      }
+
+      {
+        // Show error message if there's an error fetching teachers
+        teachersError && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+            An error occurred while fetching teachers. Please try again.
+          </div>
+        )
+      }
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         {paginatedSections.map((section: Section) => (
           <Card key={section.section_id}>
