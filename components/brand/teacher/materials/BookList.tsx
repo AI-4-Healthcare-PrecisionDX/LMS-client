@@ -1,10 +1,12 @@
 'use client'
 
 import { TourProvider } from "@reactour/tour";
-import { useQuery } from "@tanstack/react-query";
+import { QueryClient, useQuery } from "@tanstack/react-query";
 import { Book, Search } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import { pdfjs } from "react-pdf";
+
+const queryClient = new QueryClient();
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -97,6 +99,21 @@ function BookList({
       ),
     ),
   );
+
+  // const { mutate: deleteContent, isLoading: isDeleting } = useMutation({
+  //   onSuccess: () => {
+  //     queryClient.invalidateQueries(["deleteContent", deleteContent]);
+  //     toast.success("Assignment deleted successfully");
+  //   },
+  //   onError: (error) => {
+  //     toast.error("Failed to delete assignment");
+  //     console.error(error);
+  //   },
+  // });
+
+  // const handleDelete = (section_exclusive_content_id ) => {
+  //   deleteContent(section_exclusive_content_id );
+  // };
 
   return (
     <div className="container mx-auto pt-8">
@@ -194,7 +211,7 @@ function BookList({
                   {content.library_item.material_type}
                 </Badge>
                 <Badge variant="secondary">
-                  {content.library_item.visibility ? "Visible" : "Hidden"}
+                  {content.library_item.visibility ? "Public" : "Private"}
                 </Badge>
               </div>
               <p className="text-sm text-gray-600">
@@ -211,6 +228,13 @@ function BookList({
                   Read Book
                 </Button>
               </Link>
+              <Button
+                // onClick={() => handleDelete(content.section_exclusive_content_id)}
+                className="w-full inspect-button"
+                variant="outline"
+              >
+              Delete
+              </Button>
             </CardFooter>
           </Card>
         ))}
