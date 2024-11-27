@@ -238,10 +238,6 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: true });
   };
 
-  // const handleDelete = (id) => {
-  //   dispatch({ type: ACTIONS.DELETE_ASSIGNMENT, payload: id });
-  // };
-
   const handleCheckSubmission = (assignmentId) => {
     const assignment = state.assignments.find((a) => a.id === assignmentId);
     dispatch({ type: ACTIONS.SET_SELECTED_ASSIGNMENT, payload: assignment });
