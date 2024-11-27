@@ -1,37 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import React, { useReducer, useEffect } from "react";
+import { BreadcrumbResponsive } from "@/components/BreadCrumb";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Book,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CirclePlay,
-  Search,
-  BookOpen,
-  GraduationCap,
-} from "lucide-react";
-import Link from "next/link";
 import { Input } from "@/components/ui/input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { TourProvider, useTour } from "@reactour/tour";
-import { BreadcrumbResponsive } from "@/components/BreadCrumb";
-import UploadContent from "./UploadPdf";
-import { useAtomValue } from "jotai";
-import { bookAtom } from "@/store";
 import {
   Select,
   SelectContent,
@@ -39,32 +18,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { books } from "@/data";
+import { bookAtom } from "@/store";
 import { Book as BookType } from "@/types";
+import { TourProvider, useTour } from "@reactour/tour";
+import { useAtomValue } from "jotai";
+import {
+  Book,
+  BookOpen,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CirclePlay,
+  GraduationCap,
+  Search,
+} from "lucide-react";
+import Link from "next/link";
+import { useEffect, useReducer } from "react";
+import UploadContent from "./UploadPdf";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function truncateString(str: string, maxLength: number) {
-  if (str.length <= maxLength) {
-    return str;
-  } else {
-    return str.slice(0, maxLength) + "...";
-  }
-}
+// Utility function to truncate strings
+const truncateString = (str: string, maxLength: number) =>
+  str.length <= maxLength ? str : str.slice(0, maxLength) + "...";
 
+// Tour steps configuration
 const steps = [
   {
     selector: ".search-input",
     content:
       "You can Search for a particular book by title, author, or subject.",
   },
-  {
-    selector: ".category-filter",
-    content: "Filter books by category.",
-  },
-  {
-    selector: ".course-filter",
-    content: "Filter books by course.",
-  },
+  { selector: ".category-filter", content: "Filter books by category." },
+  { selector: ".course-filter", content: "Filter books by course." },
   {
     selector: ".read-book-button",
     content: "You can click here to read a particular book.",
@@ -84,9 +74,9 @@ const steps = [
 ];
 
 const items = [{ href: "/student", label: "Home" }, { label: "Book List" }];
-
 const ITEMS_TO_DISPLAY = 2;
 
+// State and action types for reducer
 type State = {
   searchTerm: string;
   filteredBooks: BookType[];
@@ -100,6 +90,7 @@ type Action =
   | { type: "SET_CATEGORY_FILTER"; payload: string }
   | { type: "SET_COURSE_FILTER"; payload: string };
 
+// Initial state for the reducer
 const initialState: State = {
   searchTerm: "",
   filteredBooks: books,
@@ -107,7 +98,8 @@ const initialState: State = {
   courseFilter: "all",
 };
 
-function reducer(state: State, action: Action): State {
+// Reducer function to manage state
+const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "SET_SEARCH_TERM":
       return { ...state, searchTerm: action.payload };
@@ -120,9 +112,10 @@ function reducer(state: State, action: Action): State {
     default:
       return state;
   }
-}
+};
 
-function BookList() {
+// BookList component
+const BookList = () => {
   const book = useAtomValue(bookAtom);
   const [state, dispatch] = useReducer(reducer, initialState);
   const { setIsOpen } = useTour();
@@ -182,136 +175,143 @@ function BookList() {
         <h1 className="text-4xl font-bold my-8 text-center">
           Select a Book for Your Exam Preparation
         </h1>
-
         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
-          <div className="relative flex-grow max-w-md w-full">
-            <Input
-              type="text"
-              placeholder="Search books..."
-              value={state.searchTerm}
-              onChange={(e) =>
-                dispatch({ type: "SET_SEARCH_TERM", payload: e.target.value })
-              }
-              className="w-full py-2 pl-10 pr-4 transition-colors duration-300 border-2 rounded-full search-input border-primary focus:outline-none focus:border-primary-dark dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-            />
-            <Search className="absolute w-5 h-5 transform -translate-y-1/2 left-3 top-1/2 text-primary dark:text-gray-400" />
-          </div>
-          <div className="flex gap-4 w-full md:w-auto">
-            <Select
-              value={state.categoryFilter}
-              onValueChange={(value) =>
-                dispatch({ type: "SET_CATEGORY_FILTER", payload: value })
-              }
-            >
-              <SelectTrigger className="w-full md:w-[180px] category-filter">
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category.charAt(0).toUpperCase() + category.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={state.courseFilter}
-              onValueChange={(value) =>
-                dispatch({ type: "SET_COURSE_FILTER", payload: value })
-              }
-            >
-              <SelectTrigger className="w-full md:w-[180px] course-filter">
-                <SelectValue placeholder="Course" />
-              </SelectTrigger>
-              <SelectContent>
-                {courses.map((course) => (
-                  <SelectItem key={course} value={course}>
-                    {course.charAt(0).toUpperCase() + course.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <SearchInput searchTerm={state.searchTerm} dispatch={dispatch} />
+          <FilterSelect
+            label="Category"
+            value={state.categoryFilter}
+            options={categories}
+            onChange={(value) =>
+              dispatch({ type: "SET_CATEGORY_FILTER", payload: value })
+            }
+          />
+          <FilterSelect
+            label="Course"
+            value={state.courseFilter}
+            options={courses}
+            onChange={(value) =>
+              dispatch({ type: "SET_COURSE_FILTER", payload: value })
+            }
+          />
           <UploadContent />
         </div>
       </div>
-
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {book && <BookCard book={book} handleReadBook={handleReadBook} />}
-
         {state.filteredBooks.map((book) => (
           <BookCard key={book.id} book={book} handleReadBook={handleReadBook} />
         ))}
       </div>
     </div>
   );
-}
+};
 
-function BookCard({
+// SearchInput component
+const SearchInput = ({
+  searchTerm,
+  dispatch,
+}: {
+  searchTerm: string;
+  dispatch: React.Dispatch<Action>;
+}) => (
+  <div className="relative flex-grow max-w-md w-full">
+    <Input
+      type="text"
+      placeholder="Search books..."
+      value={searchTerm}
+      onChange={(e) =>
+        dispatch({ type: "SET_SEARCH_TERM", payload: e.target.value })
+      }
+      className="w-full py-2 pl-10 pr-4 transition-colors duration-300 border-2 rounded-full search-input border-primary focus:outline-none focus:border-primary-dark dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+    />
+    <Search className="absolute w-5 h-5 transform -translate-y-1/2 left-3 top-1/2 text-primary dark:text-gray-400" />
+  </div>
+);
+
+// FilterSelect component
+const FilterSelect = ({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) => (
+  <Select value={value} onValueChange={onChange}>
+    <SelectTrigger className="w-full md:w-[180px]">
+      <SelectValue placeholder={label} />
+    </SelectTrigger>
+    <SelectContent>
+      {options.map((option) => (
+        <SelectItem key={option} value={option}>
+          {option.charAt(0).toUpperCase() + option.slice(1)}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+);
+
+// BookCard component
+const BookCard = ({
   book,
   handleReadBook,
 }: {
   book: BookType;
   handleReadBook: (book: BookType) => void;
-}) {
-  return (
-    <Card className="flex flex-col h-full transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 overflow-hidden">
-      <CardHeader className="bg-primary p-6 text-primary-foreground h-[180px]">
-        <div className="flex items-center justify-between mb-4">
-          <Book className="w-12 h-12" />
-          <Badge variant="secondary" className="text-xs font-semibold">
-            {book.difficulty}
-          </Badge>
-        </div>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger>
-              <h2 className="text-2xl font-bold leading-tight line-clamp-2">
-                {book.title}
-              </h2>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p className="text-primary-foreground">{book.title}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <p className="text-sm mt-2 text-primary-foreground/80">
-          by {book.author}
-        </p>
-      </CardHeader>
-
-      <CardContent className="flex-grow p-6 bg-card">
-        <div className="flex flex-wrap gap-2 mb-4">
-          <Badge variant="outline">{book.category}</Badge>
-          <Badge variant="outline">{book.course}</Badge>
-        </div>
-
-        {/* <p className="text-sm font-medium">
-          <span className="text-primary">{book.chapters}</span> Chapters
-        </p> */}
-      </CardContent>
-
-      <CardFooter className="bg-muted/50 p-6 gap-4">
-        <Button
-          className="read-book-button flex-1"
-          variant="outline"
-          onClick={() => handleReadBook(book)}
-        >
-          <BookOpen className="w-4 h-4 mr-2" />
-          Read Content
+}) => (
+  <Card className="flex flex-col h-full transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 overflow-hidden">
+    <CardHeader className="bg-primary p-6 text-primary-foreground h-[180px]">
+      <div className="flex items-center justify-between mb-4">
+        <Book className="w-12 h-12" />
+        <Badge variant="secondary" className="text-xs font-semibold">
+          {book.difficulty}
+        </Badge>
+      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger>
+            <h2 className="text-2xl font-bold leading-tight line-clamp-2">
+              {book.title}
+            </h2>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p className="text-primary-foreground">{book.title}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <p className="text-sm mt-2 text-primary-foreground/80">
+        by {book.author}
+      </p>
+    </CardHeader>
+    <CardContent className="flex-grow p-6 bg-card">
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Badge variant="outline">{book.category}</Badge>
+        <Badge variant="outline">{book.course}</Badge>
+      </div>
+    </CardContent>
+    <CardFooter className="bg-muted/50 p-6 gap-4">
+      <Button
+        className="read-book-button flex-1"
+        variant="outline"
+        onClick={() => handleReadBook(book)}
+      >
+        <BookOpen className="w-4 h-4 mr-2" />
+        Read Content
+      </Button>
+      <Link href="/student/exam-v2/chapter" className="flex-1">
+        <Button className="start-prep-button w-full" variant="default">
+          <GraduationCap className="w-4 h-4 mr-2" />
+          Start Prep
         </Button>
+      </Link>
+    </CardFooter>
+  </Card>
+);
 
-        <Link href="/student/exam-v2/chapter" className="flex-1">
-          <Button className="start-prep-button w-full" variant="default">
-            <GraduationCap className="w-4 h-4 mr-2" />
-            Start Prep
-          </Button>
-        </Link>
-      </CardFooter>
-    </Card>
-  );
-}
-
+// BookListWithTour component
 export default function BookListWithTour() {
   const handlePrevStep = ({
     currentStep,
@@ -322,6 +322,7 @@ export default function BookListWithTour() {
   }) => {
     setCurrentStep(currentStep - 1);
   };
+
   const handleNextStep = ({
     currentStep,
     stepsLength,
@@ -335,14 +336,13 @@ export default function BookListWithTour() {
   }) => {
     setCurrentStep(currentStep + 1);
   };
+
   return (
     <TourProvider
       steps={steps}
       disableDotsNavigation
       scrollSmooth
-      onClickHighlighted={(e) => {
-        e.stopPropagation();
-      }}
+      onClickHighlighted={(e) => e.stopPropagation()}
       disableInteraction
       prevButton={({ currentStep, setCurrentStep }) => (
         <button
