@@ -23,32 +23,12 @@
     --border: 220 13% 91%;
     --input: 220 13% 91%;
     --ring: 262.1 83.3% 57.8%;
-    --radius: 0.75rem;
+    --radius: 0.5rem;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --text-default: #000000;
-    --text-gray: #6b7280;
-    --text-brown: #92400e;
-    --text-orange: #ea580c;
-    --text-yellow: #ca8a04;
-    --text-green: #16a34a;
-    --text-blue: #2563eb;
-    --text-purple: #9333ea;
-    --text-pink: #db2777;
-    --text-red: #dc2626;
-    --highlight-default: #ffffff;
-    --highlight-gray: #f3f4f6;
-    --highlight-brown: #fef3c7;
-    --highlight-orange: #ffedd5;
-    --highlight-yellow: #fef9c3;
-    --highlight-green: #dcfce7;
-    --highlight-blue: #dbeafe;
-    --highlight-purple: #f3e8ff;
-    --highlight-pink: #fce7f3;
-    --highlight-red: #fee2e2;
   }
 
   .dark {
@@ -76,26 +56,6 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --text-default: #ffffff;
-    --text-gray: #9ca3af;
-    --text-brown: #d97706;
-    --text-orange: #f97316;
-    --text-yellow: #eab308;
-    --text-green: #22c55e;
-    --text-blue: #3b82f6;
-    --text-purple: #a855f7;
-    --text-pink: #ec4899;
-    --text-red: #ef4444;
-    --highlight-default: #1f2937;
-    --highlight-gray: #374151;
-    --highlight-brown: #78350f;
-    --highlight-orange: #9a3412;
-    --highlight-yellow: #854d0e;
-    --highlight-green: #166534;
-    --highlight-blue: #1e40af;
-    --highlight-purple: #6b21a8;
-    --highlight-pink: #9d174d;
-    --highlight-red: #991b1b;
   }
 }
 

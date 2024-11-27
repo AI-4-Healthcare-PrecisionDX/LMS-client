@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,15 +9,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/use-auth";
 import api from "@/lib/axios-config";
+import { Loader2, Upload } from "lucide-react";
+import { useRef, useState } from "react";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import useFileUpload from "@/hooks/use-upload";
+import { Viewer } from "@react-pdf-viewer/core";
+import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+
+import "@react-pdf-viewer/core/lib/styles/index.css";
+import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 
 interface CourseMaterial {
   library_item_id: string;
@@ -34,22 +39,16 @@ export function CourseMateriels({
   courseID,
 }: CourseMaterielsProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isPdfOpen, setIsPdfOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] =
     useState<CourseMaterial | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { getLibraryFileByLibraryID, uploadFile } = useFileUpload();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-
-  const {
-    data: signedUrl,
-    isLoading: isFetching,
-    error: fetchError,
-  } = useQuery({
-    queryKey: ["signedUrl", selectedMaterial?.library_item_id],
-    queryFn: () => getLibraryFileByLibraryID(selectedMaterial!.library_item_id),
-    enabled: !!selectedMaterial,
-  });
+  const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -58,7 +57,7 @@ export function CourseMateriels({
         materialType: "Lecture",
         materialTitle: file.name,
         visibility: false,
-        author: user?.first_name + " " + user?.last_name,
+        author: `${user?.first_name} ${user?.last_name}`,
       });
       await api.put(`/course/${courseID}`, {
         course_materials: [
@@ -71,12 +70,24 @@ export function CourseMateriels({
     onSuccess: () => {
       toast.success("Material uploaded successfully");
       queryClient.invalidateQueries({ queryKey: ["courses"] });
-
     },
   });
 
-  const handleMaterialClick = (material: CourseMaterial) => {
+  const handleMaterialClick = async (material: CourseMaterial) => {
     setSelectedMaterial(material);
+    setIsLoadingPdf(true);
+    try {
+      const url = await getLibraryFileByLibraryID(material.library_item_id);
+      setPdfUrl(url);
+      setIsPdfOpen(true);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      toast.error("Failed to load material");
+      setSelectedMaterial(null);
+      setPdfUrl(null);
+    } finally {
+      setIsLoadingPdf(false);
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,74 +99,91 @@ export function CourseMateriels({
     }
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">View Course Materials</Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
-        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-          Upload New Material <Upload className="h-4 w-4 ml-2" />
+  const renderUploadButton = () => (
+    <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+      Upload New Material <Upload className="h-4 w-4 ml-2" />
+    </Button>
+  );
+
+  const renderMaterialList = () => (
+    <ScrollArea className="max-h-[500px] w-full pr-4">
+      {courseMaterials.map((material) => (
+        <Button
+          key={material.library_item_id}
+          variant="ghost"
+          className="w-full justify-start mb-2"
+          onClick={() => handleMaterialClick(material)}
+        >
+          {material.library_item_id}
         </Button>
-        <Input
-          type="file"
-          accept="application/pdf"
-          ref={fileInputRef}
-          className="hidden"
-          onChange={handleFileUpload}
-        />
-        <DialogHeader>
-          <DialogTitle>Course Materials</DialogTitle>
-          <DialogDescription>
-            Click on a material to view or download it.
-          </DialogDescription>
-        </DialogHeader>
-        <ScrollArea className="max-h-[500px] w-full pr-4">
-          {courseMaterials.map((material) => (
-            <Button
-              key={material.library_item_id}
-              variant="ghost"
-              className="w-full justify-start mb-2"
-              onClick={() => handleMaterialClick(material)}
-            >
-              {material.library_item_id}
-            </Button>
-          ))}
-        </ScrollArea>
-        {isFetching && (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        )}
-        {fetchError && (
-          <p className="text-sm text-red-500 mt-2">
-            Failed to fetch signed URL
-          </p>
-        )}
-        {signedUrl && (
-          <div className="mt-4">
-            <object
-              data={signedUrl.file_url}
-              type="application/pdf"
-              className="w-full h-[400px]"
-              aria-label="Course Material"
-            >
-              <p>
-                Your browser does not support PDFs.{" "}
-                <a href={signedUrl.file_url}>Download the PDF</a>.
-              </p>
-            </object>
-          </div>
-        )}
-        {uploadMutation.isPending && (
-          <div className="flex items-center justify-center py-4">
-            <Loader2 className="h-6 w-6 animate-spin" />
-          </div>
-        )}
-        {uploadMutation.isError && (
-          <p className="text-sm text-red-500 mt-2">Failed to upload file</p>
-        )}
-      </DialogContent>
-    </Dialog>
+      ))}
+    </ScrollArea>
+  );
+
+  const renderLoadingState = () => (
+    <div className="flex items-center justify-center h-[600px]">
+      <Loader2 className="h-6 w-6 animate-spin" />
+      <p className="ml-2">Loading PDF...</p>
+    </div>
+  );
+
+  const renderPdfViewer = () => (
+    <div className="h-[600px]">
+      <Viewer fileUrl={pdfUrl || ""} plugins={[defaultLayoutPluginInstance]} />
+    </div>
+  );
+
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline">View Course Materials</Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[600px]">
+          {renderUploadButton()}
+          <Input
+            type="file"
+            accept="application/pdf"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+          <DialogHeader>
+            <DialogTitle>Course Materials</DialogTitle>
+            <DialogDescription>
+              Click on a material to view or download it.
+            </DialogDescription>
+          </DialogHeader>
+          {renderMaterialList()}
+          {uploadMutation.isPending && (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          )}
+          {uploadMutation.isError && (
+            <p className="text-sm text-red-500 mt-2">Failed to upload file</p>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Viewer Dialog */}
+      <Dialog open={isPdfOpen} onOpenChange={setIsPdfOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>View PDF</DialogTitle>
+            <DialogDescription>
+              {selectedMaterial?.library_item_id}
+            </DialogDescription>
+          </DialogHeader>
+          {isLoadingPdf ? (
+            renderLoadingState()
+          ) : pdfUrl ? (
+            renderPdfViewer()
+          ) : (
+            <p>No PDF available</p>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

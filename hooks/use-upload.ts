@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { useReducer } from "react";
 import api from "@/lib/axios-config";
 import { AxiosError } from "axios";
+import { useReducer } from "react";
 
 // Define the initial state
 const initialState = {
@@ -141,7 +141,8 @@ const useFileUpload = () => {
       const response = await api.get(`/utils/library/${id}/file`);
 
       dispatch({ type: UPLOAD_ACTIONS.SUCCESS });
-      return response.data;
+      const proxyUrl = `/teacher/api/getPdf?url=${encodeURIComponent(response.data.file_url)}`;
+      return proxyUrl;
     } catch (err: AxiosError | any) {
       dispatch({
         type: UPLOAD_ACTIONS.FAILURE,
