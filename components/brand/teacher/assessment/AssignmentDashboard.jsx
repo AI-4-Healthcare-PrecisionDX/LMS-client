@@ -157,12 +157,32 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
 
   const { mutate: createAssignment, isPending } = useCreateAssignment();
 
+  const updateAssignmentMutation = useMutation({
+    mutationFn: async (data) => {
+      const response = await api.put(
+        `/assignment/question/${state.editingAssignment.assignment_id}`,
+        data,
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["assignments", sectionId]);
+      toast.success("Assignment updated successfully");
+      dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
+    },
+    onError: (error) => {
+      console.error("Failed to update assignment:", error);
+      toast.error("Failed to update assignment");
+    },
+  });
+
+  const handleUpdateAssignment = (updatedAssignment) => {
+    updateAssignmentMutation.mutate(updatedAssignment);
+  };
+
   const handlePublish = (finalAssignment) => {
     if (state.editingAssignment) {
-      dispatch({
-        type: ACTIONS.UPDATE_ASSIGNMENT,
-        payload: { ...state.editingAssignment, ...finalAssignment },
-      });
+      handleUpdateAssignment(finalAssignment);
     } else {
       const newAssignmentEntry = {
         assignment_type: state.newAssignment.category,
@@ -223,31 +243,70 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     deleteAssignment(assignmentId);
   };
 
-  const handleEdit = (id) => {
-    const assignmentToEdit = state.assignments.find((a) => a.id === id);
-    dispatch({
-      type: ACTIONS.SET_EDITING_ASSIGNMENT,
-      payload: assignmentToEdit,
-    });
-    dispatch({ type: ACTIONS.SET_NEW_ASSIGNMENT, payload: assignmentToEdit });
-    // Set appropriate step based on category when editing
-    dispatch({
-      type: ACTIONS.SET_CURRENT_STEP,
-      payload: assignmentToEdit.category === "viva" ? 4 : 3,
-    });
-    dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: true });
-  };
-
-  const handleCheckSubmission = (assignmentId) => {
-    const assignment = state.assignments.find((a) => a.id === assignmentId);
-    dispatch({ type: ACTIONS.SET_SELECTED_ASSIGNMENT, payload: assignment });
-    dispatch({ type: ACTIONS.SET_SUBMISSION_MODAL_OPEN, payload: true });
-  };
+  // const handleCheckSubmission = (assignmentId) => {
+  //   const assignment = state.assignments.find((a) => a.id === assignmentId);
+  //   dispatch({ type: ACTIONS.SET_SELECTED_ASSIGNMENT, payload: assignment });
+  //   dispatch({ type: ACTIONS.SET_SUBMISSION_MODAL_OPEN, payload: true });
+  // };
 
   // const sortedAssignments = sortAssignments(Assignments, state.sortBy);
   const sortedAssignments = Assignments
     ? sortAssignments(Assignments, state.sortBy)
     : [];
+
+  const handleEdit = async (assignmentId) => {
+    try {
+      const { data: assignmentData } = await api.get(
+        `/assignment/question/${assignmentId}`,
+      );
+      console.log(assignmentId);
+
+      const formattedAssignment = {
+        ...assignmentData,
+        assignment_title: assignmentData.assignment_title,
+        category: assignmentData.assignment_type,
+        start_time: assignmentData.start_time,
+        deadline: assignmentData.deadline,
+        questions: assignmentData.questions.map((q) => ({
+          ...q,
+          marks: Number(q.marks),
+          options: q.options?.map((opt) => ({
+            ...opt,
+            isCorrect: Boolean(opt.isCorrect),
+          })),
+        })),
+      };
+
+      dispatch({
+        type: ACTIONS.SET_EDITING_ASSIGNMENT,
+        payload: formattedAssignment,
+      });
+      dispatch({
+        type: ACTIONS.SET_NEW_ASSIGNMENT,
+        payload: formattedAssignment,
+      });
+      dispatch({
+        type: ACTIONS.SET_CURRENT_STEP,
+        payload: 3,
+      });
+      dispatch({
+        type: ACTIONS.SET_MODAL_OPEN,
+        payload: true,
+      });
+    } catch (error) {
+      console.error("Error fetching assignment details:", error);
+      toast.error("Failed to load assignment details");
+    }
+  };
+
+  // Modify handlePublish to handle both create and update
+  // const handlePublish = (finalAssignment) => {
+  //   if (state.editingAssignment) {
+  //     handleUpdateAssignment(finalAssignment);
+  //   } else {
+  //     createAssignment(finalAssignment);
+  //   }
+  // };
 
   return (
     <div className="container mx-auto py-10">

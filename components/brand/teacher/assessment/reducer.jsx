@@ -409,6 +409,11 @@ export function reducer(state, action) {
           (_, index) => index !== action.payload,
         ),
       };
+    case "SET_MULTIPLE":
+      return {
+        ...state,
+        ...action.payload,
+      };
     default:
       return state;
   }
