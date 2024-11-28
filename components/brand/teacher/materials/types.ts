@@ -13,6 +13,7 @@ export type SectionExclusiveContent = {
   title: string
   description: string
   library_item: LibraryItem
+  section_exclusive_content_id: string
 }
 
 export type Props = {

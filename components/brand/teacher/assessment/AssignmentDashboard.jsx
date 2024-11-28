@@ -299,15 +299,6 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     }
   };
 
-  // Modify handlePublish to handle both create and update
-  // const handlePublish = (finalAssignment) => {
-  //   if (state.editingAssignment) {
-  //     handleUpdateAssignment(finalAssignment);
-  //   } else {
-  //     createAssignment(finalAssignment);
-  //   }
-  // };
-
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-5">Assignment Dashboard</h1>

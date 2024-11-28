@@ -4,7 +4,7 @@ import PerformanceDashboard from "@/components/brand/teacher/PerformanceDashboar
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AssignmentDashboard from "./assessment/AssignmentDashboard";
 import ExamEvaluation from "./assessment/ExamEvaluation";
 import CourseDashboard from "./CourseDashboard";
@@ -20,15 +20,27 @@ export default function CourseDetails({
   instructor,
   section_exclusive_contents,
 }) {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  // Get initial tab from localStorage, default to 'dashboard'
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('activeTab') || 'dashboard';
+    }
+    return 'dashboard';
+  });
+
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isDashboard, setIsDashboard] = useState(true);
-  // console.log(sectionId);
+
+  // Save active tab to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('activeTab', activeTab);
+    }
+  }, [activeTab]);
 
   const handleAssignmentClick = () => {
     if (isDashboard) setIsDashboard(false);
     else setIsDashboard(true);
-    // setActiveTab("assignments");
   };
 
   const handleStudentSelect = (student) => {

@@ -75,7 +75,6 @@ const CoursePage = ({ params }: PageProps) => {
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     retry: 2, // Retry twice before failing
   });
-  // console.log(sectionData?.section_id);
 
   if (isLoading) {
     return <LoadingSection />;

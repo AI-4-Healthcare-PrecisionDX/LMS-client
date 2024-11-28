@@ -1,8 +1,8 @@
 'use client'
 
 import { TourProvider } from "@reactour/tour";
-import { QueryClient, useQuery } from "@tanstack/react-query";
-import { Book, Search } from "lucide-react";
+import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { Book, EllipsisVertical, Search } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import { pdfjs } from "react-pdf";
 
@@ -16,8 +16,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import api from "@/lib/axios-config";
+import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import Link from "next/link";
+import { toast } from "sonner";
 import TOC from "./TOC";
 import { SectionExclusiveContent, Step } from "./types";
 
@@ -50,9 +54,11 @@ const truncateString = (str: string | undefined, maxLength: number): string =>
 function BookList({
   section_exclusive_contents,
   sectionId,
+  handleUpdateSection
 }: {
   section_exclusive_contents: SectionExclusiveContent[];
   sectionId: string;
+  handleUpdateSection: () => void;
 }): ReactElement {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterMaterialType, setFilterMaterialType] = useState("all");
@@ -100,20 +106,21 @@ function BookList({
     ),
   );
 
-  // const { mutate: deleteContent, isLoading: isDeleting } = useMutation({
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries(["deleteContent", deleteContent]);
-  //     toast.success("Assignment deleted successfully");
-  //   },
-  //   onError: (error) => {
-  //     toast.error("Failed to delete assignment");
-  //     console.error(error);
-  //   },
-  // });
-
-  // const handleDelete = (section_exclusive_content_id ) => {
-  //   deleteContent(section_exclusive_content_id );
-  // };
+  const { mutate: deleteContent, isPending: isDeleting } = useMutation({
+    mutationFn: async (section_exclusive_content_id: string) => {
+      await api.delete(`/section/${sectionId}/content/${section_exclusive_content_id}`);
+    },
+    onSuccess: () => {
+      toast.success("The book has been successfully deleted.");
+      // Invalidate and refetch the contents
+      queryClient.invalidateQueries({ 
+        queryKey: ["filteredContents"] 
+      });
+    },
+    onError: () => {
+      toast.error("Unable to delete the book. Please try again.");
+    }
+  });
 
   return (
     <div className="container mx-auto pt-8">
@@ -178,7 +185,26 @@ function BookList({
             className="flex flex-col h-full hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300"
           >
             <CardHeader className="bg-primary p-4">
+              <div className="flex justify-between">
               <Book className="w-12 h-12 mb-2 text-white" />
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <EllipsisVertical className="w-5 h-5 text-white" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="bg-background text-white">
+                  <DropdownMenuItem className="p-2 hover:bg-primary">
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                      className="p-2 hover:bg-primary text-red-500" 
+                      onClick={() => deleteContent(content.section_exclusive_content_id)}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? "Deleting..." : "Delete"}
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              </div>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
@@ -228,13 +254,6 @@ function BookList({
                   Read Book
                 </Button>
               </Link>
-              <Button
-                // onClick={() => handleDelete(content.section_exclusive_content_id)}
-                className="w-full inspect-button"
-                variant="outline"
-              >
-              Delete
-              </Button>
             </CardFooter>
           </Card>
         ))}
@@ -246,15 +265,18 @@ function BookList({
 export default function BookListWithTour({
   section_exclusive_contents,
   sectionId,
+  handleUpdateSection,
 }: {
   section_exclusive_contents: SectionExclusiveContent[];
   sectionId: string;
+  handleUpdateSection: () => void;
 }): ReactElement {
   return (
     <TourProvider steps={steps}>
       <BookList
         section_exclusive_contents={section_exclusive_contents}
         sectionId={sectionId}
+        handleUpdateSection={handleUpdateSection}
       />
     </TourProvider>
   );

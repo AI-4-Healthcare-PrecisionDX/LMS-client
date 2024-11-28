@@ -43,7 +43,12 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import PrivarySection from "../../student/library/privacy-card";
 import { reducer } from "../../student/library/reducer";
-import { State, TOCEntry, tocSchema, TOCSchema } from "../../student/library/types";
+import {
+  State,
+  TOCEntry,
+  tocSchema,
+  TOCSchema,
+} from "../../student/library/types";
 // import PrivarySection from "./library/privacy-card";
 // import { reducer } from "./library/reducer";
 // import { State, TOCEntry, tocSchema, TOCSchema } from "./library/types";
@@ -62,7 +67,7 @@ const initialState: State = {
 
 const category = ["Book", "Journal", "Thesis", "Notes", "Slides", "Others"];
 
-export default function TOC({sectionId}: {sectionId: string}) {
+export default function TOC({ sectionId }: { sectionId: string }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const { uploadFile, error, loading } = useFileUpload();
@@ -302,7 +307,6 @@ export default function TOC({sectionId}: {sectionId: string}) {
         visibility: data.isPrivate,
         materialTitle: data.bookName,
       });
-      
 
       if (error) {
         dispatch({
@@ -324,15 +328,13 @@ export default function TOC({sectionId}: {sectionId: string}) {
       });
 
       const sectionContent = await api.post(`/section/${sectionId}/content`, {
-        
-          title: data.bookName,
-          section_id: sectionId,
-          library_item_id: result.library_id,
-        });
-      console.log(sectionContent.data);
+        title: data.bookName,
+        section_id: sectionId,
+        library_item_id: result.library_id,
+      });
+      console.log(sectionContent);
 
       toast.success("Table of Contents submitted successfully");
-
     } catch (error) {
       console.error("Error submitting form:", error);
       dispatch({
