@@ -19,11 +19,21 @@ export type Course = z.infer<typeof courseSchema> & {
     branch_id: string;
     department_id: string;
   };
-  course_materials: [
-    {
-      library_item_id: string;
-    },
-  ];
+  course_materials: CourseMaterial[];
+};
+
+export type CourseMaterial = {
+  library_item: {
+    material_type: string;
+    material_title: string;
+    material_description: string;
+    author: string;
+    visibility: boolean;
+    library_id: string;
+    updated_at: string;
+    created_at: string;
+    user_id: string;
+  };
 };
 
 // State management

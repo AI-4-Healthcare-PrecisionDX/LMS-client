@@ -102,7 +102,7 @@ const useFileUpload = () => {
     dispatch({ type: UPLOAD_ACTIONS.START });
 
     try {
-      const response = await api.get("/utils/library");
+      const response = await api.get("/utils/libraries");
 
       dispatch({ type: UPLOAD_ACTIONS.SUCCESS });
       return response.data;

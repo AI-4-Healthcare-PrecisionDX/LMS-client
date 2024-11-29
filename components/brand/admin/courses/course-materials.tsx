@@ -22,12 +22,10 @@ import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
-
-interface CourseMaterial {
-  library_item_id: string;
-}
+import { CourseMaterial } from "./types";
 
 interface CourseMaterielsProps {
   courseMaterials: CourseMaterial[];
@@ -61,7 +59,9 @@ export function CourseMateriels({
       });
       await api.put(`/course/${courseID}`, {
         course_materials: [
-          ...courseMaterials.map((material) => material.library_item_id),
+          ...courseMaterials.map(
+            (material) => material.library_item.library_id,
+          ),
           response.library_id,
         ],
       });
@@ -77,7 +77,9 @@ export function CourseMateriels({
     setSelectedMaterial(material);
     setIsLoadingPdf(true);
     try {
-      const url = await getLibraryFileByLibraryID(material.library_item_id);
+      const url = await getLibraryFileByLibraryID(
+        material.library_item.library_id,
+      );
       setPdfUrl(url);
       setIsPdfOpen(true);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -109,12 +111,14 @@ export function CourseMateriels({
     <ScrollArea className="max-h-[500px] w-full pr-4">
       {courseMaterials.map((material) => (
         <Button
-          key={material.library_item_id}
-          variant="ghost"
+          key={material.library_item.library_id}
+          variant="outline"
           className="w-full justify-start mb-2"
           onClick={() => handleMaterialClick(material)}
         >
-          {material.library_item_id}
+          {material.library_item.material_title}
+
+          <Badge variant="outline">{material.library_item.material_type}</Badge>
         </Button>
       ))}
     </ScrollArea>
@@ -139,40 +143,48 @@ export function CourseMateriels({
         <DialogTrigger asChild>
           <Button variant="outline">View Course Materials</Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px]">
-          {renderUploadButton()}
-          <Input
-            type="file"
-            accept="application/pdf"
-            ref={fileInputRef}
-            className="hidden"
-            onChange={handleFileUpload}
-          />
-          <DialogHeader>
-            <DialogTitle>Course Materials</DialogTitle>
-            <DialogDescription>
-              Click on a material to view or download it.
-            </DialogDescription>
-          </DialogHeader>
-          {renderMaterialList()}
-          {uploadMutation.isPending && (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin" />
+        <DialogContent className="w-[90vw] h-[90vh] max-w-none m-0 p-6">
+          <div className="flex flex-col h-full">
+            <div className="flex justify-between items-center mb-6">
+              <DialogHeader>
+                <DialogTitle>Course Materials</DialogTitle>
+                <DialogDescription>
+                  Click on a material to view or download it.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex gap-4">
+                {renderUploadButton()}
+                <Input
+                  type="file"
+                  accept="application/pdf"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </div>
             </div>
-          )}
-          {uploadMutation.isError && (
-            <p className="text-sm text-red-500 mt-2">Failed to upload file</p>
-          )}
+
+            <div className="flex-1">{renderMaterialList()}</div>
+
+            {uploadMutation.isPending && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            )}
+            {uploadMutation.isError && (
+              <p className="text-sm text-red-500 mt-2">Failed to upload file</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* PDF Viewer Dialog */}
       <Dialog open={isPdfOpen} onOpenChange={setIsPdfOpen}>
-        <DialogContent className="sm:max-w-[800px]">
+        <DialogContent className="w-screen h-screen max-w-none m-0 p-6">
           <DialogHeader>
             <DialogTitle>View PDF</DialogTitle>
             <DialogDescription>
-              {selectedMaterial?.library_item_id}
+              {selectedMaterial?.library_item.material_title}
             </DialogDescription>
           </DialogHeader>
           {isLoadingPdf ? (

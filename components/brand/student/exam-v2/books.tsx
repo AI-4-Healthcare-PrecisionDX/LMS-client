@@ -24,11 +24,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { books } from "@/data";
-import { bookAtom } from "@/store";
-import { Book as BookType } from "@/types";
+
+import useFileUpload from "@/hooks/use-upload";
+import { BookMaterial, Book as BookType } from "@/types";
 import { TourProvider, useTour } from "@reactour/tour";
-import { useAtomValue } from "jotai";
+import { useQuery } from "@tanstack/react-query";
 import {
   Book,
   BookOpen,
@@ -93,7 +93,7 @@ type Action =
 // Initial state for the reducer
 const initialState: State = {
   searchTerm: "",
-  filteredBooks: books,
+  filteredBooks: [],
   categoryFilter: "all",
   courseFilter: "all",
 };
@@ -114,46 +114,46 @@ const reducer = (state: State, action: Action): State => {
   }
 };
 
+const categories = ["all", "fiction", "non-fiction", "science", "history"];
+const courses = ["all", "course1", "course2", "course3"];
+
 // BookList component
 const BookList = () => {
-  const book = useAtomValue(bookAtom);
+  const { getLibraries } = useFileUpload();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["books"],
+    queryFn: getLibraries,
+  });
+
   const [state, dispatch] = useReducer(reducer, initialState);
   const { setIsOpen } = useTour();
-
-  const handleReadBook = (book: BookType) => {
-    window.open(`/student/view`, "_blank");
-  };
 
   useEffect(() => {
     if (
       typeof window !== "undefined" &&
-      localStorage.getItem("bookListPage") === null
+      localStorage.getItem("bookListPage") === null &&
+      state.filteredBooks.length > 0
     ) {
       setIsOpen(true);
       localStorage.setItem("bookListPage", "true");
     }
-  }, [setIsOpen]);
+  }, [setIsOpen, state.filteredBooks]);
 
   useEffect(() => {
-    const results = books.filter(
-      (book) =>
-        (book.title.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
-          book.author.toLowerCase().includes(state.searchTerm.toLowerCase())) &&
-        (state.categoryFilter === "all" ||
-          book.category === state.categoryFilter) &&
-        (state.courseFilter === "all" || book.course === state.courseFilter),
-    );
-    dispatch({ type: "SET_FILTERED_BOOKS", payload: results });
-  }, [state.searchTerm, state.categoryFilter, state.courseFilter]);
+    if (data?.data) {
+      console.log("Fetched books:", data.data);
+      dispatch({ type: "SET_FILTERED_BOOKS", payload: data });
+    }
+  }, [data]);
 
-  const categories = [
-    "all",
-    ...Array.from(new Set(books.map((book) => book.category))),
-  ];
-  const courses = [
-    "all",
-    ...Array.from(new Set(books.map((book) => book.course))),
-  ];
+  console.log("Filtered Books:", state.filteredBooks);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error fetching books: {(error as Error).message}</div>;
+
+  function handleReadBook(book: BookMaterial): void {
+    // Implement the logic to read the book
+  }
 
   return (
     <div className="container mx-auto px-4 pb-8 dark:text-gray-100">
@@ -197,10 +197,17 @@ const BookList = () => {
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {book && <BookCard book={book} handleReadBook={handleReadBook} />}
-        {state.filteredBooks.map((book) => (
-          <BookCard key={book.id} book={book} handleReadBook={handleReadBook} />
-        ))}
+        {state.filteredBooks.length > 0 ? (
+          state.filteredBooks.map((book) => (
+            <BookCard
+              key={book.id}
+              book={book}
+              handleReadBook={handleReadBook}
+            />
+          ))
+        ) : (
+          <div>No books available.</div>
+        )}
       </div>
     </div>
   );
@@ -259,7 +266,7 @@ const BookCard = ({
   book,
   handleReadBook,
 }: {
-  book: BookType;
+  book: BookMaterial;
   handleReadBook: (book: BookType) => void;
 }) => (
   <Card className="flex flex-col h-full transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 overflow-hidden">
@@ -267,18 +274,18 @@ const BookCard = ({
       <div className="flex items-center justify-between mb-4">
         <Book className="w-12 h-12" />
         <Badge variant="secondary" className="text-xs font-semibold">
-          {book.difficulty}
+          {book.material_type}
         </Badge>
       </div>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger>
             <h2 className="text-2xl font-bold leading-tight line-clamp-2">
-              {book.title}
+              {book.material_title}
             </h2>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            <p className="text-primary-foreground">{book.title}</p>
+            <p className="text-primary-foreground">{book.material_title}</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
@@ -288,15 +295,14 @@ const BookCard = ({
     </CardHeader>
     <CardContent className="flex-grow p-6 bg-card">
       <div className="flex flex-wrap gap-2 mb-4">
-        <Badge variant="outline">{book.category}</Badge>
-        <Badge variant="outline">{book.course}</Badge>
+        <Badge variant="outline">{book.material_type}</Badge>
       </div>
     </CardContent>
     <CardFooter className="bg-muted/50 p-6 gap-4">
       <Button
         className="read-book-button flex-1"
         variant="outline"
-        onClick={() => handleReadBook(book)}
+        onClick={() => handleReadBook(book as unknown as BookType)}
       >
         <BookOpen className="w-4 h-4 mr-2" />
         Read Content

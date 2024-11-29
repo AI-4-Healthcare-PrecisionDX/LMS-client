@@ -1,23 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import {
-  format,
-  isSameDay,
-  parseISO,
-  isPast,
-  isFuture,
-  compareAsc,
-} from "date-fns";
+import { BreadcrumbResponsive } from "@/components/BreadCrumb";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
   CardContent,
+  CardFooter,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +19,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -35,43 +26,60 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
+import { compareAsc, format, isFuture, isSameDay, parseISO } from "date-fns";
 import {
-  Plus,
   Calendar as CalendarIcon,
+  CheckCircle,
   Clock,
   Edit,
-  Trash2,
-  CheckCircle,
   Link,
+  Plus,
+  Trash2,
 } from "lucide-react";
-import { BreadcrumbResponsive } from "@/components/BreadCrumb";
+import { useEffect, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { useMutation, useQuery, useQueryClient } from "react-query";
+import { z } from "zod";
 
-const initialEvents = [
-  {
-    id: "1",
-    title: "Presentation",
-    topics: ["event", "calender"],
-    deadline: new Date(2024, 8, 15, 14, 0),
-    status: "upcoming",
-    link: "https://www.kalerkantho.com/online/national",
-  },
-  {
-    id: "2",
-    title: "Team Meeting",
-    topics: ["Diagnotech", "IIUC", "NSU"],
-    deadline: new Date(2024, 7, 10, 10, 0),
-    status: "successful",
-    link: "",
-  },
-];
+const fetchEvents = async () => {
+  const { data } = await axios.get("/api/events"); // Adjust the API endpoint as needed
+  return data;
+};
+
+const addEvent = async (event) => {
+  const { data } = await axios.post("/api/events", event); // Adjust the API endpoint as needed
+  return data;
+};
+
+const updateEvent = async (event) => {
+  const { data } = await axios.put(`/api/events/${event.id}`, event); // Adjust the API endpoint as needed
+  return data;
+};
+
+const deleteEvent = async (eventId) => {
+  await axios.delete(`/api/events/${eventId}`); // Adjust the API endpoint as needed
+};
 
 const items = [{ href: "/student", label: "Home" }, { label: "Events" }];
 
 const ITEMS_TO_DISPLAY = 2;
 
+// Define a Zod schema for event validation
+const eventSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  topics: z.string().optional(),
+  date: z.string().min(1, "Date is required"),
+  time: z.string().optional(),
+  link: z.string().url("Must be a valid URL").optional(),
+});
+
 const CalendarEvents = () => {
+  const queryClient = useQueryClient();
+  const { data: events = [], refetch } = useQuery("events", fetchEvents);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [events, setEvents] = useState(initialEvents);
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: "",
@@ -84,19 +92,17 @@ const CalendarEvents = () => {
   const [editingEvent, setEditingEvent] = useState(null);
   const [sortOption, setSortOption] = useState("all");
 
+  const { control, handleSubmit, reset } = useForm({
+    resolver: zodResolver(eventSchema),
+  });
+
   useEffect(() => {
     const interval = setInterval(() => {
-      setEvents((prevEvents) =>
-        prevEvents.map((event) =>
-          event.status === "upcoming" && isPast(event.deadline)
-            ? { ...event, status: "failed" }
-            : event,
-        ),
-      );
+      refetch();
     }, 60000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [refetch]);
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
@@ -126,39 +132,63 @@ const CalendarEvents = () => {
     return filteredEvents;
   };
 
-  const handleAddOrEditEvent = () => {
-    const deadline = newEvent.time
-      ? parseISO(`${newEvent.date}T${newEvent.time}`)
-      : parseISO(`${newEvent.date}`);
+  const addEventMutation = useMutation(addEvent, {
+    onSuccess: () => {
+      queryClient.invalidateQueries("events");
+      refetch();
+    },
+  });
+
+  const updateEventMutation = useMutation(updateEvent, {
+    onSuccess: () => {
+      queryClient.invalidateQueries("events");
+      refetch();
+    },
+  });
+
+  const deleteEventMutation = useMutation(deleteEvent, {
+    onSuccess: () => {
+      queryClient.invalidateQueries("events");
+      refetch();
+    },
+  });
+
+  const handleAddOrEditEvent = (data) => {
+    const deadline = data.time
+      ? parseISO(`${data.date}T${data.time}`)
+      : parseISO(`${data.date}`);
 
     const event = {
       id: editingEvent ? editingEvent.id : Date.now().toString(),
-      title: newEvent.title,
-      topics: newEvent.topics.split(",").map((topic) => topic.trim()),
+      title: data.title,
+      topics: data.topics
+        ? data.topics.split(",").map((topic) => topic.trim())
+        : [],
       deadline: deadline,
       status: isFuture(deadline) ? "upcoming" : "failed",
-      link: newEvent.link,
+      link: data.link,
     };
 
     if (editingEvent) {
-      setEvents(events.map((e) => (e.id === editingEvent.id ? event : e)));
+      updateEventMutation.mutate(event);
     } else {
-      setEvents([...events, event]);
+      addEventMutation.mutate(event);
     }
 
+    // Reset form and close dialog
     setIsAddEventOpen(false);
-    setNewEvent({
-      title: "",
-      topics: "",
-      date: "",
-      time: "",
-      status: "upcoming",
-      link: "",
-    });
+    reset(); // Reset the form
     setEditingEvent(null);
   };
 
-  const handleEditEvent = (event) => {
+  const handleEditEvent = (event: {
+    id: string;
+    title: string;
+    topics: string[];
+    deadline: Date;
+    status: string;
+    link: string;
+  }) => {
     setEditingEvent(event);
     setNewEvent({
       title: event.title,
@@ -172,15 +202,11 @@ const CalendarEvents = () => {
   };
 
   const handleDeleteEvent = (eventId) => {
-    setEvents(events.filter((event) => event.id !== eventId));
+    deleteEventMutation.mutate(eventId);
   };
 
   const handleCompleteEvent = (eventId) => {
-    setEvents(
-      events.map((event) =>
-        event.id === eventId ? { ...event, status: "successful" } : event,
-      ),
-    );
+    refetch();
   };
 
   const isDateWithEvent = (date) => {
@@ -237,80 +263,93 @@ const CalendarEvents = () => {
                     {editingEvent ? "Edit Event" : "Add New Event"}
                   </DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid items-center grid-cols-4 gap-4">
-                    <Label htmlFor="title" className="text-right">
-                      Title
-                    </Label>
-                    <Input
-                      id="title"
-                      value={newEvent.title}
-                      onChange={(e) =>
-                        setNewEvent({ ...newEvent, title: e.target.value })
-                      }
-                      className="col-span-3"
-                    />
+                <form onSubmit={handleSubmit(handleAddOrEditEvent)}>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid items-center grid-cols-4 gap-4">
+                      <Label htmlFor="title" className="text-right">
+                        Title
+                      </Label>
+                      <Controller
+                        name="title"
+                        control={control}
+                        render={({ field }) => (
+                          <Input id="title" {...field} className="col-span-3" />
+                        )}
+                      />
+                    </div>
+                    <div className="grid items-center grid-cols-4 gap-4">
+                      <Label htmlFor="topics" className="text-right">
+                        Topics
+                      </Label>
+                      <Controller
+                        name="topics"
+                        control={control}
+                        render={({ field }) => (
+                          <Input
+                            id="topics"
+                            {...field}
+                            className="col-span-3"
+                            placeholder="Separate topics with commas"
+                          />
+                        )}
+                      />
+                    </div>
+                    <div className="grid items-center grid-cols-4 gap-4">
+                      <Label htmlFor="date" className="text-right">
+                        Date
+                      </Label>
+                      <Controller
+                        name="date"
+                        control={control}
+                        render={({ field }) => (
+                          <Input
+                            id="date"
+                            type="date"
+                            {...field}
+                            className="col-span-3"
+                          />
+                        )}
+                      />
+                    </div>
+                    <div className="grid items-center grid-cols-4 gap-4">
+                      <Label htmlFor="time" className="text-right">
+                        Time (Optional)
+                      </Label>
+                      <Controller
+                        name="time"
+                        control={control}
+                        render={({ field }) => (
+                          <Input
+                            id="time"
+                            type="time"
+                            {...field}
+                            className="col-span-3"
+                          />
+                        )}
+                      />
+                    </div>
+                    <div className="grid items-center grid-cols-4 gap-4">
+                      <Label htmlFor="link" className="text-right">
+                        Link (Optional)
+                      </Label>
+                      <Controller
+                        name="link"
+                        control={control}
+                        render={({ field }) => (
+                          <Input
+                            id="link"
+                            {...field}
+                            className="col-span-3"
+                            placeholder="https://example.com"
+                          />
+                        )}
+                      />
+                    </div>
                   </div>
-                  <div className="grid items-center grid-cols-4 gap-4">
-                    <Label htmlFor="topics" className="text-right">
-                      Topics
-                    </Label>
-                    <Input
-                      id="topics"
-                      value={newEvent.topics}
-                      onChange={(e) =>
-                        setNewEvent({ ...newEvent, topics: e.target.value })
-                      }
-                      className="col-span-3"
-                      placeholder="Separate topics with commas"
-                    />
-                  </div>
-                  <div className="grid items-center grid-cols-4 gap-4">
-                    <Label htmlFor="date" className="text-right">
-                      Date
-                    </Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={newEvent.date}
-                      onChange={(e) =>
-                        setNewEvent({ ...newEvent, date: e.target.value })
-                      }
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid items-center grid-cols-4 gap-4">
-                    <Label htmlFor="time" className="text-right">
-                      Time (Optional)
-                    </Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      value={newEvent.time}
-                      onChange={(e) =>
-                        setNewEvent({ ...newEvent, time: e.target.value })
-                      }
-                      className="col-span-3"
-                    />
-                  </div>
-                  <div className="grid items-center grid-cols-4 gap-4">
-                    <Label htmlFor="link" className="text-right">
-                      Link (Optional)
-                    </Label>
-                    <Input
-                      id="link"
-                      value={newEvent.link}
-                      onChange={(e) =>
-                        setNewEvent({ ...newEvent, link: e.target.value })
-                      }
-                      className="col-span-3"
-                      placeholder="https://example.com"
-                    />
-                  </div>
-                </div>
-                <Button onClick={handleAddOrEditEvent} className="w-full">
-                  {editingEvent ? "Update" : "Confirm"}
-                </Button>
+                  <Button type="submit" className="w-full">
+                    {editingEvent ? "Update" : "Confirm"}
+                  </Button>
+                </form>
               </DialogContent>
             </Dialog>
           </div>
@@ -366,13 +405,18 @@ const CalendarEvents = () => {
     </div>
   );
 };
-
 const EventCard = ({
   event,
   onEdit,
   onDelete,
   onComplete,
   showCompleteButton,
+}: {
+  event: Event;
+  onEdit: (event: Event) => void;
+  onDelete: (eventId: string) => void;
+  onComplete?: (eventId: string) => void;
+  showCompleteButton: boolean;
 }) => (
   <Card
     key={event.id}

@@ -392,39 +392,64 @@ export default function TemplateCourse() {
           filteredCourses?.map((course: Course) => (
             <div
               key={course.template_course_id}
-              className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200"
+              className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 h-[350px] flex flex-col justify-between"
             >
-              <h2 className="text-xl font-bold mb-2 text-primary">
-                {course.template_name}
-              </h2>
-              <p className="text-sm text-muted-foreground mb-2">
-                {course.template_description}
-              </p>
-              <p className="text-sm mb-2">
-                <strong>Year:</strong> {course.template_year}
-              </p>
-              <p className="text-sm mb-4">
-                <strong>Department:</strong> {course.department.department_name}
-              </p>
-              <CourseMateriels
-                courseMaterials={course.course_materials}
-                courseID={course.template_course_id}
-              />
-              <div className="flex gap-2">
+              <div className="flex flex-col space-y-4">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  {course.template_name}
+                </h2>
+
+                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                  {course.template_description.length > 100
+                    ? course.template_description.slice(0, 100) + "..."
+                    : course.template_description}
+                </p>
+
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Year
+                    </span>
+                    <span className="text-sm text-gray-900 dark:text-gray-200">
+                      {course.template_year}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Department
+                    </span>
+                    <span className="text-sm text-gray-900 dark:text-gray-200">
+                      {course.department.department_name}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <CourseMateriels
+                    courseMaterials={course.course_materials}
+                    courseID={course.template_course_id}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-2">
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => handleEdit(course)}
+                  className="rounded-full bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600"
                 >
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
                   onClick={() => handleDelete(course.template_course_id)}
                   disabled={deleteMutation.isPending}
+                  className="rounded-full bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-gray-200 dark:border-gray-600"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 </Button>
               </div>
             </div>
