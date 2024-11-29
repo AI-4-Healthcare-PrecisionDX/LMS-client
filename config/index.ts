@@ -1,18 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
-  Home,
-  Package,
-  MessageCircleCode,
-  Text,
-  Calendar,
-  HomeIcon,
   Book,
-  User,
+  Calendar,
+  Home,
+  HomeIcon,
   Library,
+  MessageCircleCode,
   MessageSquare,
-  UsersRound,
+  Package,
   PencilLine,
+  Text,
+  User,
+  UsersRound,
 } from "lucide-react";
 
 type Submenu = {
@@ -208,13 +208,13 @@ export function getTeacherMenuList(pathname: string): Group[] {
           icon: HomeIcon,
           submenus: [],
         },
-        {
-          href: "/teacher/course-details/1",
-          label: "Courses",
-          active: ["/teacher/course-details"].includes(pathname),
-          icon: Book,
-          submenus: [],
-        },
+        // {
+        //   href: "/teacher/course-details/1",
+        //   label: "Courses",
+        //   active: ["/teacher/course-details"].includes(pathname),
+        //   icon: Book,
+        //   submenus: [],
+        // },
 
         {
           href: "/teacher/announcements",

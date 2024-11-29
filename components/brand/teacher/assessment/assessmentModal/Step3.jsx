@@ -16,16 +16,16 @@ export default function Step3({
   category,
 }) {
   //STATE HANDLING
-  const [state, dispatch] = useReducer(reducer, {
-    ...initialState,
-    title: assignmentDetails.assignment_title || "",
-    start_time: assignmentDetails.start_time
-      ? parseISO(assignmentDetails.start_time)
-      : new Date(),
-    deadline: assignmentDetails.deadline
-      ? parseISO(assignmentDetails.deadline)
-      : new Date(),
-  });
+  // const [state, dispatch] = useReducer(reducer, {
+  //   ...initialState,
+  //   title: assignmentDetails.assignment_title || "",
+  //   start_time: assignmentDetails.start_time
+  //     ? parseISO(assignmentDetails.start_time)
+  //     : new Date(),
+  //   deadline: assignmentDetails.deadline
+  //     ? parseISO(assignmentDetails.deadline)
+  //     : new Date(),
+  // });
 
   // UTILS
   const totalQuestions =
@@ -38,20 +38,79 @@ export default function Step3({
     0,
   );
 
+  // const handlePublish = () => {
+  //   onPublish({
+  //     assignment_title: state.assignment_title,
+  //     totalMarks,
+  //     start_time: format(state.start_time, "yyyy-MM-dd'T'HH:mm:ss"),
+  //     deadline: format(state.deadline, "yyyy-MM-dd'T'HH:mm:ss"),
+  //     questions: state.questions,
+  //     ...(category === "ai-generated" && {
+  //       questionCounts: {
+  //         patterns: state.patternCounts,
+  //         types: state.questionTypeCounts,
+  //       },
+  //     }),
+  //   });
+  // };
+
+  const [state, dispatch] = useReducer(reducer, {
+    ...initialState,
+    assignment_title: assignmentDetails?.assignment_title || "",
+    start_time: assignmentDetails?.start_time
+      ? parseISO(assignmentDetails.start_time)
+      : new Date(),
+    deadline: assignmentDetails?.deadline
+      ? parseISO(assignmentDetails.deadline)
+      : new Date(),
+    questions: assignmentDetails?.questions || [],
+    activeTab: "setup",
+    patternCounts: assignmentDetails?.questionCounts?.patterns || {},
+    questionTypeCounts: assignmentDetails?.questionCounts?.types || {},
+  });
+
+  useEffect(() => {
+    if (assignmentDetails) {
+      dispatch({
+        type: "SET_MULTIPLE",
+        payload: {
+          assignment_title: assignmentDetails.assignment_title,
+          start_time: parseISO(assignmentDetails.start_time),
+          deadline: parseISO(assignmentDetails.deadline),
+          questions: assignmentDetails.questions || [],
+          patternCounts: assignmentDetails.questionCounts?.patterns || {},
+          questionTypeCounts: assignmentDetails.questionCounts?.types || {},
+        },
+      });
+    }
+  }, [assignmentDetails]);
+
   const handlePublish = () => {
-    onPublish({
+    const formattedData = {
       assignment_title: state.assignment_title,
-      totalMarks,
+      totalMarks: state.questions.reduce(
+        (sum, q) => sum + (Number(q.marks) || 0),
+        0,
+      ),
       start_time: format(state.start_time, "yyyy-MM-dd'T'HH:mm:ss"),
       deadline: format(state.deadline, "yyyy-MM-dd'T'HH:mm:ss"),
-      questions: state.questions,
+      questions: state.questions.map((q) => ({
+        ...q,
+        marks: Number(q.marks),
+        options: q.options?.map((opt) => ({
+          ...opt,
+          isCorrect: Boolean(opt.isCorrect),
+        })),
+      })),
       ...(category === "ai-generated" && {
         questionCounts: {
           patterns: state.patternCounts,
           types: state.questionTypeCounts,
         },
       }),
-    });
+    };
+
+    onPublish(formattedData);
   };
 
   return (
