@@ -82,6 +82,40 @@ const useCreateAssignment = () => {
   });
 };
 
+const useUpdateAssignment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (assignmentData) => {
+      const formattedData = {
+        ...assignmentData,
+        start_time: new Date(assignmentData.start_time).toISOString(),
+        deadline: new Date(assignmentData.deadline).toISOString(),
+        questions: assignmentData.questions.map((q) => ({
+          ...q,
+          marks: Number(q.marks),
+          options_for_mcq: q.options_for_mcq || [],
+          expected_answer: q.expected_answer || [],
+        })),
+      };
+
+      const response = await api.put(
+        `/assignment/${assignmentData.assignment_id}`,
+        formattedData,
+      );
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["assignments"]);
+      toast.success("Assignment updated successfully");
+    },
+    onError: (error) => {
+      toast.error("Failed to update assignment");
+      console.error("Update error:", error);
+    },
+  });
+};
+
 const fetchAssignments = async (sectionId) => {
   const { data } = await api.get(
     `/assignment/section/${sectionId}/assignments`,
@@ -95,12 +129,15 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
   const { isAuthenticated } = useAuth();
 
   const queryClient = useQueryClient();
+  const { mutate: updateAssignment } = useUpdateAssignment();
 
   const handleAddAssignment = () => {
+    dispatch({ type: ACTIONS.RESET_STATE }); // Add this line to reset the state
     dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: true });
     dispatch({ type: ACTIONS.SET_CURRENT_STEP, payload: 1 });
     dispatch({ type: ACTIONS.SET_NEW_ASSIGNMENT, payload: {} });
     dispatch({ type: ACTIONS.SET_EDITING_ASSIGNMENT, payload: null });
+    dispatch({ type: ACTIONS.SET_QUESTIONS, payload: [] }); // Add this line to clear questions
   };
 
   const handleStep1Next = (details) => {
@@ -155,7 +192,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
 
   const handlePublish = (finalAssignment) => {
     if (state.editingAssignment) {
-      // handleUpdateAssignment(finalAssignment);
+      handleUpdateAssignment(finalAssignment);
     } else {
       const newAssignmentEntry = {
         assignment_type: state.newAssignment.category,
@@ -215,23 +252,62 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     ? sortAssignments(Assignments, state.sortBy)
     : [];
 
+  const handleUpdateAssignment = (finalAssignment) => {
+    if (!state.editingAssignment?.assignment_id) {
+      toast.error("No assignment ID found for updating");
+      return;
+    }
+
+    const updatedAssignment = {
+      ...finalAssignment,
+      assignment_id: state.editingAssignment.assignment_id,
+      assignment_type:
+        state.newAssignment.category || state.editingAssignment.assignment_type,
+      section_id: sectionId,
+      number_of_questions: finalAssignment.questions.length,
+    };
+
+    updateAssignment(updatedAssignment, {
+      onSuccess: () => {
+        dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
+        dispatch({ type: ACTIONS.SET_EDITING_ASSIGNMENT, payload: null });
+      },
+    });
+  };
+
   const handleEdit = async (assignmentId) => {
     try {
       const { data: assignmentData } = await api.get(
         `/assignment/${assignmentId}`,
       );
 
+      // Transform the data to match the expected structure
+      const transformedData = {
+        ...assignmentData,
+        start_time: new Date(assignmentData.start_time),
+        deadline: new Date(assignmentData.deadline),
+        questions: assignmentData.assignment_questions.map((q) => ({
+          question_id: q.question_id,
+          question_text: q.question_text,
+          question_type: q.question_type,
+          marks: q.marks,
+          options_for_mcq: q.options_for_mcq || [],
+          expected_answer: q.expected_answer,
+        })),
+      };
+
       dispatch({
         type: "SET_MULTIPLE",
         payload: {
-          assignment_title: assignmentData.assignment_title,
-          start_time: new Date(assignmentData.start_time), // Preserve exact time
-          deadline: new Date(assignmentData.deadline), // Preserve exact time
-          questions: assignmentData.questions || [],
-          editingAssignment: assignmentData,
+          assignment_title: transformedData.assignment_title,
+          start_time: transformedData.start_time,
+          deadline: transformedData.deadline,
+          questions: transformedData.questions,
+          editingAssignment: transformedData,
           newAssignment: {
-            category: assignmentData.assignment_type,
+            category: transformedData.assignment_type,
           },
+          activeTab: "setup",
         },
       });
 

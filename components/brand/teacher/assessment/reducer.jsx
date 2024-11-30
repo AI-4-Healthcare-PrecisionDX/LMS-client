@@ -73,6 +73,8 @@ export const ACTIONS = {
   SET_MULTIPLE: "SET_MULTIPLE",
   ADD_ASSIGNMENT_MATERIALS: "ADD_ASSIGNMENT_MATERIALS",
   REMOVE_ASSIGNMENT_MATERIAL: "REMOVE_ASSIGNMENT_MATERIAL",
+  RESET_STATE: "RESET_STATE",
+  SET_QUESTIONS: "SET_QUESTIONS",
 };
 
 export function reducer(state, action) {
@@ -163,6 +165,17 @@ export function reducer(state, action) {
         questions: state.questions.filter(
           (_, index) => index !== action.payload,
         ),
+      };
+    case ACTIONS.RESET_STATE:
+      return {
+        ...initialState,
+        sortBy: state.sortBy, // Preserve sort preference
+      };
+
+    case ACTIONS.SET_QUESTIONS:
+      return {
+        ...state,
+        questions: action.payload,
       };
     case ACTIONS.SET_MULTIPLE:
       return {

@@ -2,6 +2,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { BookOpen, Edit3 } from "lucide-react";
+import { useEffect } from "react";
 import AssignmentHeader from "./AssignmentHeader";
 import AssignmentSetup from "./AssignmentSetup";
 import FooterButtons from "./FooterButtons";
@@ -14,30 +15,57 @@ export default function Step3({
   state,
   dispatch,
 }) {
+  useEffect(() => {
+    // Clear questions when mounting if not editing
+    if (!state.editingAssignment) {
+      dispatch({ type: "SET_QUESTIONS", payload: [] });
+    }
+  }, []);
+
   const totalQuestions =
     category === "ai-generated"
       ? Object.values(state.patternCounts).reduce((a, b) => a + b, 0)
       : state.questions.length;
 
   const totalMarks = state.questions.reduce(
-    (sum, q) => sum + (q.marks || 0),
+    (sum, q) => sum + (parseInt(q.marks) || 0),
     0,
   );
 
   const handlePublish = () => {
-    onPublish({
+    const assignmentData = {
       assignment_title: state.assignment_title,
       total_marks: totalMarks,
       start_time: format(state.start_time, "yyyy-MM-dd'T'HH:mm:ss"),
       deadline: format(state.deadline, "yyyy-MM-dd'T'HH:mm:ss"),
-      questions: state.questions,
+      questions: state.questions.map((q) => ({
+        ...q,
+        question_id: q.question_id || undefined,
+        marks: parseInt(q.marks) || 0,
+        options_for_mcq: q.options_for_mcq || [],
+        expected_answer: q.expected_answer || [],
+      })),
       ...(category === "ai-generated" && {
         questionCounts: {
           patterns: state.patternCounts,
           types: state.questionTypeCounts,
         },
       }),
-    });
+    };
+
+    if (state.editingAssignment) {
+      assignmentData.assignment_id = state.editingAssignment.assignment_id;
+    }
+
+    onPublish(assignmentData);
+  };
+
+  // When navigating back, also clear state if not editing
+  const handleBack = () => {
+    if (!state.editingAssignment) {
+      dispatch({ type: "SET_QUESTIONS", payload: [] });
+    }
+    onBack(state.newAssignment);
   };
 
   return (
@@ -47,9 +75,11 @@ export default function Step3({
           <AssignmentHeader
             totalQuestions={totalQuestions}
             totalMarks={totalMarks}
+            isEditing={!!state.editingAssignment}
           />
 
           <Tabs
+            defaultValue={state.activeTab}
             value={state.activeTab}
             onValueChange={(value) =>
               dispatch({
@@ -91,8 +121,9 @@ export default function Step3({
           </Tabs>
 
           <FooterButtons
-            onBack={onBack}
+            onBack={handleBack}
             onPublish={handlePublish}
+            isEditing={!!state.editingAssignment}
             disabled={!state.assignment_title || state.questions.length === 0}
           />
         </div>

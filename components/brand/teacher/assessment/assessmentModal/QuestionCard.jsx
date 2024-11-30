@@ -20,6 +20,13 @@ export default function QuestionCard({ question, index, onUpdate, onDelete }) {
     onUpdate(index, "expected_answer", newAnswers);
   };
 
+  const handleMarksChange = (e) => {
+    const value = e.target.value;
+    // Ensure marks is always a valid number
+    const marks = value === "" ? 0 : parseInt(value);
+    onUpdate(index, "marks", marks);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -42,10 +49,9 @@ export default function QuestionCard({ question, index, onUpdate, onDelete }) {
                 <Label>Marks:</Label>
                 <Input
                   type="number"
-                  value={question.marks}
-                  onChange={(e) =>
-                    onUpdate(index, "marks", parseInt(e.target.value))
-                  }
+                  value={question.marks || 0}
+                  onChange={handleMarksChange}
+                  min="0"
                   className="w-20"
                 />
               </div>
@@ -61,25 +67,11 @@ export default function QuestionCard({ question, index, onUpdate, onDelete }) {
             </Button>
           </div>
 
-          {/* Question Description (Optional) */}
-          {/* <div className="mb-4">
-            <Label className="text-base">Description (Optional)</Label>
-            <Textarea
-              value={question.question_description || ""}
-              onChange={(e) =>
-                onUpdate(index, "question_description", e.target.value)
-              }
-              rows={2}
-              className="mt-2"
-              placeholder="Add additional context or instructions for this question..."
-            />
-          </div> */}
-
           <div className="space-y-4">
             <div>
               <Label className="text-base">Question Text</Label>
               <Textarea
-                value={question.question_text}
+                value={question.question_text || ""}
                 onChange={(e) =>
                   onUpdate(index, "question_text", e.target.value)
                 }
