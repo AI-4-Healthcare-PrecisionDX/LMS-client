@@ -1,33 +1,19 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { BookOpen, Edit3 } from "lucide-react";
-import { useReducer } from "react";
-import { initialState, reducer } from "../reducer";
 import AssignmentHeader from "./AssignmentHeader";
 import AssignmentSetup from "./AssignmentSetup";
 import FooterButtons from "./FooterButtons";
 import QuestionsList from "./QuestionsList";
 
 export default function Step3({
-  assignmentDetails,
   onPublish,
   onBack,
   category,
+  state,
+  dispatch,
 }) {
-  //STATE HANDLING
-  // const [state, dispatch] = useReducer(reducer, {
-  //   ...initialState,
-  //   title: assignmentDetails.assignment_title || "",
-  //   start_time: assignmentDetails.start_time
-  //     ? parseISO(assignmentDetails.start_time)
-  //     : new Date(),
-  //   deadline: assignmentDetails.deadline
-  //     ? parseISO(assignmentDetails.deadline)
-  //     : new Date(),
-  // });
-
-  // UTILS
   const totalQuestions =
     category === "ai-generated"
       ? Object.values(state.patternCounts).reduce((a, b) => a + b, 0)
@@ -38,79 +24,20 @@ export default function Step3({
     0,
   );
 
-  // const handlePublish = () => {
-  //   onPublish({
-  //     assignment_title: state.assignment_title,
-  //     totalMarks,
-  //     start_time: format(state.start_time, "yyyy-MM-dd'T'HH:mm:ss"),
-  //     deadline: format(state.deadline, "yyyy-MM-dd'T'HH:mm:ss"),
-  //     questions: state.questions,
-  //     ...(category === "ai-generated" && {
-  //       questionCounts: {
-  //         patterns: state.patternCounts,
-  //         types: state.questionTypeCounts,
-  //       },
-  //     }),
-  //   });
-  // };
-
-  const [state, dispatch] = useReducer(reducer, {
-    ...initialState,
-    assignment_title: assignmentDetails?.assignment_title || "",
-    start_time: assignmentDetails?.start_time
-      ? parseISO(assignmentDetails.start_time)
-      : new Date(),
-    deadline: assignmentDetails?.deadline
-      ? parseISO(assignmentDetails.deadline)
-      : new Date(),
-    questions: assignmentDetails?.questions || [],
-    activeTab: "setup",
-    patternCounts: assignmentDetails?.questionCounts?.patterns || {},
-    questionTypeCounts: assignmentDetails?.questionCounts?.types || {},
-  });
-
-  useEffect(() => {
-    if (assignmentDetails) {
-      dispatch({
-        type: "SET_MULTIPLE",
-        payload: {
-          assignment_title: assignmentDetails.assignment_title,
-          start_time: parseISO(assignmentDetails.start_time),
-          deadline: parseISO(assignmentDetails.deadline),
-          questions: assignmentDetails.questions || [],
-          patternCounts: assignmentDetails.questionCounts?.patterns || {},
-          questionTypeCounts: assignmentDetails.questionCounts?.types || {},
-        },
-      });
-    }
-  }, [assignmentDetails]);
-
   const handlePublish = () => {
-    const formattedData = {
+    onPublish({
       assignment_title: state.assignment_title,
-      totalMarks: state.questions.reduce(
-        (sum, q) => sum + (Number(q.marks) || 0),
-        0,
-      ),
+      total_marks: totalMarks,
       start_time: format(state.start_time, "yyyy-MM-dd'T'HH:mm:ss"),
       deadline: format(state.deadline, "yyyy-MM-dd'T'HH:mm:ss"),
-      questions: state.questions.map((q) => ({
-        ...q,
-        marks: Number(q.marks),
-        options: q.options?.map((opt) => ({
-          ...opt,
-          isCorrect: Boolean(opt.isCorrect),
-        })),
-      })),
+      questions: state.questions,
       ...(category === "ai-generated" && {
         questionCounts: {
           patterns: state.patternCounts,
           types: state.questionTypeCounts,
         },
       }),
-    };
-
-    onPublish(formattedData);
+    });
   };
 
   return (

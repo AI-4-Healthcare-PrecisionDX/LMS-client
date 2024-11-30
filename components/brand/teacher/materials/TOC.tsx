@@ -29,7 +29,6 @@ import useFileUpload from "@/hooks/use-upload";
 import api from "@/lib/axios-config";
 import { extractPDFTableOfContents } from "@/lib/getTOC";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { QueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   ChevronDown,
@@ -67,7 +66,7 @@ const initialState: State = {
 
 const category = ["Book", "Journal", "Thesis", "Notes", "Slides", "Others"];
 
-export default function TOC({ sectionId }: { sectionId: string }) {
+export default function TOC({ sectionId }: { sectionId: string}) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const { uploadFile, error, loading } = useFileUpload();
@@ -287,7 +286,6 @@ export default function TOC({ sectionId }: { sectionId: string }) {
   const onSubmit = async (data: TOCSchema) => {
     dispatch({ type: "SET_LOADING", payload: true });
     dispatch({ type: "SET_ERROR", payload: "" });
-    const queryClient = new QueryClient();
     const jsonString = JSON.stringify(data.toc, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const jsonfile = new File([blob], `${data.bookName}.json`, {
@@ -335,6 +333,7 @@ export default function TOC({ sectionId }: { sectionId: string }) {
       console.log(sectionContent);
 
       toast.success("Table of Contents submitted successfully");
+      window.location.reload();
     } catch (error) {
       console.error("Error submitting form:", error);
       dispatch({
@@ -350,7 +349,7 @@ export default function TOC({ sectionId }: { sectionId: string }) {
   return (
     <div className="p-4 max-w-6xl mx-auto">
       <h1 className="text-xl font-bold mb-4">Upload Your Material</h1>
-      <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)}>
         <div className="mb-4">
           <Label htmlFor="bookName">Book Name</Label>
           <Input
