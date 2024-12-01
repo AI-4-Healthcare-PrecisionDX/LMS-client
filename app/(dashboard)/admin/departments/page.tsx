@@ -4,7 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/axios-config";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Edit2, Loader2, Plus, Trash2, X } from "lucide-react";
+import {
+  Building2,
+  Check,
+  Edit2,
+  Loader2,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useReducer } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -73,7 +81,7 @@ export default function ManageDepartments() {
   } = useQuery({
     queryKey: ["departments"],
     queryFn: async () => {
-      const response = await api.get("/super_admin/departments");
+      const response = await api.get("/admin/departments");
       const parsedData = departmentArraySchema.parse(response.data);
       return parsedData;
     },
@@ -82,7 +90,7 @@ export default function ManageDepartments() {
   // Create department mutation
   const createMutation = useMutation({
     mutationFn: async (name: string) => {
-      const response = await api.post("/super_admin/create_department", {
+      const response = await api.post("/admin/create_department", {
         department_name: name,
       });
       const parsedData = departmentSchema.parse(response.data);
@@ -101,7 +109,7 @@ export default function ManageDepartments() {
   // Update department mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const response = await api.put(`/super_admin/departments/${id}`, {
+      const response = await api.put(`/admin/departments/${id}`, {
         department_name: name,
       });
       const parsedData = departmentSchema.parse(response.data);
@@ -120,7 +128,7 @@ export default function ManageDepartments() {
   // Delete department mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.delete(`/super_admin/departments/${id}`);
+      const response = await api.delete(`/admin/departments/${id}`);
       const parsedData = departmentSchema.parse(response.data);
       return parsedData;
     },
@@ -185,14 +193,14 @@ export default function ManageDepartments() {
       </div>
 
       {/* Departments list */}
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {departments?.map((dept: Department) => (
           <div
             key={dept.department_id}
-            className="bg-gray-100 dark:bg-gray-800 rounded-xl shadow-sm p-4 transition-all duration-200 hover:shadow-md"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 transition-all duration-200 hover:shadow-md border border-gray-100 dark:border-gray-700"
           >
             {state.editingId === dept.department_id ? (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-4">
                 <Input
                   value={state.editingName}
                   onChange={(e) =>
@@ -201,43 +209,50 @@ export default function ManageDepartments() {
                       payload: e.target.value,
                     })
                   }
-                  className="flex-grow rounded-xl border-gray-200"
+                  className="w-full rounded-xl border-gray-200 bg-gray-50 dark:bg-gray-900"
                 />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    updateMutation.mutate({
-                      id: dept.department_id,
-                      name: state.editingName,
-                    })
-                  }
-                  disabled={updateMutation.isPending}
-                  className="text-green-500 hover:text-green-600 hover:bg-green-50"
-                >
-                  {updateMutation.isPending ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Check className="w-5 h-5" />
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    dispatch({ type: "SET_EDITING", payload: { id: null } })
-                  }
-                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      updateMutation.mutate({
+                        id: dept.department_id,
+                        name: state.editingName,
+                      })
+                    }
+                    disabled={updateMutation.isPending}
+                    className="rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40"
+                  >
+                    {updateMutation.isPending ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Check className="w-5 h-5" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      dispatch({ type: "SET_EDITING", payload: { id: null } })
+                    }
+                    className="rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40"
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
               </div>
             ) : (
-              <div className="flex items-center justify-between">
-                <span className="text-gray-800 dark:text-gray-100 font-medium">
-                  {dept.department_name}
-                </span>
-                <div className="flex gap-2">
+              <div className="flex flex-col h-full">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                    <Building2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    {dept.department_name}
+                  </span>
+                </div>
+                <div className="flex justify-end gap-2 mt-auto">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -250,7 +265,7 @@ export default function ManageDepartments() {
                         },
                       })
                     }
-                    className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
+                    className="rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
                   >
                     <Edit2 className="w-4 h-4" />
                   </Button>
@@ -267,7 +282,7 @@ export default function ManageDepartments() {
                       }
                     }}
                     disabled={deleteMutation.isPending}
-                    className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    className="rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40"
                   >
                     {deleteMutation.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />

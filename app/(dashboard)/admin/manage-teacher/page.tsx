@@ -1,10 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -14,7 +10,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -30,10 +25,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2 } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { toast } from "sonner";
 import api from "@/lib/axios-config";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import * as z from "zod";
 
 // Types
 type Admin = {
@@ -182,22 +181,55 @@ export default function AdminManagement() {
     }
   };
 
-  if (isLoading)
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="container p-6 space-y-8">
+        <div className="h-8 w-48 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+              <div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="mt-8">
+          <div className="h-12 w-full bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="mt-4 h-16 w-full bg-gray-200 dark:bg-gray-800 rounded animate-pulse"
+            />
+          ))}
+        </div>
       </div>
     );
-  if (isError)
+  }
+
+  if (isError) {
     return (
-      <Alert variant="destructive">
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
+      <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
+        <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full">
+          <AlertCircle className="w-8 h-8 text-red-600" />
+        </div>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          Error Loading Teachers
+        </h2>
+        <p className="text-gray-500 dark:text-gray-400">
           {error?.message ||
-            "An error occurred while loading admins. Please try again."}
-        </AlertDescription>
-      </Alert>
+            "An unexpected error occurred while loading the teacher list"}
+        </p>
+        <Button
+          variant="outline"
+          onClick={() =>
+            queryClient.invalidateQueries({ queryKey: ["admins"] })
+          }
+        >
+          Try Again
+        </Button>
+      </div>
     );
+  }
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Teacher Management</h1>
