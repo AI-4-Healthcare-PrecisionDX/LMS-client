@@ -1,4 +1,4 @@
-name: Cloudflare Build Test
+name: Cloudflare Build with Bun
 
 on:
   push:
@@ -8,32 +8,25 @@ on:
 
 jobs:
   build:
-    name: Build Cloudflare Project
+    name: Build Cloudflare Project with Bun
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the code
       - name: Checkout repository
-        uses: actions/checkout@v3
-      
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: '1.1.36'
+        uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20' # or your project's Node.js version
-          cache: 'bun'
-  
-      - name: Install Wrangler CLI
-        run: bun install -g wrangler
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          export BUN_INSTALL="$HOME/.bun"
+          export PATH="$BUN_INSTALL/bin:$PATH"
+          bun --version
 
-      - name: Install project dependencies
+      - name: Install dependencies
         run: bun install
 
       - name: Run Cloudflare build
-        run: wrangler build
-
-
+        run: |
+          export PATH="$HOME/.bun/bin:$PATH"
+          npm install -g wrangler
+          wrangler build
