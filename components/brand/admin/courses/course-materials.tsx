@@ -182,7 +182,9 @@ export function CourseMateriels({
       <Dialog open={isPdfOpen} onOpenChange={setIsPdfOpen}>
         <DialogContent className="w-screen h-screen max-w-none m-0 p-6">
           <DialogHeader>
-            <DialogTitle>View PDF</DialogTitle>
+            <DialogTitle>
+              {selectedMaterial?.library_item.material_type}
+            </DialogTitle>
             <DialogDescription>
               {selectedMaterial?.library_item.material_title}
             </DialogDescription>

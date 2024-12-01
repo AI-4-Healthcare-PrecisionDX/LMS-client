@@ -433,7 +433,7 @@ export default function TOC() {
         )}
         <div className="mb-4">
           <Button type="button" onClick={() => addEntry()}>
-            Add Main Entry
+            Add new chapter
           </Button>
         </div>
         {state.toc.length > 0 && (
@@ -478,8 +478,8 @@ export default function TOC() {
               "Submitting..."
             ) : (
               <>
-                <Save className="mr-2 h-4 w-4" /> Save and Upload Table of
-                Contents
+                <Save className="mr-2 h-4 w-4" />
+                Upload Material
               </>
             )}
           </Button>
