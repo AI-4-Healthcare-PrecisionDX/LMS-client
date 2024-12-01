@@ -2,6 +2,7 @@
 
 import {
   Book,
+  Building,
   Calendar,
   Home,
   HomeIcon,
@@ -71,6 +72,12 @@ export function getAdminMenuList(pathname: string): Group[] {
               label: "Students",
               active: pathname === "/admin/manage-student",
               icon: User,
+            },
+            {
+              href: "/admin/departments",
+              label: "Departments",
+              active: pathname === "/admin/departments",
+              icon: Building,
             },
           ],
         },
