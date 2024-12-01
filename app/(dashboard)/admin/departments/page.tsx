@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/axios-config";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Edit2, Plus, Trash2, X } from "lucide-react";
+import { Check, Edit2, Loader2, Plus, Trash2, X } from "lucide-react";
 import { useReducer } from "react";
+import { toast } from "sonner";
 import { z } from "zod";
 
 // Zod schemas
@@ -65,10 +66,14 @@ export default function ManageDepartments() {
   const queryClient = useQueryClient();
 
   // Fetch departments
-  const { data: departments } = useQuery({
+  const {
+    data: departments,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["departments"],
     queryFn: async () => {
-      const response = await api.get("/admin/departments");
+      const response = await api.get("/super_admin/departments");
       const parsedData = departmentArraySchema.parse(response.data);
       return parsedData;
     },
@@ -77,7 +82,7 @@ export default function ManageDepartments() {
   // Create department mutation
   const createMutation = useMutation({
     mutationFn: async (name: string) => {
-      const response = await api.post("/admin/departments", {
+      const response = await api.post("/super_admin/create_department", {
         department_name: name,
       });
       const parsedData = departmentSchema.parse(response.data);
@@ -86,13 +91,17 @@ export default function ManageDepartments() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
       dispatch({ type: "SET_NEW_DEPARTMENT_NAME", payload: "" });
+      toast.success("Department created successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to create department");
     },
   });
 
   // Update department mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const response = await api.put(`/admin/departments/${id}`, {
+      const response = await api.put(`/super_admin/departments/${id}`, {
         department_name: name,
       });
       const parsedData = departmentSchema.parse(response.data);
@@ -101,20 +110,44 @@ export default function ManageDepartments() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
       dispatch({ type: "SET_EDITING", payload: { id: null } });
+      toast.success("Department updated successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update department");
     },
   });
 
   // Delete department mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.delete(`/admin/departments/${id}`);
+      const response = await api.delete(`/super_admin/departments/${id}`);
       const parsedData = departmentSchema.parse(response.data);
       return parsedData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
+      toast.success("Department deleted successfully");
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to delete department");
     },
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-500">
+        Error loading departments: {(error as Error).message}
+      </div>
+    );
+  }
 
   return (
     <div className="container p-6 ">
@@ -138,10 +171,14 @@ export default function ManageDepartments() {
           />
           <Button
             onClick={() => createMutation.mutate(state.newDepartmentName)}
-            disabled={!state.newDepartmentName}
+            disabled={!state.newDepartmentName || createMutation.isPending}
             className="bg-blue-500 hover:bg-blue-600 text-white rounded-xl px-6"
           >
-            <Plus className="w-4 h-4 mr-2" />
+            {createMutation.isPending ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4 mr-2" />
+            )}
             Add
           </Button>
         </div>
@@ -175,9 +212,14 @@ export default function ManageDepartments() {
                       name: state.editingName,
                     })
                   }
+                  disabled={updateMutation.isPending}
                   className="text-green-500 hover:text-green-600 hover:bg-green-50"
                 >
-                  <Check className="w-5 h-5" />
+                  {updateMutation.isPending ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Check className="w-5 h-5" />
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
@@ -224,9 +266,14 @@ export default function ManageDepartments() {
                         deleteMutation.mutate(dept.department_id);
                       }
                     }}
+                    disabled={deleteMutation.isPending}
                     className="text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    {deleteMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </Button>
                 </div>
               </div>
