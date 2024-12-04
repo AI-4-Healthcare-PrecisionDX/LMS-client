@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
+
+export const runtime = "edge";
 import PatientInfo from "@/components/brand/student/practice/PatientInfoCard";
 import Tour from "@/components/brand/student/practice/Tour";
 import DecisionPoint from "@/components/brand/student/virtual-room/decision-points";
