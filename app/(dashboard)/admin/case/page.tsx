@@ -233,9 +233,8 @@ export default function ManageCases() {
       toast.error(error.message || "Failed to delete case");
     },
   });
-
   const filteredCases = cases?.filter(
-    (case_) =>
+    (case_: Case) =>
       case_.scenario.scenario_title
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
@@ -356,7 +355,7 @@ export default function ManageCases() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredCases?.map((case_) => (
+        {filteredCases?.map((case_: Case) => (
           <Card key={case_.scenario.scenario_id}>
             <CardHeader className="flex flex-row items-start justify-between space-y-0">
               <div>
