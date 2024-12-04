@@ -1,139 +1,39 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React, { useState, useEffect, useRef, use } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import Image from "next/image";
-import { VolumeUpIcon } from "@heroicons/react/outline";
+import PatientInfo from "@/components/brand/student/practice/PatientInfoCard";
+import Tour from "@/components/brand/student/practice/Tour";
 import DecisionPoint from "@/components/brand/student/virtual-room/decision-points";
-import {
-  ChevronDown,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronUp,
-  CirclePlay,
-  Mic,
-  Send,
-  Square,
-} from "lucide-react"; // Import the Mic icon from lucide-react
 import DoctorNote from "@/components/brand/student/virtual-room/doctor-note";
-import { TourProvider, useTour } from "@reactour/tour";
-import CaseFloatingMOdal from "@/components/brand/student/practice/CaseFloatingModal";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { useTour } from "@reactour/tour";
+import { useMutation } from "@tanstack/react-query";
+import { CirclePlay, Mic, Send, Square } from "lucide-react";
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
-const dummyAIResponses = [
-  "Sure, I've been having these terrible headaches for about two years now. They're always on one side of my head, and they come with nausea and this awful sensitivity to light. It gets so bad sometimes that I have to just sit in a dark room.",
-  "Well, I first noticed them after I started a new job that was pretty stressful. But back then, they were just occasional. Over the last year or so, they've been getting more frequent—about twice a month now.",
-  "Yes, stress is a big one, and sometimes if I don't get enough sleep, it seems to make them worse. I've also noticed that if I have a glass of wine, it can sometimes trigger a headache the next day.",
-  "Yes, sometimes I get blurry vision or see little zigzag lines about 30 minutes before the pain hits.",
-  "I've tried over-the-counter pain meds like ibuprofen, but they don't do much. Sometimes they dull the pain a little, but I still feel miserable for hours.",
-  "That would be great. I just want to stop them from getting worse.",
-  "I can definitely try that. I think tracking them would help me understand what's going on better.",
-  " I'm okay with getting the blood tests done to rule out anything else. I'll let you know if anything changes with my symptoms or if the headaches become more frequent. Thank you for being thorough!",
-  "Thank you so much! I hope so too. I'll follow your advice and look forward to feeling better soon.",
-];
+const SpeechBubble = ({ message }: { message: string }) => {
+  const bubbleRef = useRef<HTMLDivElement>(null);
 
-const patientCase = {
-  id: 1,
-  caseNumber: "C004",
-  date: "2023-06-01",
-  patientName: "Sarah Collins",
-  age: 34,
-  gender: "Female",
-  chiefComplaint: "Recurrent severe headaches",
-  description:
-    "Sarah reports experiencing severe, throbbing headaches on one side of her head for the past two years. The pain is often accompanied by nausea, sensitivity to light, and occasionally blurred vision. The headaches occur about twice a month, lasting 6-12 hours, and are often triggered by stress or lack of sleep. She rates the pain as 9/10 during episodes. Over-the-counter pain medications provide minimal relief.",
-  physicalExamFindings:
-    "Vital Signs: BP 150/90, HR 98, RR 20, Temp 37.2°C, SpO2 97% on room air. General: Patient appears uncomfortable and anxious. Cardiovascular: Regular rate and rhythm, no murmurs, rubs, or gallops. Lungs: Clear to auscultation bilaterally. No wheezes or crackles. Abdomen: Soft, non-tender, non-distended. Extremities: No edema, pulses equal bilaterally.",
+  useEffect(() => {
+    if (bubbleRef.current) {
+      bubbleRef.current.scrollTop = bubbleRef.current.scrollHeight;
+    }
+  }, [message]);
+
+  return (
+    <div
+      ref={bubbleRef}
+      className={`bg-white max-w-[200px] max-h-[100px] overflow-y-auto p-2 rounded-lg shadow-md text-md dark:bg-gray-600 dark:text-white`}
+    >
+      {message}
+    </div>
+  );
 };
 
-const testReports = [
-  {
-    id: 1,
-    name: "Complete Blood Count (CBC)",
-    date: "2023-06-10",
-    result: "Within normal ranges",
-  },
-  {
-    id: 2,
-    name: "Thyroid Function Test",
-    date: "2023-06-10",
-    result: "TSH: 2.5 mIU/L (Normal)",
-  },
-  {
-    id: 3,
-    name: "Vitamin D Level",
-    date: "2023-06-10",
-    result: "25 ng/mL (Insufficient)",
-  },
-  {
-    id: 4,
-    name: "MRI Brain Scan",
-    date: "2023-06-15",
-    result: "No structural abnormalities detected",
-  },
-  {
-    id: 5,
-    name: "Electroencephalogram (EEG)",
-    date: "2023-06-20",
-    result: "Normal brain wave patterns",
-  },
-];
-
-const steps = [
-  {
-    selector: ".patient-vitals",
-    content: "Here you can see the patient vitals.",
-  },
-  {
-    selector: ".doctor-input",
-    content:
-      "You can click the doctor to start a conversation with virtual patient.",
-  },
-  {
-    selector: ".mic-input",
-    content:
-      "You can click the microphone icon to start recording your message.",
-  },
-  {
-    selector: ".send-button",
-    content: "Also, click the send button to send your message.",
-  },
-  {
-    selector: ".take-note",
-    content: "You can take notes here.",
-  },
-  {
-    selector: ".save-note",
-    content: "Click the save button to save your notes.",
-  },
-  {
-    selector: ".decision-points",
-    content: "Here you can make your decision.",
-  },
-  {
-    selector: ".submit-decision",
-    content: "Click the submit button to submit your decision.",
-  },
-  {
-    selector: ".start-tour",
-    content: "Click the start tour button to start the tour again. Thank you!",
-  },
-];
-
-const SpeechBubble = ({ message }) => (
-  <div
-    className={`bg-white max-w-[200px] max-h-[100px] overflow-y-auto p-2 rounded-lg shadow-md text-md dark:bg-gray-600 dark:text-white`}
-  >
-    {message}
-  </div>
-);
-
-function MedicalConsultation() {
+function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
   const textareaRef = useRef(null);
   const [start, setStart] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
@@ -143,12 +43,6 @@ function MedicalConsultation() {
   const [responseIndex, setResponseIndex] = useState(0);
   const [showDoctorInput, setShowDoctorInput] = useState(false);
   const [audioPlaying, setAudioPlaying] = useState(false);
-  const [patientVitals, setPatientVitals] = useState({
-    heartRate: "72 bpm",
-    bloodPressure: "120/80 mmHg",
-    temperature: "98.6°F",
-    oxygenSaturation: "98%",
-  });
   const [speechSynthesis, setSpeechSynthesis] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -159,6 +53,7 @@ function MedicalConsultation() {
   const analyserRef = useRef(null);
   const animationRef = useRef(null);
   const streamRef = useRef(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   const [patientExpression, setPatientExpression] = useState("sick");
   const [isStreaming, setIsStreaming] = useState(false);
@@ -170,11 +65,77 @@ function MedicalConsultation() {
     }
   }
 
-  const handleDoctorInput = (e) => {
-    setDoctorInput(e.target.value);
-  };
+  const { mutate: postMessage } = useMutation({
+    mutationFn: async (content: string) => {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/clinical-practice/thread/${virtualRoom}/message`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ content }),
+        },
+      );
 
-  const sendDoctorMessage = (e) => {
+      if (!response.ok) {
+        throw new Error("Failed to fetch response");
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("No reader available");
+      }
+
+      setDoctorInput("");
+      setShowDoctorInput(false);
+      setAiResponse("");
+
+      let fullResponse = "";
+      let currentUtterance = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split("\n\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") {
+              setIsStreaming(false);
+              setShowDoctorInput(true);
+              setDoctorMessage("");
+              setPatientExpression("sick");
+              return;
+            }
+
+            // Cancel previous utterance if still speaking
+            if (currentUtterance) {
+              window.speechSynthesis.cancel();
+            }
+
+            // Create new utterance for this chunk
+            currentUtterance = new SpeechSynthesisUtterance(data);
+            currentUtterance.rate = 0.9;
+            window.speechSynthesis.speak(currentUtterance);
+
+            fullResponse += data;
+            streamAIResponse(fullResponse);
+          }
+        }
+      }
+    },
+    onError: (error) => {
+      console.error("Error sending message:", error);
+      toast.error("Failed to send message. Please try again.");
+    },
+  });
+
+  const sendDoctorMessage = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       if (isRecording) return;
@@ -183,60 +144,36 @@ function MedicalConsultation() {
       setDoctorMessage(doctorInput);
       setDoctorInput("");
       setShowDoctorInput(false);
-      streamAIResponse();
       setIsRecording(false);
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
       stopRecording();
+
+      postMessage(doctorInput);
     }
   };
 
-  const streamAIResponse = () => {
+  const streamAIResponse = (response: string) => {
     setIsStreaming(true);
-    setAiResponse("");
-    const response = dummyAIResponses[responseIndex];
-    let index = -1;
+    let currentIndex = 0;
 
     // Create a new SpeechSynthesisUtterance instance
     const utterance = new SpeechSynthesisUtterance(response);
     utterance.rate = 0.9; // Slightly slow down the speech rate
     setSpeechSynthesis(utterance);
 
-    // Text streaming
-    const streamText = () => {
-      const textIntervalId = setInterval(() => {
-        if (index < response.length - 1) {
-          setAiResponse((prev) => prev + response[index]);
-          index++;
-        } else {
-          clearInterval(textIntervalId);
-        }
-      }, 50);
-    };
+    // Text streaming with consistent speed
+    const streamInterval = setInterval(() => {
+      if (currentIndex < response.length) {
+        setAiResponse(response.substring(0, currentIndex + 1));
+        currentIndex++;
+      } else {
+        clearInterval(streamInterval);
+      }
+    }, 30); // Adjust timing for smooth animation
 
     // Expression changing
-    const changeExpression = () => {
-      let expressionChangeCounter = 0;
-      const expressionIntervalId = setInterval(() => {
-        expressionChangeCounter++;
-        if (expressionChangeCounter % 3 === 0) {
-          setPatientExpression((prev) => {
-            if (prev === "sick") return "shut";
-            if (prev === "shut") return "sick";
-            return "sick";
-          });
-        }
-      }, 50);
-
-      return expressionIntervalId;
-    };
-
-    // Start text streaming
-    streamText();
-
-    // Start expression changes
-    const expressionIntervalId = changeExpression();
+    const expressionInterval = setInterval(() => {
+      setPatientExpression((prev) => (prev === "sick" ? "shut" : "sick"));
+    }, 150);
 
     // Start speaking
     window.speechSynthesis.speak(utterance);
@@ -244,16 +181,12 @@ function MedicalConsultation() {
     // Handle speech end
     utterance.onend = () => {
       setSpeechSynthesis(null);
-      clearInterval(expressionIntervalId);
-      setIsStreaming(false);
-      setShowDoctorInput(true);
-      setDoctorMessage("");
-      setPatientExpression("sick");
-      setResponseIndex(
-        (prevIndex) => (prevIndex + 1) % dummyAIResponses.length,
-      );
+      clearInterval(expressionInterval);
+      clearInterval(streamInterval);
+      setAiResponse(response); // Ensure full text is displayed
     };
   };
+
   const pauseResumeSpeech = () => {
     if (window.speechSynthesis.speaking) {
       if (window.speechSynthesis.paused) {
@@ -285,13 +218,10 @@ function MedicalConsultation() {
     setDoctorMessage(doctorInput);
     setDoctorInput("");
     setShowDoctorInput(false);
-    streamAIResponse();
     setIsRecording(false);
     stopRecording();
-  };
 
-  const handleDiagnosisInput = (e) => {
-    setDiagnosis(e.target.value);
+    postMessage(doctorInput);
   };
 
   const startRecording = async () => {
@@ -342,13 +272,16 @@ function MedicalConsultation() {
   const drawWaveform = () => {
     if (!analyserRef.current) return;
 
-    analyserRef.current.fftSize = 256;
-    const bufferLength = analyserRef.current.frequencyBinCount;
+    const analyser = analyserRef.current as AnalyserNode;
+    analyser.fftSize = 256;
+    const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
     const draw = () => {
-      analyserRef.current.getByteTimeDomainData(dataArray);
-      setAudioData([...dataArray]);
+      if (!analyserRef.current) return;
+      const analyser = analyserRef.current as AnalyserNode;
+      analyser.getByteTimeDomainData(dataArray);
+      setAudioData(Array.from(dataArray));
       animationRef.current = requestAnimationFrame(draw);
     };
 
@@ -358,32 +291,65 @@ function MedicalConsultation() {
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel();
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
     };
   }, []);
 
   useEffect(() => {
+    interface SpeechRecognitionEvent {
+      results: {
+        [index: number]: {
+          [index: number]: {
+            transcript: string;
+          };
+        };
+      };
+      error?: string;
+    }
+
+    interface SpeechRecognitionInstance {
+      continuous: boolean;
+      interimResults: boolean;
+      start: () => void;
+      stop: () => void;
+      onresult: (event: SpeechRecognitionEvent) => void;
+      onerror: (event: { error: string }) => void;
+    }
+
     const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      ((window as any).webkitSpeechRecognition as {
+        new (): SpeechRecognitionInstance;
+      });
+
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
+      const recognition =
+        recognitionRef.current as unknown as SpeechRecognitionInstance;
+      if (recognition) {
+        recognition.continuous = true;
+        recognition.interimResults = true;
+      }
 
-      recognitionRef.current.onresult = (event) => {
-        const currentTranscript = Array.from(event.results)
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        const currentTranscript = Array.from(Object.values(event.results))
           .map((result) => result[0].transcript)
           .join("");
         setTranscript(currentTranscript);
       };
 
-      recognitionRef.current.onerror = (event) => {
+      recognition.onerror = (event: { error: string }) => {
         console.error("Speech recognition error", event.error);
         stopRecording();
       };
     }
 
     return () => {
-      cancelAnimationFrame(animationRef.current);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
       stopRecording();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -391,7 +357,7 @@ function MedicalConsultation() {
 
   useEffect(() => {
     if (showDoctorInput && textareaRef.current) {
-      textareaRef.current.focus();
+      (textareaRef.current as HTMLTextAreaElement).focus();
     }
   }, [showDoctorInput]);
 
@@ -451,10 +417,9 @@ function MedicalConsultation() {
                       ref={textareaRef}
                       className="max-w-[200px] flex-grow p-2 rounded border bg-white text-gray-950 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       value={doctorInput}
-                      onChange={handleDoctorInput}
+                      onChange={(e) => setDoctorInput(e.target.value)}
                       onKeyPress={sendDoctorMessage}
                       placeholder="Type your message and press Enter..."
-                      maxRows={3}
                       rows={3}
                       style={{ resize: "none" }}
                     />
@@ -525,24 +490,7 @@ function MedicalConsultation() {
           </Card>
         </div>
         <div className="col-span-4 ">
-          <Card className="flex-1 patient-vitals">
-            <CardHeader>
-              <h2 className="text-lg font-bold">Patient Medical Condition</h2>
-            </CardHeader>
-            <CardContent>
-              <ul>
-                {Object.entries(patientVitals).map(([key, value]) => (
-                  <li key={key} className="mb-1">
-                    <span className="font-semibold">{key}:</span> {value}
-                  </li>
-                ))}
-              </ul>
-              <CaseFloatingMOdal
-                patientCase={patientCase}
-                testReports={testReports}
-              />
-            </CardContent>
-          </Card>
+          <PatientInfo virtualRoom={virtualRoom} />
           <DoctorNote />
         </div>
       </div>
@@ -551,69 +499,16 @@ function MedicalConsultation() {
   );
 }
 
-export default function MedicalConsultationTour() {
-  const handleNextStep = ({
-    currentStep,
-    stepsLength,
-    setIsOpen,
-    setCurrentStep,
-  }) => {
-    const currentSelector = steps[currentStep].selector;
-    const elementToClick = document.querySelector(currentSelector);
-    const clickableSteps = [1];
-    if (clickableSteps.includes(currentStep) && elementToClick) {
-      elementToClick.click();
-    }
+export default function MedicalConsultationTour({
+  params,
+}: {
+  params: { virtualRoom: string };
+}) {
+  const { virtualRoom } = params;
 
-    const last = currentStep === stepsLength - 1;
-    if (last) {
-      setIsOpen(false);
-    } else {
-      setCurrentStep((s) => s + 1);
-    }
-  };
-  const handlePrevStep = ({ currentStep, setCurrentStep }) => {
-    const first = currentStep === 0;
-    if (!first) {
-      setCurrentStep((s) => s - 1);
-    }
-  };
   return (
-    <TourProvider
-      steps={steps}
-      disableDotsNavigation
-      scrollSmooth
-      onClickHighlighted={(e) => {
-        e.stopPropagation();
-      }}
-      disableInteraction
-      prevButton={({ currentStep, setCurrentStep }) => (
-        <button
-          onClick={() => handlePrevStep({ currentStep, setCurrentStep })}
-          disabled={currentStep === 0}
-          className="disabled:opacity-50"
-        >
-          <ChevronLeftIcon />
-        </button>
-      )}
-      nextButton={({ currentStep, stepsLength, setIsOpen, setCurrentStep }) => (
-        <button
-          onClick={() =>
-            handleNextStep({
-              currentStep,
-              stepsLength,
-              setIsOpen,
-              setCurrentStep,
-            })
-          }
-          disabled={currentStep === stepsLength - 1}
-          className="disabled:opacity-50"
-        >
-          <ChevronRightIcon />
-        </button>
-      )}
-    >
-      <MedicalConsultation />
-    </TourProvider>
+    <Tour>
+      <MedicalConsultation virtualRoom={virtualRoom} />
+    </Tour>
   );
 }
