@@ -44,30 +44,46 @@ import { Controller, useForm } from "react-hook-form";
 import { useMutation, useQuery, useQueryClient } from "react-query";
 import { z } from "zod";
 
-const fetchEvents = async () => {
-  const { data } = await axios.get("/api/events"); // Adjust the API endpoint as needed
+interface Event {
+  id: string;
+  title: string;
+  topics: string[];
+  deadline: Date;
+  status: "upcoming" | "successful" | "failed";
+  link?: string;
+}
+
+interface EventFormData {
+  title: string;
+  topics?: string;
+  date: string;
+  time?: string;
+  link?: string;
+}
+
+const fetchEvents = async (): Promise<Event[]> => {
+  const { data } = await axios.get("/api/events");
   return data;
 };
 
-const addEvent = async (event) => {
-  const { data } = await axios.post("/api/events", event); // Adjust the API endpoint as needed
+const addEvent = async (event: Event): Promise<Event> => {
+  const { data } = await axios.post("/api/events", event);
   return data;
 };
 
-const updateEvent = async (event) => {
-  const { data } = await axios.put(`/api/events/${event.id}`, event); // Adjust the API endpoint as needed
+const updateEvent = async (event: Event): Promise<Event> => {
+  const { data } = await axios.put(`/api/events/${event.id}`, event);
   return data;
 };
 
-const deleteEvent = async (eventId) => {
-  await axios.delete(`/api/events/${eventId}`); // Adjust the API endpoint as needed
+const deleteEvent = async (eventId: string): Promise<void> => {
+  await axios.delete(`/api/events/${eventId}`);
 };
 
 const items = [{ href: "/student", label: "Home" }, { label: "Events" }];
 
 const ITEMS_TO_DISPLAY = 2;
 
-// Define a Zod schema for event validation
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
   topics: z.string().optional(),
@@ -78,21 +94,24 @@ const eventSchema = z.object({
 
 const CalendarEvents = () => {
   const queryClient = useQueryClient();
-  const { data: events = [], refetch } = useQuery("events", fetchEvents);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const { data: events = [], refetch } = useQuery<Event[]>(
+    "events",
+    fetchEvents,
+  );
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: "",
     topics: "",
     date: "",
     time: "",
-    status: "upcoming",
+    status: "upcoming" as const,
     link: "",
   });
-  const [editingEvent, setEditingEvent] = useState(null);
-  const [sortOption, setSortOption] = useState("all");
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [sortOption, setSortOption] = useState<"all" | "selected">("all");
 
-  const { control, handleSubmit, reset } = useForm({
+  const { control, handleSubmit, reset } = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
   });
 
@@ -104,12 +123,14 @@ const CalendarEvents = () => {
     return () => clearInterval(interval);
   }, [refetch]);
 
-  const handleDateChange = (date) => {
-    setSelectedDate(date);
-    setSortOption("selected");
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      setSelectedDate(date);
+      setSortOption("selected");
+    }
   };
 
-  const getFilteredEvents = (category) => {
+  const getFilteredEvents = (category: "upcoming" | "passed") => {
     const filteredEvents = events.filter((event) => {
       if (category === "upcoming") {
         return event.status === "upcoming";
@@ -153,12 +174,12 @@ const CalendarEvents = () => {
     },
   });
 
-  const handleAddOrEditEvent = (data) => {
+  const handleAddOrEditEvent = (data: EventFormData) => {
     const deadline = data.time
       ? parseISO(`${data.date}T${data.time}`)
       : parseISO(`${data.date}`);
 
-    const event = {
+    const event: Event = {
       id: editingEvent ? editingEvent.id : Date.now().toString(),
       title: data.title,
       topics: data.topics
@@ -175,41 +196,33 @@ const CalendarEvents = () => {
       addEventMutation.mutate(event);
     }
 
-    // Reset form and close dialog
     setIsAddEventOpen(false);
-    reset(); // Reset the form
+    reset();
     setEditingEvent(null);
   };
 
-  const handleEditEvent = (event: {
-    id: string;
-    title: string;
-    topics: string[];
-    deadline: Date;
-    status: string;
-    link: string;
-  }) => {
+  const handleEditEvent = (event: Event) => {
     setEditingEvent(event);
     setNewEvent({
       title: event.title,
       topics: event.topics.join(", "),
       date: format(event.deadline, "yyyy-MM-dd"),
       time: format(event.deadline, "HH:mm"),
-      status: event.status,
-      link: event.link,
+      status: "upcoming", // Force status to "upcoming" when editing
+      link: event.link || "",
     });
     setIsAddEventOpen(true);
   };
 
-  const handleDeleteEvent = (eventId) => {
+  const handleDeleteEvent = (eventId: string) => {
     deleteEventMutation.mutate(eventId);
   };
 
-  const handleCompleteEvent = (eventId) => {
+  const handleCompleteEvent = (eventId: string) => {
     refetch();
   };
 
-  const isDateWithEvent = (date) => {
+  const isDateWithEvent = (date: Date) => {
     return events.some((event) => isSameDay(date, event.deadline));
   };
 
@@ -364,7 +377,12 @@ const CalendarEvents = () => {
               </TabsTrigger>
             </TabsList>
             <div className="mb-4">
-              <Select value={sortOption} onValueChange={setSortOption}>
+              <Select
+                value={sortOption}
+                onValueChange={(value: "all" | "selected") =>
+                  setSortOption(value)
+                }
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Sort events" />
                 </SelectTrigger>
@@ -405,6 +423,7 @@ const CalendarEvents = () => {
     </div>
   );
 };
+
 const EventCard = ({
   event,
   onEdit,
@@ -469,7 +488,7 @@ const EventCard = ({
       </div>
     </CardContent>
     <CardFooter className="justify-end space-x-2">
-      {showCompleteButton && (
+      {showCompleteButton && onComplete && (
         <Button
           variant="outline"
           size="sm"
@@ -491,7 +510,7 @@ const EventCard = ({
         variant="outline"
         size="sm"
         onClick={() => onDelete(event.id)}
-        className="text-red-600 border-red-600 hover:bg-re d-50 dark:text-red-400 dark:border-red-400 dark:hover:bg-red-900"
+        className="text-red-600 border-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-400 dark:hover:bg-red-900"
       >
         <Trash2 className="w-4 h-4 mr-2" /> Delete
       </Button>

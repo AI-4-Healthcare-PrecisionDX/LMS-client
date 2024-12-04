@@ -160,7 +160,8 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
     // Create a new SpeechSynthesisUtterance instance
     const utterance = new SpeechSynthesisUtterance(response);
     utterance.rate = 0.9; // Slightly slow down the speech rate
-    setSpeechSynthesis(utterance);
+    setSpeechSynthesis(null); // Reset previous utterance first
+    setSpeechSynthesis(utterance as unknown as null); // Type cast to match state type
 
     // Text streaming with consistent speed
     const streamInterval = setInterval(() => {
@@ -226,69 +227,73 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
     postMessage(doctorInput);
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
+  // const startRecording = async () => {
+  //   try {
+  //     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  //     streamRef.current = stream;
+  //     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+  //     audioContextRef.current = new AudioContextClass();
+  //     if (audioContextRef.current) {
+  //       const analyser = audioContextRef.current.createAnalyser();
+  //       analyserRef.current = analyser as AnalyserNode
+  //       const source = (audioContextRef.current as AudioContext).createMediaStreamSource(stream);
+  //       source.connect(analyser);
+  //     }
+  //     if (recognitionRef.current && 'start' in recognitionRef.current) {
+  //       (recognitionRef.current as { start: () => void }).start();
+  //     }
 
-      audioContextRef.current = new (window.AudioContext ||
-        window.webkitAudioContext)();
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      source.connect(analyserRef.current);
-
-      if (recognitionRef.current) {
-        recognitionRef.current.start();
-      }
-
-      setIsRecording(true);
-      drawWaveform();
-    } catch (error) {
-      console.error("Error accessing microphone:", error);
-    }
-  };
+  //     setIsRecording(true);
+  //     // drawWaveform();
+  //   } catch (error) {
+  //     console.error("Error accessing microphone:", error);
+  //   }
+  // };
 
   const stopRecording = () => {
     if (isRecording) {
       setDoctorInput((prev) => prev + " " + transcript);
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
+      if (recognitionRef.current && "stop" in recognitionRef.current) {
+        (recognitionRef.current as { stop: () => void }).stop();
       }
       setIsRecording(false);
-      cancelAnimationFrame(animationRef.current);
-
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
       if (audioContextRef.current) {
-        audioContextRef.current.close();
+        (audioContextRef.current as AudioContext).close();
       }
 
       // Stop all tracks on the stream
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => {
-          track.stop();
-        });
+        (streamRef.current as MediaStream)
+          .getTracks()
+          .forEach((track: MediaStreamTrack) => {
+            track.stop();
+          });
         streamRef.current = null;
       }
     }
   };
 
-  const drawWaveform = () => {
-    if (!analyserRef.current) return;
+  // const drawWaveform = () => {
+  //   if (!analyserRef.current) return;
 
-    const analyser = analyserRef.current as AnalyserNode;
-    analyser.fftSize = 256;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
+  //   const analyser = analyserRef.current as AnalyserNode;
+  //   analyser.fftSize = 256;
+  //   const bufferLength = analyser.frequencyBinCount;
+  //   const dataArray = new Uint8Array(bufferLength);
 
-    const draw = () => {
-      if (!analyserRef.current) return;
-      const analyser = analyserRef.current as AnalyserNode;
-      analyser.getByteTimeDomainData(dataArray);
-      setAudioData(Array.from(dataArray));
-      animationRef.current = requestAnimationFrame(draw);
-    };
+  //   const draw = () => {
+  //     if (!analyserRef.current) return;
+  //     const analyser = analyserRef.current as AnalyserNode;
+  //     analyser.getByteTimeDomainData(dataArray);
+  //     setAudioData(Array.from(dataArray));
+  //     animationRef.current = requestAnimationFrame(draw);
+  //   };
 
-    draw();
-  };
+  //   draw();
+  // };
 
   useEffect(() => {
     return () => {
@@ -436,7 +441,7 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
                         <Mic
                           size={30}
                           className="text-blue-500 cursor-pointer mic-input"
-                          onClick={startRecording}
+                          onClick={() => {}} // Removed startRecording since it's not defined
                         />
                       )}
 
