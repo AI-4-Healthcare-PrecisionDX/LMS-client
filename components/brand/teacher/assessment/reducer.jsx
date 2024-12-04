@@ -4,6 +4,7 @@ export const initialState = {
   assignment_title: "",
   start_time: new Date(),
   deadline: new Date(),
+  assignment_materials: [],
   questions: [],
   isQuestionsGenerated: false,
   marksPerQuestion: {},
@@ -12,6 +13,7 @@ export const initialState = {
   isModalOpen: false,
   activeTab: "setup",
   sortBy: "start_time",
+  materials: [],
 };
 
 const updateQuestionField = (question, field, value) => {
@@ -75,6 +77,7 @@ export const ACTIONS = {
   REMOVE_ASSIGNMENT_MATERIAL: "REMOVE_ASSIGNMENT_MATERIAL",
   RESET_STATE: "RESET_STATE",
   SET_QUESTIONS: "SET_QUESTIONS",
+  SET_MATERIALS: "SET_MATERIALS",
 };
 
 export function reducer(state, action) {
@@ -203,6 +206,11 @@ export function reducer(state, action) {
             state.editingAssignment?.assignment_materials || []
           ).filter((material) => material.id !== action.payload),
         },
+      };
+    case "SET_MATERIALS":
+      return {
+        ...state,
+        materials: action.payload,
       };
     default:
       return state;

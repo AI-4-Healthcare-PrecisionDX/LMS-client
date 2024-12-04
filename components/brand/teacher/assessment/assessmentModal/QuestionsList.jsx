@@ -2,35 +2,87 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import api from "@/lib/axios-config";
 import { AnimatePresence } from "framer-motion";
 import { Pencil } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { MaterialView } from "./MaterialUpload";
 import QuestionCard from "./QuestionCard";
 import QuestionTypeButtons from "./QuestionTypeButtons";
 
 export default function QuestionsList({ state, dispatch, category }) {
+  const [pdfs, setPDFs] = useState([]);
+  // console.log(
+  //   "state.editingAssignment.assignment_materials",
+  //   state.editingAssignment.assignment_materials,
+  // );
   useEffect(() => {
-    // Only set questions if we're editing and don't already have questions set
-    if (
-      state.editingAssignment?.questions &&
-      (!state.questions || state.questions.length === 0)
-    ) {
-      dispatch({
-        type: "SET_MULTIPLE",
-        payload: {
-          questions: state.editingAssignment.questions,
-          assignment_title: state.editingAssignment.assignment_title,
-        },
-      });
+    // Load existing PDFs when editing
+    const loadExistingPDFs = async () => {
+      if (state.editingAssignment?.assignment_materials?.length > 0) {
+        try {
+          const existingPDFs = await Promise.all(
+            state.editingAssignment.assignment_materials.map(
+              async (material) => {
+                // Extract the library_item_id from the material object
+                const materialId = material.library_item_id;
+
+                try {
+                  const response = await api.get(
+                    `/utils/library/${materialId}`,
+                  );
+                  return {
+                    library_id: materialId,
+                    name: response.data.material_title,
+                    file_url: response.data.file_url,
+                  };
+                } catch (error) {
+                  console.error(`Error fetching PDF ${materialId}:`, error);
+                  toast.error("Failed to load some existing materials");
+                  return null;
+                }
+              },
+            ),
+          );
+
+          // Filter out any failed fetches
+          const validPDFs = existingPDFs.filter((pdf) => pdf !== null);
+          console.log("existingPDFs", validPDFs);
+
+          setPDFs(validPDFs);
+          // Also update the materials in the state
+          dispatch({
+            type: "SET_MATERIALS",
+            payload: validPDFs,
+          });
+        } catch (error) {
+          console.error("Error loading existing PDFs:", error);
+          toast.error("Failed to load some existing materials");
+        }
+      }
+    };
+
+    if (state.editingAssignment) {
+      loadExistingPDFs();
     }
   }, [state.editingAssignment]);
 
-  // Add null check for questions array
-  const questions = state.questions;
-  // console.log(state.editingAssignment.questions);
-  console.log(questions);
-  // question is an array. every object has marks. calculate total marks
-  const totalMarks = questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+  const questions = state.questions || [];
+  const totalMarks = questions.reduce(
+    (sum, q) => sum + (parseInt(q.marks) || 0),
+    0,
+  );
+
+  const handlePDFsChange = (newPDFs) => {
+    setPDFs(newPDFs);
+    // Make sure this dispatch is being called with the correct payload
+    dispatch({
+      type: "SET_MATERIALS",
+      payload: newPDFs,
+    });
+    console.log("Updated PDFs:", newPDFs); // Debug log
+  };
 
   return (
     <Card className="shadow-lg">
@@ -52,6 +104,11 @@ export default function QuestionsList({ state, dispatch, category }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        <MaterialView
+          pdfs={pdfs}
+          onPDFsChange={handlePDFsChange}
+          isEditing={!!state.editingAssignment}
+        />
         <ScrollArea className="h-[600px] pr-4">
           <AnimatePresence>
             {questions.map((question, index) => (
@@ -71,7 +128,6 @@ export default function QuestionsList({ state, dispatch, category }) {
                     payload: index,
                   })
                 }
-                isEditing={!!state.editingAssignment}
               />
             ))}
           </AnimatePresence>

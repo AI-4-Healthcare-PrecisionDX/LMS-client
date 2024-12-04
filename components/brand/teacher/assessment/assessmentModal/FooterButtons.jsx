@@ -1,13 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Loader2, Save } from "lucide-react";
 
-// interface FooterButtonsProps {
-//   onBack: () => void;
-//   onPublish: () => void;
-//   disabled?: boolean;
-//   isPublishing?: boolean;
-// }
-
 export default function FooterButtons({
   onBack,
   onPublish,

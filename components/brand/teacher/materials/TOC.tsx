@@ -154,7 +154,7 @@ export default function TOC({ sectionId }: { sectionId: string}) {
     (parentId: string | null = null) => {
       const newEntry: TOCEntry = {
         id: Date.now().toString(),
-        title: "New Entry",
+        title: "New Content",
         pageRanges: { start: 1, end: 1 },
         sections: [],
       };
@@ -450,7 +450,7 @@ export default function TOC({ sectionId }: { sectionId: string}) {
         )}
         <div className="mb-4">
           <Button type="button" onClick={() => addEntry()}>
-            Add Main Entry
+            Add outline
           </Button>
         </div>
         {state.toc.length > 0 && (

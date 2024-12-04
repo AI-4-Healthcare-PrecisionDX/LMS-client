@@ -1,6 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from "date-fns";
 import { BookOpen, Edit3 } from "lucide-react";
 import { useEffect } from "react";
 import AssignmentHeader from "./AssignmentHeader";
@@ -33,31 +32,86 @@ export default function Step3({
   );
 
   const handlePublish = () => {
-    const assignmentData = {
-      assignment_title: state.assignment_title,
-      total_marks: totalMarks,
-      start_time: format(state.start_time, "yyyy-MM-dd'T'HH:mm:ss"),
-      deadline: format(state.deadline, "yyyy-MM-dd'T'HH:mm:ss"),
-      questions: state.questions.map((q) => ({
-        ...q,
-        question_id: q.question_id || undefined,
-        marks: parseInt(q.marks) || 0,
-        options_for_mcq: q.options_for_mcq || [],
-        expected_answer: q.expected_answer || [],
-      })),
-      ...(category === "ai-generated" && {
-        questionCounts: {
-          patterns: state.patternCounts,
-          types: state.questionTypeCounts,
-        },
-      }),
-    };
+    // Get questions array safely
+    const questions = Array.isArray(state.questions) ? state.questions : [];
+
+    // Format assignment materials - extract library_ids
+    const assignment_materials = Array.isArray(state.materials)
+      ? state.materials.map((material) => material.library_id)
+      : [];
+
+    console.log("Materials state:", state.materials); // Debug log
+    console.log("Formatted assignment_materials:", assignment_materials); // Debug log
 
     if (state.editingAssignment) {
-      assignmentData.assignment_id = state.editingAssignment.assignment_id;
-    }
+      const updatedAssignment = {
+        assignment_id: state.editingAssignment.assignment_id,
+        assignment_type: state.editingAssignment.assignment_type,
+        assignment_title: state.assignment_title,
+        total_marks: questions.reduce(
+          (sum, q) => sum + (Number(q.marks) || 0),
+          0,
+        ),
+        number_of_questions: questions.length,
+        start_time: state.start_time.toISOString(),
+        deadline: state.deadline.toISOString(),
+        questions: questions.map((q) => ({
+          question_id: q.question_id,
+          question_text: String(q.question_text || ""),
+          question_type: String(q.question_type || ""),
+          marks: Number(q.marks) || 0,
+          options_for_mcq:
+            q.question_type === "mcq"
+              ? formatMcqOptions(q.options_for_mcq)
+              : [],
+          expected_answer: Array.isArray(q.expected_answer)
+            ? q.expected_answer.map((ans) => String(ans || ""))
+            : [],
+        })),
+        assignment_materials,
+      };
 
-    onPublish(assignmentData);
+      console.log("Updating assignment:", updatedAssignment);
+      onPublish(updatedAssignment);
+    } else {
+      const newAssignment = {
+        assignment_type: state.newAssignment?.category || "manual",
+        assignment_title: state.assignment_title,
+        assignment_description: state.assignment_description || "",
+        total_marks: questions.reduce(
+          (sum, q) => sum + (Number(q.marks) || 0),
+          0,
+        ),
+        number_of_questions: questions.length,
+        start_time: state.start_time.toISOString(),
+        deadline: state.deadline.toISOString(),
+        section_id: state.section_id,
+        assignment_materials, // Make sure this is included
+        questions: questions.map((q) => ({
+          question_text: String(q.question_text || ""),
+          question_type: String(q.question_type || ""),
+          marks: Number(q.marks) || 0,
+          options_for_mcq:
+            q.question_type === "mcq"
+              ? q.options_for_mcq.map((opt) => ({
+                  option_text: String(opt.text || "").trim(),
+                  is_correct: Boolean(opt.isCorrect),
+                }))
+              : [],
+          expected_answer: Array.isArray(q.expected_answer)
+            ? q.expected_answer.map((ans) => String(ans || ""))
+            : [],
+        })),
+      };
+
+      // Add validation for materials
+      if (assignment_materials.length > 0) {
+        console.log("Including materials:", assignment_materials);
+      }
+
+      console.log("Creating new assignment with data:", newAssignment);
+      onPublish(newAssignment);
+    }
   };
 
   // When navigating back, also clear state if not editing
