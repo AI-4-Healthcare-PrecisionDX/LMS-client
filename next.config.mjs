@@ -2,11 +2,18 @@
 // const nextConfig = {};
 
 const nextConfig = {
-    // webpack: (config) => {
-    //   config.resolve.alias.canvas = false
-    //   config.resolve.alias.encoding = false
-    //   return config
-    // },
-  }
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        fs: false,
+        net: false,
+        tls: false,
+        http: false,
+        https: false,
+        url: false,
+      };
+    }
+    return config;
+  },
+};
 export default nextConfig;
-  
