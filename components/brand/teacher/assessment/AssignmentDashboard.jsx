@@ -49,67 +49,61 @@ const sortAssignments = (assignments, sortBy) => {
   });
 };
 
-const formatAssignmentData = (assignmentData) => {
-  return {
-    assignment_type: String(assignmentData.assignment_type || ""),
-    assignment_title: String(assignmentData.assignment_title || ""),
-    assignment_description: String(assignmentData.assignment_description || ""),
-    number_of_questions: Number(assignmentData.number_of_questions) || 0,
-    total_marks: Number(assignmentData.total_marks) || 0,
-    start_time: new Date(assignmentData.start_time).toISOString(),
-    deadline: new Date(assignmentData.deadline).toISOString(),
-    section_id: assignmentData.section_id,
-    assignment_materials: Array.isArray(assignmentData.assignment_materials)
-      ? assignmentData.assignment_materials
-      : [],
-    questions: (assignmentData.questions || []).map((q) => ({
-      question_text: String(q.question_text || ""),
-      question_type: String(q.question_type || ""),
-      marks: Number(q.marks) || 0,
-      options_for_mcq:
-        q.question_type === "mcq"
-          ? (q.options_for_mcq || []).map((opt) => ({
-              option_text: String(opt.option_text || "").trim(),
-              is_correct: Boolean(opt.is_correct),
-            }))
-          : [],
-      expected_answer: Array.isArray(q.expected_answer)
-        ? q.expected_answer.map((ans) => String(ans || ""))
-        : [],
-    })),
-  };
-};
+// const formatAssignmentData = (assignmentData) => {
+//   return {
+//     assignment_type: String(assignmentData.assignment_type || ""),
+//     assignment_title: String(assignmentData.assignment_title || ""),
+//     assignment_description: String(assignmentData.assignment_description || ""),
+//     number_of_questions: Number(assignmentData.number_of_questions) || 0,
+//     total_marks: Number(assignmentData.total_marks) || 0,
+//     start_time: new Date(assignmentData.start_time).toISOString(),
+//     deadline: new Date(assignmentData.deadline).toISOString(),
+//     section_id: assignmentData.section_id,
+//     assignment_materials: Array.isArray(assignmentData.assignment_materials)
+//       ? assignmentData.assignment_materials
+//       : [],
+//     questions: (assignmentData.questions || []).map((q) => ({
+//       question_text: String(q.question_text || ""),
+//       question_type: String(q.question_type || ""),
+//       marks: Number(q.marks) || 0,
+//       options_for_mcq:
+//         q.question_type === "mcq"
+//           ? (q.options_for_mcq || []).map((opt) => ({
+//               option_text: String(opt.option_text || "").trim(),
+//               is_correct: Boolean(opt.is_correct),
+//             }))
+//           : [],
+//       expected_answer: Array.isArray(q.expected_answer)
+//         ? q.expected_answer.map((ans) => String(ans || ""))
+//         : [],
+//     })),
+//   };
+// };
 
 const useCreateAssignment = () => {
   return useMutation({
     mutationFn: async (assignmentData) => {
       try {
-        console.log("Original assignment data:", assignmentData); // Debug log
-
         const formattedData = {
           ...assignmentData,
-          assignment_materials: Array.isArray(
-            assignmentData.assignment_materials,
-          )
+          assignment_materials: Array.isArray(assignmentData.assignment_materials)
             ? assignmentData.assignment_materials
             : [],
           questions: assignmentData.questions.map((q) => ({
             ...q,
             marks: Number(q.marks),
-            options_for_mcq:
-              q.question_type === "mcq"
-                ? q.options_for_mcq.map((opt) => ({
-                    text: String(opt.text || "Untitled Option").trim(),
-                    isCorrect: Boolean(opt.isCorrect),
-                  }))
-                : [],
-            expected_answer: Array.isArray(q.expected_answer)
-              ? q.expected_answer.map((ans) => String(ans || ""))
+            options_for_mcq: q.question_type === "mcq"
+              ? q.options_for_mcq.map(opt => 
+                  typeof opt === 'string' ? opt : opt.text
+                )
               : [],
+            expected_answer: Array.isArray(q.expected_answer)
+              ? q.expected_answer
+              : []
           })),
         };
 
-        console.log("Formatted data being sent:", formattedData); // Debug log
+        console.log("Formatted data being sent:", formattedData);
 
         const response = await api.post(
           "/assignment/create-assignment",
@@ -119,7 +113,7 @@ const useCreateAssignment = () => {
       } catch (error) {
         console.error("Creation error:", error.response?.data);
         throw new Error(
-          error.response?.data?.message || "Failed to create assignment",
+          error.response?.data?.message || "Failed to create assignment"
         );
       }
     },
@@ -142,10 +136,9 @@ const useUpdateAssignment = () => {
             marks: Number(q.marks),
             options_for_mcq:
               q.question_type === "mcq"
-                ? q.options_for_mcq.map((opt) => ({
-                    text: String(opt.text || "Untitled Option").trim(),
-                    isCorrect: Boolean(opt.isCorrect),
-                  }))
+                ? (q.options_for_mcq || []).map((opt) =>
+                    typeof opt === "string" ? opt : opt.text || "",
+                  )
                 : [],
             expected_answer: Array.isArray(q.expected_answer)
               ? q.expected_answer.map((ans) => String(ans || ""))
@@ -286,28 +279,11 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
         start_time:
           state.start_time || finalAssignment.start_time || new Date(),
         deadline: state.deadline || finalAssignment.deadline || new Date(),
-        questions: questions.map((q) => ({
-          question_text: q.question_text || "",
-          question_type: q.question_type || "text",
-          marks: Number(q.marks) || 0,
-          options_for_mcq: Array.isArray(q.options_for_mcq)
-            ? q.options_for_mcq.map((opt) => ({
-                ...opt,
-                isCorrect: Boolean(opt.isCorrect),
-              }))
-            : [],
-          expected_answer: Array.isArray(q.expected_answer)
-            ? q.expected_answer
-            : [],
-        })),
+        questions: finalAssignment.questions,
         // Only include the library_ids
         assignment_materials: assignment_materials,
       };
 
-      // Log the payload for debugging
-      // console.log("Creating assignment with payload:", newAssignmentEntry);
-
-      // Validate required fields
       if (!newAssignmentEntry.assignment_title) {
         toast.error("Assignment title is required");
         return;
@@ -352,8 +328,8 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     queryKey: queryClient.invalidateQueries(["assignments", sectionId]),
     queryFn: () => fetchAssignments(sectionId),
     enabled: !!sectionId && isAuthenticated,
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    retry: 2,
+    // staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    // retry: 2,
   });
 
   const { mutate: deleteAssignment } = useMutation({
@@ -398,10 +374,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
         question_text: q.question_text,
         question_type: q.question_type,
         marks: Number(q.marks) || 0,
-        options_for_mcq: (q.options_for_mcq || []).map((opt) => ({
-          ...opt,
-          isCorrect: Boolean(opt.isCorrect),
-        })),
+        options_for_mcq: (q.options_for_mcq || []).map((opt) => opt.text || ""), // Convert to array of strings
         expected_answer: q.expected_answer || [],
         question_id: q.question_id, // Preserve question_id for updates
       })),

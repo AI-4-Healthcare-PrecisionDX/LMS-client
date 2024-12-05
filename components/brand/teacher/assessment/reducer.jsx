@@ -17,17 +17,21 @@ export const initialState = {
 };
 
 const updateQuestionField = (question, field, value) => {
+  // Handle special cases for MCQ options
   if (field === "options_for_mcq") {
     return {
       ...question,
       options_for_mcq: [...value],
+      // Reset expected_answer if it contains options that no longer exist
       expected_answer:
         question.expected_answer?.filter((answer) => value.includes(answer)) ||
         [],
     };
   }
 
+  // Handle expected_answer update for MCQ
   if (field === "expected_answer" && question.question_type === "mcq") {
+    // Ensure the expected answer is always in the options
     if (
       !Array.isArray(value) ||
       !value.every((v) => question.options_for_mcq?.includes(v))
@@ -36,6 +40,7 @@ const updateQuestionField = (question, field, value) => {
     }
   }
 
+  // Handle marks validation
   if (field === "marks") {
     const numValue = parseInt(value);
     if (isNaN(numValue) || numValue < 0) {
@@ -44,7 +49,9 @@ const updateQuestionField = (question, field, value) => {
     return { ...question, marks: numValue };
   }
 
+  // Handle expected_answer for broad questions
   if (field === "expected_answer" && question.question_type === "broad") {
+    // Ensure the value is always an array
     const answerArray = Array.isArray(value) ? value : [value];
     return {
       ...question,
@@ -52,6 +59,7 @@ const updateQuestionField = (question, field, value) => {
     };
   }
 
+  // Default case for simple field updates
   return {
     ...question,
     [field]: value,

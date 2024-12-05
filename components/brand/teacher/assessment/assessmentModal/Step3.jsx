@@ -15,7 +15,6 @@ export default function Step3({
   dispatch,
 }) {
   useEffect(() => {
-    // Clear questions when mounting if not editing
     if (!state.editingAssignment) {
       dispatch({ type: "SET_QUESTIONS", payload: [] });
     }
@@ -32,16 +31,11 @@ export default function Step3({
   );
 
   const handlePublish = () => {
-    // Get questions array safely
     const questions = Array.isArray(state.questions) ? state.questions : [];
 
-    // Format assignment materials - extract library_ids
     const assignment_materials = Array.isArray(state.materials)
       ? state.materials.map((material) => material.library_id)
       : [];
-
-    console.log("Materials state:", state.materials); // Debug log
-    console.log("Formatted assignment_materials:", assignment_materials); // Debug log
 
     if (state.editingAssignment) {
       const updatedAssignment = {
@@ -62,7 +56,9 @@ export default function Step3({
           marks: Number(q.marks) || 0,
           options_for_mcq:
             q.question_type === "mcq"
-              ? formatMcqOptions(q.options_for_mcq)
+              ? q.options_for_mcq.map((opt) =>
+                  typeof opt === "string" ? opt : opt.text,
+                )
               : [],
           expected_answer: Array.isArray(q.expected_answer)
             ? q.expected_answer.map((ans) => String(ans || ""))
@@ -71,7 +67,6 @@ export default function Step3({
         assignment_materials,
       };
 
-      console.log("Updating assignment:", updatedAssignment);
       onPublish(updatedAssignment);
     } else {
       const newAssignment = {
@@ -87,34 +82,13 @@ export default function Step3({
         deadline: state.deadline.toISOString(),
         section_id: state.section_id,
         assignment_materials, // Make sure this is included
-        questions: questions.map((q) => ({
-          question_text: String(q.question_text || ""),
-          question_type: String(q.question_type || ""),
-          marks: Number(q.marks) || 0,
-          options_for_mcq:
-            q.question_type === "mcq"
-              ? q.options_for_mcq.map((opt) => ({
-                  option_text: String(opt.text || "").trim(),
-                  is_correct: Boolean(opt.isCorrect),
-                }))
-              : [],
-          expected_answer: Array.isArray(q.expected_answer)
-            ? q.expected_answer.map((ans) => String(ans || ""))
-            : [],
-        })),
+        questions: state.questions,
       };
 
-      // Add validation for materials
-      if (assignment_materials.length > 0) {
-        console.log("Including materials:", assignment_materials);
-      }
-
-      console.log("Creating new assignment with data:", newAssignment);
       onPublish(newAssignment);
     }
   };
 
-  // When navigating back, also clear state if not editing
   const handleBack = () => {
     if (!state.editingAssignment) {
       dispatch({ type: "SET_QUESTIONS", payload: [] });
