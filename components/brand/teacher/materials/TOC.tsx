@@ -29,7 +29,6 @@ import useFileUpload from "@/hooks/use-upload";
 import api from "@/lib/axios-config";
 import { extractPDFTableOfContents } from "@/lib/getTOC";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { QueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   ChevronDown,
@@ -43,7 +42,12 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import PrivarySection from "../../student/library/privacy-card";
 import { reducer } from "../../student/library/reducer";
-import { State, TOCEntry, tocSchema, TOCSchema } from "../../student/library/types";
+import {
+  State,
+  TOCEntry,
+  tocSchema,
+  TOCSchema,
+} from "../../student/library/types";
 // import PrivarySection from "./library/privacy-card";
 // import { reducer } from "./library/reducer";
 // import { State, TOCEntry, tocSchema, TOCSchema } from "./library/types";
@@ -62,7 +66,7 @@ const initialState: State = {
 
 const category = ["Book", "Journal", "Thesis", "Notes", "Slides", "Others"];
 
-export default function TOC({sectionId}: {sectionId: string}) {
+export default function TOC({ sectionId }: { sectionId: string}) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const { uploadFile, error, loading } = useFileUpload();
@@ -150,7 +154,7 @@ export default function TOC({sectionId}: {sectionId: string}) {
     (parentId: string | null = null) => {
       const newEntry: TOCEntry = {
         id: Date.now().toString(),
-        title: "New Entry",
+        title: "New Content",
         pageRanges: { start: 1, end: 1 },
         sections: [],
       };
@@ -282,7 +286,6 @@ export default function TOC({sectionId}: {sectionId: string}) {
   const onSubmit = async (data: TOCSchema) => {
     dispatch({ type: "SET_LOADING", payload: true });
     dispatch({ type: "SET_ERROR", payload: "" });
-    const queryClient = new QueryClient();
     const jsonString = JSON.stringify(data.toc, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const jsonfile = new File([blob], `${data.bookName}.json`, {
@@ -302,7 +305,6 @@ export default function TOC({sectionId}: {sectionId: string}) {
         visibility: data.isPrivate,
         materialTitle: data.bookName,
       });
-      
 
       if (error) {
         dispatch({
@@ -324,15 +326,14 @@ export default function TOC({sectionId}: {sectionId: string}) {
       });
 
       const sectionContent = await api.post(`/section/${sectionId}/content`, {
-        
-          title: data.bookName,
-          section_id: sectionId,
-          library_item_id: result.library_id,
-        });
-      console.log(sectionContent.data);
+        title: data.bookName,
+        section_id: sectionId,
+        library_item_id: result.library_id,
+      });
+      console.log(sectionContent);
 
       toast.success("Table of Contents submitted successfully");
-
+      window.location.reload();
     } catch (error) {
       console.error("Error submitting form:", error);
       dispatch({
@@ -348,7 +349,7 @@ export default function TOC({sectionId}: {sectionId: string}) {
   return (
     <div className="p-4 max-w-6xl mx-auto">
       <h1 className="text-xl font-bold mb-4">Upload Your Material</h1>
-      <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)}>
         <div className="mb-4">
           <Label htmlFor="bookName">Book Name</Label>
           <Input
@@ -449,7 +450,7 @@ export default function TOC({sectionId}: {sectionId: string}) {
         )}
         <div className="mb-4">
           <Button type="button" onClick={() => addEntry()}>
-            Add Main Entry
+            Add outline
           </Button>
         </div>
         {state.toc.length > 0 && (

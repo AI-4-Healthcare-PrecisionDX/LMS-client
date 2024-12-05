@@ -1,26 +1,49 @@
-'use client'
+"use client";
 
 import { TourProvider } from "@reactour/tour";
-import { QueryClient, useQuery } from "@tanstack/react-query";
-import { Book, Search } from "lucide-react";
+import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { Book, EllipsisVertical, Search } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import { pdfjs } from "react-pdf";
 
 const queryClient = new QueryClient();
 
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import api from "@/lib/axios-config";
+import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import Link from "next/link";
+import { toast } from "sonner";
 import TOC from "./TOC";
 import { SectionExclusiveContent, Step } from "./types";
-
 
 // Set up the worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -100,20 +123,23 @@ function BookList({
     ),
   );
 
-  // const { mutate: deleteContent, isLoading: isDeleting } = useMutation({
-  //   onSuccess: () => {
-  //     queryClient.invalidateQueries(["deleteContent", deleteContent]);
-  //     toast.success("Assignment deleted successfully");
-  //   },
-  //   onError: (error) => {
-  //     toast.error("Failed to delete assignment");
-  //     console.error(error);
-  //   },
-  // });
-
-  // const handleDelete = (section_exclusive_content_id ) => {
-  //   deleteContent(section_exclusive_content_id );
-  // };
+  const { mutate: deleteContent, isPending: isDeleting } = useMutation({
+    mutationFn: async (section_exclusive_content_id: string) => {
+      await api.delete(
+        `/section/${sectionId}/content/${section_exclusive_content_id}`,
+      );
+    },
+    onSuccess: () => {
+      toast.success("The book has been successfully deleted.");
+      // Invalidate and refetch the contents
+      queryClient.invalidateQueries({
+        queryKey: ["filteredContents"],
+      });
+    },
+    onError: () => {
+      toast.error("Unable to delete the book. Please try again.");
+    },
+  });
 
   return (
     <div className="container mx-auto pt-8">
@@ -155,89 +181,109 @@ function BookList({
                 <SelectItem value="hidden">Private</SelectItem>
               </SelectContent>
             </Select>
-            <Dialog>
-          <DialogTrigger asChild>
-            <Button className="dark:text-white upload-content-button">
-              Upload PDF
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="w-[90vw] h-full p-0 sm:max-w-none sm:max-h-none sm:p-4">
-            <ScrollArea>
-                <TOC sectionId={sectionId} />
-            </ScrollArea>
-          </DialogContent>
-        </Dialog>
+            <Dialog
+            >
+              <DialogTrigger asChild>
+                <Button className="dark:text-white upload-content-button">
+                  Upload PDF
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="w-[90vw] h-full p-0 sm:max-w-none sm:max-h-none sm:p-4">
+                <ScrollArea>
+                  <TOC sectionId={sectionId}/>
+                </ScrollArea>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-1">
-        {filteredContents?.map((content: SectionExclusiveContent, index: number) => (
-          <Card
-            key={index}
-            className="flex flex-col h-full hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300"
-          >
-            <CardHeader className="bg-primary p-4">
-              <Book className="w-12 h-12 mb-2 text-white" />
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <h2 className="text-xl font-semibold text-white">
-                      {truncateString(content.title, 30)}
-                    </h2>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{content.title}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <h4 className="text-sm pt-2 text-gray-300">
-                      {truncateString(content.library_item.author, 30)}
-                    </h4>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{content.library_item.author}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </CardHeader>
+        {filteredContents?.map(
+          (content: SectionExclusiveContent, index: number) => (
+            <Card
+              key={index}
+              className="flex flex-col h-full hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300"
+            >
+              <CardHeader className="bg-primary p-4">
+                <div className="flex justify-between">
+                  <Book className="w-12 h-12 mb-2 text-white" />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger>
+                      <EllipsisVertical className="w-5 h-5 text-white" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-background text-white">
+                      {/* <DropdownMenuItem className="p-2 hover:bg-primary">
+                    Edit
+                  </DropdownMenuItem> */}
+                      <DropdownMenuItem
+                        className="p-2 hover:bg-primary text-red-500"
+                        onClick={() =>
+                          deleteContent(content.section_exclusive_content_id)
+                        }
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? "Deleting..." : "Delete"}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <h2 className="text-xl font-semibold text-white">
+                        {truncateString(content.title, 30)}
+                      </h2>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{content.title}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <h4 className="text-sm pt-2 text-gray-300">
+                        {truncateString(content.library_item.author, 30)}
+                      </h4>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{content.library_item.author}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </CardHeader>
 
-            <CardContent className="flex-grow p-4">
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge variant="outline">
-                  {content.library_item.material_type}
-                </Badge>
-                <Badge variant="secondary">
-                  {content.library_item.visibility ? "Public" : "Private"}
-                </Badge>
-              </div>
-              <p className="text-sm text-gray-600">
-                {truncateString(content.library_item.material_description, 100)}
-              </p>
-            </CardContent>
+              <CardContent className="flex-grow p-4">
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge variant="outline">
+                    {content.library_item.material_type}
+                  </Badge>
+                  <Badge variant="secondary">
+                    {content.library_item.visibility ? "Public" : "Private"}
+                  </Badge>
+                </div>
+                <p className="text-sm text-gray-600">
+                  {truncateString(
+                    content.library_item.material_description,
+                    100,
+                  )}
+                </p>
+              </CardContent>
 
-            <CardFooter className="p-4 mx-auto">
-              <Link
-                target="_blank"
-                href={`/teacher/view/${encodeURIComponent(content.library_item.library_id)}`}
-              >
-                <Button className="w-full read-book-button" variant="outline">
-                  Read Book
-                </Button>
-              </Link>
-              <Button
-                // onClick={() => handleDelete(content.section_exclusive_content_id)}
-                className="w-full inspect-button"
-                variant="outline"
-              >
-              Delete
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+              <CardFooter className="p-4 mx-auto">
+                <Link
+                  target="_blank"
+                  href={`/teacher/view/${encodeURIComponent(content.library_item.library_id)}`}
+                >
+                  <Button className="w-full read-book-button" variant="outline">
+                    Read Book
+                  </Button>
+                </Link>
+              </CardFooter>
+            </Card>
+          ),
+        )}
       </div>
     </div>
   );
@@ -259,4 +305,3 @@ export default function BookListWithTour({
     </TourProvider>
   );
 }
-

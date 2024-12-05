@@ -18,6 +18,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import api from "@/lib/axios-config";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
 import { Filter, MoreHorizontal } from "lucide-react";
 import { useReducer } from "react";
 import { toast } from "sonner";
@@ -26,7 +27,6 @@ import Step2 from "./assessmentModal/Step2";
 import Step3 from "./assessmentModal/Step3";
 import VivaStep from "./assessmentModal/VivaStep";
 import { ACTIONS, initialState, reducer } from "./reducer";
-import SubmissionDialog from "./SubmissionDialog";
 
 // Utility Functions
 const getSortLabel = (sortBy) => {
@@ -49,39 +49,134 @@ const sortAssignments = (assignments, sortBy) => {
   });
 };
 
+const formatAssignmentData = (assignmentData) => {
+  return {
+    assignment_type: String(assignmentData.assignment_type || ""),
+    assignment_title: String(assignmentData.assignment_title || ""),
+    assignment_description: String(assignmentData.assignment_description || ""),
+    number_of_questions: Number(assignmentData.number_of_questions) || 0,
+    total_marks: Number(assignmentData.total_marks) || 0,
+    start_time: new Date(assignmentData.start_time).toISOString(),
+    deadline: new Date(assignmentData.deadline).toISOString(),
+    section_id: assignmentData.section_id,
+    assignment_materials: Array.isArray(assignmentData.assignment_materials)
+      ? assignmentData.assignment_materials
+      : [],
+    questions: (assignmentData.questions || []).map((q) => ({
+      question_text: String(q.question_text || ""),
+      question_type: String(q.question_type || ""),
+      marks: Number(q.marks) || 0,
+      options_for_mcq:
+        q.question_type === "mcq"
+          ? (q.options_for_mcq || []).map((opt) => ({
+              option_text: String(opt.option_text || "").trim(),
+              is_correct: Boolean(opt.is_correct),
+            }))
+          : [],
+      expected_answer: Array.isArray(q.expected_answer)
+        ? q.expected_answer.map((ans) => String(ans || ""))
+        : [],
+    })),
+  };
+};
+
 const useCreateAssignment = () => {
+  return useMutation({
+    mutationFn: async (assignmentData) => {
+      try {
+        console.log("Original assignment data:", assignmentData); // Debug log
+
+        const formattedData = {
+          ...assignmentData,
+          assignment_materials: Array.isArray(
+            assignmentData.assignment_materials,
+          )
+            ? assignmentData.assignment_materials
+            : [],
+          questions: assignmentData.questions.map((q) => ({
+            ...q,
+            marks: Number(q.marks),
+            options_for_mcq:
+              q.question_type === "mcq"
+                ? q.options_for_mcq.map((opt) => ({
+                    text: String(opt.text || "Untitled Option").trim(),
+                    isCorrect: Boolean(opt.isCorrect),
+                  }))
+                : [],
+            expected_answer: Array.isArray(q.expected_answer)
+              ? q.expected_answer.map((ans) => String(ans || ""))
+              : [],
+          })),
+        };
+
+        console.log("Formatted data being sent:", formattedData); // Debug log
+
+        const response = await api.post(
+          "/assignment/create-assignment",
+          formattedData,
+        );
+        return response.data;
+      } catch (error) {
+        console.error("Creation error:", error.response?.data);
+        throw new Error(
+          error.response?.data?.message || "Failed to create assignment",
+        );
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+};
+
+const useUpdateAssignment = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (assignmentData) => {
-      // Format dates to ISO string
-      const formattedData = {
-        ...assignmentData,
-        start_time: new Date(assignmentData.start_time).toISOString(),
-        deadline: new Date(assignmentData.deadline).toISOString(),
-        questions: assignmentData.questions.map((q) => ({
-          ...q,
-          marks: Number(q.marks),
-          options: q.options?.map((opt) => ({
-            ...opt,
-            isCorrect: Boolean(opt.isCorrect),
+      try {
+        const formattedData = {
+          ...assignmentData,
+          questions: assignmentData.questions.map((q) => ({
+            ...q,
+            marks: Number(q.marks),
+            options_for_mcq:
+              q.question_type === "mcq"
+                ? q.options_for_mcq.map((opt) => ({
+                    text: String(opt.text || "Untitled Option").trim(),
+                    isCorrect: Boolean(opt.isCorrect),
+                  }))
+                : [],
+            expected_answer: Array.isArray(q.expected_answer)
+              ? q.expected_answer.map((ans) => String(ans || ""))
+              : [],
           })),
-        })),
-      };
+          assignment_materials: Array.isArray(
+            assignmentData.assignment_materials,
+          )
+            ? assignmentData.assignment_materials
+            : [],
+        };
 
-      console.log("Sending data:", formattedData); // For debugging
-
-      const response = await api.post(
-        "/assignment/create-assignment",
-        formattedData,
-      );
-      return response.data;
+        console.log("Sending update request:", formattedData);
+        const response = await api.put(
+          `/assignment/${assignmentData.assignment_id}`,
+          formattedData,
+        );
+        return response.data;
+      } catch (error) {
+        console.error("Update error details:", error.response?.data);
+        throw new Error(
+          error.response?.data?.message || "Failed to update assignment",
+        );
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["assignments"]);
+      toast.success("Assignment updated successfully");
     },
     onError: (error) => {
-      if (error.response?.status === 422) {
-        console.error("Validation errors:", error.response.data.detail);
-      }
-      throw error;
+      toast.error(error.message);
     },
   });
 };
@@ -99,12 +194,15 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
   const { isAuthenticated } = useAuth();
 
   const queryClient = useQueryClient();
+  const { mutate: updateAssignment } = useUpdateAssignment();
 
   const handleAddAssignment = () => {
+    dispatch({ type: ACTIONS.RESET_STATE }); // Add this line to reset the state
     dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: true });
     dispatch({ type: ACTIONS.SET_CURRENT_STEP, payload: 1 });
     dispatch({ type: ACTIONS.SET_NEW_ASSIGNMENT, payload: {} });
     dispatch({ type: ACTIONS.SET_EDITING_ASSIGNMENT, payload: null });
+    dispatch({ type: ACTIONS.SET_QUESTIONS, payload: [] }); // Add this line to clear questions
   };
 
   const handleStep1Next = (details) => {
@@ -141,7 +239,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     } else {
       dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
     }
-    console.log("details", details);
+    // console.log("details", details);
   };
 
   const handleStep2Next = (details) => {
@@ -155,47 +253,73 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     dispatch({ type: ACTIONS.SET_CURRENT_STEP, payload: 3 });
   };
 
-  const { mutate: createAssignment, isPending } = useCreateAssignment();
-
-  const updateAssignmentMutation = useMutation({
-    mutationFn: async (data) => {
-      const response = await api.put(
-        `/assignment/question/${state.editingAssignment.assignment_id}`,
-        data,
-      );
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["assignments", sectionId]);
-      toast.success("Assignment updated successfully");
-      dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
-    },
-    onError: (error) => {
-      console.error("Failed to update assignment:", error);
-      toast.error("Failed to update assignment");
-    },
-  });
-
-  const handleUpdateAssignment = (updatedAssignment) => {
-    updateAssignmentMutation.mutate(updatedAssignment);
-  };
+  const { mutate: createAssignment } = useCreateAssignment();
 
   const handlePublish = (finalAssignment) => {
     if (state.editingAssignment) {
       handleUpdateAssignment(finalAssignment);
     } else {
+      // Get questions array safely
+      const questions = Array.isArray(finalAssignment?.questions)
+        ? finalAssignment.questions
+        : [];
+
+      // Format assignment materials properly
+      const assignment_materials = Array.isArray(
+        finalAssignment.assignment_materials,
+      )
+        ? finalAssignment.assignment_materials
+        : [];
+
+      // Create new assignment entry with all required fields
       const newAssignmentEntry = {
-        assignment_type: state.newAssignment.category,
+        assignment_type: state.newAssignment?.category || "manual",
         assignment_title:
+          state.assignment_title ||
           finalAssignment.assignment_title ||
-          `New ${state.newAssignment.questionType} Assignment`,
-        number_of_questions: Number(finalAssignment.questions.length),
-        total_marks: Number(finalAssignment.totalMarks),
-        start_time: finalAssignment.start_time,
-        deadline: finalAssignment.deadline,
+          "New Assignment",
         section_id: sectionId,
-        questions: finalAssignment.questions,
+        total_marks: Number(
+          finalAssignment.total_marks || state.total_marks || 0,
+        ),
+        number_of_questions: questions.length,
+        start_time:
+          state.start_time || finalAssignment.start_time || new Date(),
+        deadline: state.deadline || finalAssignment.deadline || new Date(),
+        questions: questions.map((q) => ({
+          question_text: q.question_text || "",
+          question_type: q.question_type || "text",
+          marks: Number(q.marks) || 0,
+          options_for_mcq: Array.isArray(q.options_for_mcq)
+            ? q.options_for_mcq.map((opt) => ({
+                ...opt,
+                isCorrect: Boolean(opt.isCorrect),
+              }))
+            : [],
+          expected_answer: Array.isArray(q.expected_answer)
+            ? q.expected_answer
+            : [],
+        })),
+        // Only include the library_ids
+        assignment_materials: assignment_materials,
       };
+
+      // Log the payload for debugging
+      // console.log("Creating assignment with payload:", newAssignmentEntry);
+
+      // Validate required fields
+      if (!newAssignmentEntry.assignment_title) {
+        toast.error("Assignment title is required");
+        return;
+      }
+
+      if (
+        !Array.isArray(newAssignmentEntry.questions) ||
+        newAssignmentEntry.questions.length === 0
+      ) {
+        toast.error("At least one question is required");
+        return;
+      }
 
       createAssignment(newAssignmentEntry, {
         onSuccess: () => {
@@ -205,21 +329,26 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
           });
           dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
           toast.success("Assignment created successfully");
-          console.log(newAssignmentEntry);
         },
         onError: (error) => {
-          // Handle the error appropriately in your UI
-          console.error("Assignment creation failed:", error);
+          console.error(
+            "Assignment creation failed:",
+            error?.response?.data || error,
+          );
+          if (error.response?.status === 422) {
+            toast.error(
+              error.response.data.detail ||
+                "Validation failed. Please check all fields.",
+            );
+          } else {
+            toast.error("Failed to create assignment. Please try again.");
+          }
         },
       });
     }
   };
 
-  const {
-    data: Assignments,
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data: Assignments, isLoading } = useQuery({
     queryKey: queryClient.invalidateQueries(["assignments", sectionId]),
     queryFn: () => fetchAssignments(sectionId),
     enabled: !!sectionId && isAuthenticated,
@@ -227,7 +356,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     retry: 2,
   });
 
-  const { mutate: deleteAssignment, isLoading: isDeleting } = useMutation({
+  const { mutate: deleteAssignment } = useMutation({
     mutationFn: (assignmentId) => api.delete(`/assignment/${assignmentId}`),
     onSuccess: () => {
       queryClient.invalidateQueries(["assignments", sectionId]);
@@ -243,70 +372,94 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     deleteAssignment(assignmentId);
   };
 
-  // const handleCheckSubmission = (assignmentId) => {
-  //   const assignment = state.assignments.find((a) => a.id === assignmentId);
-  //   dispatch({ type: ACTIONS.SET_SELECTED_ASSIGNMENT, payload: assignment });
-  //   dispatch({ type: ACTIONS.SET_SUBMISSION_MODAL_OPEN, payload: true });
-  // };
-
-  // const sortedAssignments = sortAssignments(Assignments, state.sortBy);
   const sortedAssignments = Assignments
     ? sortAssignments(Assignments, state.sortBy)
     : [];
 
+  const handleUpdateAssignment = (finalAssignment) => {
+    if (!state.editingAssignment?.assignment_id) {
+      toast.error("No assignment ID found for updating");
+      return;
+    }
+
+    const questions = Array.isArray(finalAssignment?.questions)
+      ? finalAssignment.questions
+      : [];
+
+    const updatedAssignment = {
+      ...finalAssignment,
+      assignment_id: state.editingAssignment.assignment_id,
+      assignment_type:
+        state.newAssignment?.category ||
+        state.editingAssignment.assignment_type,
+      section_id: sectionId,
+      number_of_questions: questions.length,
+      questions: questions.map((q) => ({
+        question_text: q.question_text,
+        question_type: q.question_type,
+        marks: Number(q.marks) || 0,
+        options_for_mcq: (q.options_for_mcq || []).map((opt) => ({
+          ...opt,
+          isCorrect: Boolean(opt.isCorrect),
+        })),
+        expected_answer: q.expected_answer || [],
+        question_id: q.question_id, // Preserve question_id for updates
+      })),
+      assignment_materials: finalAssignment.assignment_materials || [],
+    };
+
+    updateAssignment(updatedAssignment, {
+      onSuccess: () => {
+        dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
+        dispatch({ type: ACTIONS.SET_EDITING_ASSIGNMENT, payload: null });
+      },
+    });
+  };
+
   const handleEdit = async (assignmentId) => {
     try {
       const { data: assignmentData } = await api.get(
-        `/assignment/question/${assignmentId}`,
+        `/assignment/${assignmentId}`,
       );
-      console.log(assignmentId);
+      // console.log("assignment materials", assignmentData.assignment_materials);
 
-      const formattedAssignment = {
+      // Transform the data to match the expected structure
+      const transformedData = {
         ...assignmentData,
-        assignment_title: assignmentData.assignment_title,
-        category: assignmentData.assignment_type,
-        start_time: assignmentData.start_time,
-        deadline: assignmentData.deadline,
-        questions: assignmentData.questions.map((q) => ({
-          ...q,
-          marks: Number(q.marks),
-          options: q.options?.map((opt) => ({
-            ...opt,
-            isCorrect: Boolean(opt.isCorrect),
-          })),
+        start_time: new Date(assignmentData.start_time),
+        deadline: new Date(assignmentData.deadline),
+        questions: assignmentData.assignment_questions.map((q) => ({
+          question_id: q.question_id,
+          question_text: q.question_text,
+          question_type: q.question_type,
+          marks: q.marks,
+          options_for_mcq: q.options_for_mcq || [],
+          expected_answer: q.expected_answer,
         })),
       };
 
       dispatch({
-        type: ACTIONS.SET_EDITING_ASSIGNMENT,
-        payload: formattedAssignment,
+        type: "SET_MULTIPLE",
+        payload: {
+          assignment_title: transformedData.assignment_title,
+          start_time: transformedData.start_time,
+          deadline: transformedData.deadline,
+          questions: transformedData.questions,
+          editingAssignment: transformedData,
+          newAssignment: {
+            category: transformedData.assignment_type,
+          },
+          activeTab: "setup",
+        },
       });
-      dispatch({
-        type: ACTIONS.SET_NEW_ASSIGNMENT,
-        payload: formattedAssignment,
-      });
-      dispatch({
-        type: ACTIONS.SET_CURRENT_STEP,
-        payload: 3,
-      });
-      dispatch({
-        type: ACTIONS.SET_MODAL_OPEN,
-        payload: true,
-      });
+
+      dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
+      dispatch({ type: "SET_MODAL_OPEN", payload: true });
     } catch (error) {
       console.error("Error fetching assignment details:", error);
       toast.error("Failed to load assignment details");
     }
   };
-
-  // Modify handlePublish to handle both create and update
-  // const handlePublish = (finalAssignment) => {
-  //   if (state.editingAssignment) {
-  //     handleUpdateAssignment(finalAssignment);
-  //   } else {
-  //     createAssignment(finalAssignment);
-  //   }
-  // };
 
   return (
     <div className="container mx-auto py-10">
@@ -368,8 +521,12 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
                 <TableCell onClick={examEvaluation}>
                   {assignment.assignment_title}
                 </TableCell>
-                <TableCell>{assignment.start_time}</TableCell>
-                <TableCell>{assignment.deadline}</TableCell>
+                <TableCell>
+                  {format(new Date(assignment.start_time), "PPp")}
+                </TableCell>
+                <TableCell>
+                  {format(new Date(assignment.deadline), "PPp")}
+                </TableCell>
                 <TableCell>{assignment.total_marks}</TableCell>
                 <TableCell>{assignment.submitted}</TableCell>
                 <TableCell>
@@ -435,13 +592,15 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
 
           {state.currentStep === 3 && (
             <Step3
-              assignmentDetails={state.editingAssignment || state.newAssignment}
-              onModify={() =>
-                dispatch({ type: ACTIONS.SET_CURRENT_STEP, payload: 2 })
-              }
               onPublish={handlePublish}
               onBack={handleBack}
-              category={state.newAssignment.category}
+              category={
+                state.editingAssignment
+                  ? state.editingAssignment.assignment_type
+                  : state.newAssignment?.category
+              }
+              state={state}
+              dispatch={dispatch}
             />
           )}
 
@@ -455,7 +614,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
         </DialogContent>
       </Dialog>
 
-      <SubmissionDialog
+      {/* <SubmissionDialog
         isOpen={state.isSubmissionModalOpen}
         onClose={() =>
           dispatch({ type: ACTIONS.SET_SUBMISSION_MODAL_OPEN, payload: false })
@@ -463,12 +622,9 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
         assignment={state.selectedAssignment}
         students={state.students}
         onSubmitMarks={(marks) => {
-          // Handle mark submission logic here
-          console.log("Marks submitted:", marks);
-          // You might want to dispatch an action to update the marks in the state
           dispatch({ type: ACTIONS.SET_STUDENT_MARKS, payload: marks });
         }}
-      />
+      /> */}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+"use client";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,24 +11,44 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { BookOpen, CalendarIcon } from "lucide-react";
-
-// interface BasicDetailsCardProps {
-//   state: State;
-//   dispatch: Dispatch<Action>;
-//   category?: 'custom' | 'ai-generated';
-// }
+import { useEffect } from "react";
 
 export function BasicDetailsCard({ state, dispatch, category }) {
+  useEffect(() => {
+    if (!state.editingAssignment) {
+      const now = new Date();
+      now.setSeconds(0, 0); // Clear seconds and milliseconds
+
+      dispatch({
+        type: "SET_MULTIPLE",
+        payload: {
+          assignment_title: "",
+          start_time: now,
+          deadline: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000), // Default 7 days later
+        },
+      });
+    }
+  }, []);
+
   const handleTimeChange = (date, timeString, type) => {
+    if (!date) return;
+
+    // Parse the time string into hours and minutes
     const [hours, minutes] = timeString.split(":").map(Number);
+
+    // Create a new date with the existing date's year, month, and day
     const newDate = new Date(date);
-    newDate.setHours(hours, minutes);
+    newDate.setHours(hours, minutes, 0, 0); // Set precise time, clear seconds and milliseconds
 
     dispatch({
       type: type === "start_time" ? "SET_START_TIME" : "SET_DEADLINE",
       payload: newDate,
     });
   };
+
+  // Ensure dates are properly handled, even for editing
+  const start_time = state.start_time ? new Date(state.start_time) : new Date();
+  const deadline = state.deadline ? new Date(state.deadline) : new Date();
 
   return (
     <Card className="shadow-lg">
@@ -41,7 +62,7 @@ export function BasicDetailsCard({ state, dispatch, category }) {
         <div>
           <Label className="text-base">Assignment Title</Label>
           <Input
-            value={state.assignment_title}
+            value={state.assignment_title || ""}
             onChange={(e) =>
               dispatch({
                 type: "SET_ASSIGNMENT_TITLE",
@@ -60,16 +81,29 @@ export function BasicDetailsCard({ state, dispatch, category }) {
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full mt-1">
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(state.start_time, "PPP")}
+                  {format(start_time, "PPP")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={state.start_time}
-                  onSelect={(date) =>
-                    date && dispatch({ type: "SET_START_TIME", payload: date })
-                  }
+                  selected={start_time}
+                  onSelect={(date) => {
+                    if (date) {
+                      // Preserve the existing time when changing the date
+                      const newDate = new Date(date);
+                      newDate.setHours(
+                        start_time.getHours(),
+                        start_time.getMinutes(),
+                        0,
+                        0,
+                      );
+                      dispatch({
+                        type: "SET_START_TIME",
+                        payload: newDate,
+                      });
+                    }
+                  }}
                   initialFocus
                 />
               </PopoverContent>
@@ -79,9 +113,9 @@ export function BasicDetailsCard({ state, dispatch, category }) {
             <Label className="text-base">Start Time</Label>
             <Input
               type="time"
-              value={format(state.start_time, "HH:mm")}
+              value={format(start_time, "HH:mm")}
               onChange={(e) =>
-                handleTimeChange(state.start_time, e.target.value, "start_time")
+                handleTimeChange(start_time, e.target.value, "start_time")
               }
               className="mt-1"
             />
@@ -95,16 +129,29 @@ export function BasicDetailsCard({ state, dispatch, category }) {
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full mt-1">
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(state.deadline, "PPP")}
+                  {format(deadline, "PPP")}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
                 <Calendar
                   mode="single"
-                  selected={state.deadline}
-                  onSelect={(date) =>
-                    date && dispatch({ type: "SET_DEADLINE", payload: date })
-                  }
+                  selected={deadline}
+                  onSelect={(date) => {
+                    if (date) {
+                      // Preserve the existing time when changing the date
+                      const newDate = new Date(date);
+                      newDate.setHours(
+                        deadline.getHours(),
+                        deadline.getMinutes(),
+                        0,
+                        0,
+                      );
+                      dispatch({
+                        type: "SET_DEADLINE",
+                        payload: newDate,
+                      });
+                    }
+                  }}
                   initialFocus
                 />
               </PopoverContent>
@@ -114,16 +161,16 @@ export function BasicDetailsCard({ state, dispatch, category }) {
             <Label className="text-base">Deadline Time</Label>
             <Input
               type="time"
-              value={format(state.deadline, "HH:mm")}
+              value={format(deadline, "HH:mm")}
               onChange={(e) =>
-                handleTimeChange(state.deadline, e.target.value, "deadline")
+                handleTimeChange(deadline, e.target.value, "deadline")
               }
               className="mt-1"
             />
           </div>
         </div>
 
-        {category === "custom" && (
+        {category === "manual" && (
           <Button
             className="w-full mt-6"
             onClick={() =>

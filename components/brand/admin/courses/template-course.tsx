@@ -63,7 +63,14 @@ const updateCourse = async ({
   id,
   ...course
 }: { id: string } & z.infer<typeof courseSchema>) => {
-  const { data } = await api.put(`/course/${id}`, course);
+  const { data } = await api.put(`/course/${id}`, {
+    template_name: course.template_name,
+    template_description: course.template_description,
+    template_year: course.template_year,
+    department_id: course.department_id,
+    template_course_access: course.template_course_access,
+    course_materials: course.course_materials,
+  });
   return data;
 };
 
@@ -120,6 +127,10 @@ export default function TemplateCourse() {
       form.reset();
       toast.success("Course updated successfully");
     },
+    onError: (error) => {
+      console.error("Update error:", error);
+      toast.error("Failed to update course");
+    },
   });
 
   const deleteMutation = useMutation({
@@ -159,7 +170,12 @@ export default function TemplateCourse() {
 
   const handleEdit = (course: Course) => {
     setEditingCourse(course);
-    form.reset(course);
+    form.reset({
+      template_name: course.template_name,
+      template_description: course.template_description,
+      template_year: course.template_year,
+      department_id: course.department_id,
+    });
     setIsOpen(true);
   };
 
@@ -334,23 +350,6 @@ export default function TemplateCourse() {
             />
           </div>
         </div>
-
-        {/* <Select
-          onValueChange={(value) =>
-            dispatch({ type: "SET_YEAR", payload: value })
-          }
-        >
-          <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Filter by year" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all-years">All Years</SelectItem>
-            <SelectItem value="2023">2023</SelectItem>
-            <SelectItem value="2024">2024</SelectItem>
-            <SelectItem value="2025">2025</SelectItem>
-            <SelectItem value="2026">2026</SelectItem>
-          </SelectContent>
-        </Select> */}
 
         <Select
           onValueChange={(value) =>
