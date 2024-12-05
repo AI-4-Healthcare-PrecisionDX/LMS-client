@@ -1,6 +1,23 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
+import "@react-pdf-viewer/core/lib/styles/index.css";
+import "@react-pdf-viewer/default-layout/lib/styles/index.css";
+
+import {
+  Book,
+  BookOpen,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CirclePlay,
+  GraduationCap,
+  Loader2,
+  Search,
+} from "lucide-react";
+import Link from "next/link";
+import { useReducer, useState } from "react";
+import { toast } from "sonner";
+
 import { BreadcrumbResponsive } from "@/components/BreadCrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +27,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -24,27 +42,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { books } from "@/data";
-import { bookAtom } from "@/store";
-import { Book as BookType } from "@/types";
+import useFileUpload from "@/hooks/use-upload";
+import { Viewer } from "@react-pdf-viewer/core";
 import { TourProvider, useTour } from "@reactour/tour";
-import { useAtomValue } from "jotai";
-import {
-  Book,
-  BookOpen,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CirclePlay,
-  GraduationCap,
-  Search,
-} from "lucide-react";
-import Link from "next/link";
-import { useEffect, useReducer } from "react";
-import UploadContent from "./UploadPdf";
+import { useQuery } from "@tanstack/react-query";
 
-// Utility function to truncate strings
-const truncateString = (str: string, maxLength: number) =>
-  str.length <= maxLength ? str : str.slice(0, maxLength) + "...";
+import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
+import { BookMaterial } from "./types";
+import UploadContent from "./UploadPdf";
 
 // Tour steps configuration
 const steps = [
@@ -79,21 +84,21 @@ const ITEMS_TO_DISPLAY = 2;
 // State and action types for reducer
 type State = {
   searchTerm: string;
-  filteredBooks: BookType[];
+  filteredBooks: BookMaterial[];
   categoryFilter: string;
   courseFilter: string;
 };
 
 type Action =
   | { type: "SET_SEARCH_TERM"; payload: string }
-  | { type: "SET_FILTERED_BOOKS"; payload: BookType[] }
+  | { type: "SET_FILTERED_BOOKS"; payload: BookMaterial[] }
   | { type: "SET_CATEGORY_FILTER"; payload: string }
   | { type: "SET_COURSE_FILTER"; payload: string };
 
 // Initial state for the reducer
 const initialState: State = {
   searchTerm: "",
-  filteredBooks: books,
+  filteredBooks: [],
   categoryFilter: "all",
   courseFilter: "all",
 };
@@ -114,46 +119,22 @@ const reducer = (state: State, action: Action): State => {
   }
 };
 
+const categories = ["all", "fiction", "non-fiction", "science", "history"];
+const courses = ["all", "course1", "course2", "course3"];
+
 // BookList component
 const BookList = () => {
-  const book = useAtomValue(bookAtom);
+  const { getLibraries } = useFileUpload();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["books"],
+    queryFn: getLibraries,
+  });
+
   const [state, dispatch] = useReducer(reducer, initialState);
   const { setIsOpen } = useTour();
 
-  const handleReadBook = (book: BookType) => {
-    window.open(`/student/view`, "_blank");
-  };
-
-  useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      localStorage.getItem("bookListPage") === null
-    ) {
-      setIsOpen(true);
-      localStorage.setItem("bookListPage", "true");
-    }
-  }, [setIsOpen]);
-
-  useEffect(() => {
-    const results = books.filter(
-      (book) =>
-        (book.title.toLowerCase().includes(state.searchTerm.toLowerCase()) ||
-          book.author.toLowerCase().includes(state.searchTerm.toLowerCase())) &&
-        (state.categoryFilter === "all" ||
-          book.category === state.categoryFilter) &&
-        (state.courseFilter === "all" || book.course === state.courseFilter),
-    );
-    dispatch({ type: "SET_FILTERED_BOOKS", payload: results });
-  }, [state.searchTerm, state.categoryFilter, state.courseFilter]);
-
-  const categories = [
-    "all",
-    ...Array.from(new Set(books.map((book) => book.category))),
-  ];
-  const courses = [
-    "all",
-    ...Array.from(new Set(books.map((book) => book.course))),
-  ];
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error fetching books: {(error as Error).message}</div>;
 
   return (
     <div className="container mx-auto px-4 pb-8 dark:text-gray-100">
@@ -197,10 +178,13 @@ const BookList = () => {
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {book && <BookCard book={book} handleReadBook={handleReadBook} />}
-        {state.filteredBooks.map((book) => (
-          <BookCard key={book.id} book={book} handleReadBook={handleReadBook} />
-        ))}
+        {state.filteredBooks.length > 0 ? (
+          state.filteredBooks.map((book) => (
+            <BookCard key={book.library_id} book={book} />
+          ))
+        ) : (
+          <div>No books available.</div>
+        )}
       </div>
     </div>
   );
@@ -255,61 +239,90 @@ const FilterSelect = ({
 );
 
 // BookCard component
-const BookCard = ({
-  book,
-  handleReadBook,
-}: {
-  book: BookType;
-  handleReadBook: (book: BookType) => void;
-}) => (
-  <Card className="flex flex-col h-full transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 overflow-hidden">
-    <CardHeader className="bg-primary p-6 text-primary-foreground h-[180px]">
-      <div className="flex items-center justify-between mb-4">
-        <Book className="w-12 h-12" />
-        <Badge variant="secondary" className="text-xs font-semibold">
-          {book.difficulty}
-        </Badge>
-      </div>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger>
-            <h2 className="text-2xl font-bold leading-tight line-clamp-2">
-              {book.title}
-            </h2>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p className="text-primary-foreground">{book.title}</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      <p className="text-sm mt-2 text-primary-foreground/80">
-        by {book.author}
-      </p>
-    </CardHeader>
-    <CardContent className="flex-grow p-6 bg-card">
-      <div className="flex flex-wrap gap-2 mb-4">
-        <Badge variant="outline">{book.category}</Badge>
-        <Badge variant="outline">{book.course}</Badge>
-      </div>
-    </CardContent>
-    <CardFooter className="bg-muted/50 p-6 gap-4">
-      <Button
-        className="read-book-button flex-1"
-        variant="outline"
-        onClick={() => handleReadBook(book)}
-      >
-        <BookOpen className="w-4 h-4 mr-2" />
-        Read Content
-      </Button>
-      <Link href="/student/exam-v2/chapter" className="flex-1">
-        <Button className="start-prep-button w-full" variant="default">
-          <GraduationCap className="w-4 h-4 mr-2" />
-          Start Prep
-        </Button>
-      </Link>
-    </CardFooter>
-  </Card>
-);
+const BookCard = ({ book }: { book: BookMaterial }) => {
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isPdfOpen, setIsPdfOpen] = useState(false);
+  const { getLibraryFileByLibraryID } = useFileUpload();
+  const defaultLayoutPluginInstance = defaultLayoutPlugin();
+
+  const renderLoadingState = () => (
+    <div className="flex items-center justify-center h-[600px]">
+      <Loader2 className="h-6 w-6 animate-spin" />
+      <p className="ml-2">Loading PDF...</p>
+    </div>
+  );
+
+  const renderPdfViewer = () => (
+    <div className="h-[600px]">
+      <Viewer fileUrl={pdfUrl || ""} plugins={[defaultLayoutPluginInstance]} />
+    </div>
+  );
+
+  return (
+    <>
+      <Card className="flex flex-col h-full transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 overflow-hidden">
+        <CardHeader className="bg-primary p-6 text-primary-foreground h-[180px]">
+          <div className="flex items-center justify-between mb-4">
+            <Book className="w-12 h-12" />
+            <Badge variant="secondary" className="text-xs font-semibold">
+              {book.material_type}
+            </Badge>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <h2 className="text-2xl font-bold leading-tight line-clamp-2">
+                  {book.material_title}
+                </h2>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p className="text-primary-foreground">{book.material_title}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <p className="text-sm mt-2 text-primary-foreground/80">
+            by {book.author}
+          </p>
+        </CardHeader>
+        <CardContent className="flex-grow p-6 bg-card">
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Badge variant="outline">{book.material_type}</Badge>
+          </div>
+        </CardContent>
+        <CardFooter className="bg-muted/50 p-6 gap-4">
+          <Button
+            className="read-book-button flex-1"
+            variant="outline"
+            onClick={async () => {
+              try {
+                const url = await getLibraryFileByLibraryID(book.library_id);
+                setPdfUrl(url);
+              } catch (error) {
+                toast.error("Failed to load book");
+                setPdfUrl(null);
+              }
+            }}
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            Read Content
+          </Button>
+          <Link href="/student/exam-v2/chapter" className="flex-1">
+            <Button className="start-prep-button w-full" variant="default">
+              <GraduationCap className="w-4 h-4 mr-2" />
+              Start Prep
+            </Button>
+          </Link>
+        </CardFooter>
+      </Card>
+
+      <Dialog open={isPdfOpen} onOpenChange={setIsPdfOpen}>
+        <DialogContent className="w-screen h-screen max-w-none m-0 p-6">
+          {renderPdfViewer()}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
 
 // BookListWithTour component
 export default function BookListWithTour() {

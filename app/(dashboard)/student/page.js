@@ -1,13 +1,13 @@
 "use client";
-import ChartDemo from "@/components/brand/dashboard/ChartDemo";
-import { AcademicCapIcon, DocumentIcon } from "@heroicons/react/outline";
 import AreaChartDemo from "@/components/brand/dashboard/AreaChartDemo";
-import MaxStreak from "@/components/brand/dashboard/MaxStreak";
-import { BookOpenIcon } from "lucide-react";
-import TaskDemo from "@/components/brand/dashboard/TaskDemo";
-import StudyPlan from "@/components/brand/dashboard/StudyPlan";
+import ChartDemo from "@/components/brand/dashboard/ChartDemo";
 import DashboardCard from "@/components/brand/dashboard/DashboardCard";
+import MaxStreak from "@/components/brand/dashboard/MaxStreak";
+import StudyPlan from "@/components/brand/dashboard/StudyPlan";
+import TaskDemo from "@/components/brand/dashboard/TaskDemo";
 import ChatSystem from "@/components/brand/student/chatsystem/chatsystem";
+import { AcademicCapIcon, DocumentIcon } from "@heroicons/react/outline";
+import { BookOpenIcon } from "lucide-react";
 
 export default function Dashboard() {
   return (

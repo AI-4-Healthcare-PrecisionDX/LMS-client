@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  lms-client:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    volumes:
+      - .env:/app/.env
+      # Uncomment if you want to persist .next cache
+      # - nextjs-cache:/app/.next/cache
+
+# Optional volume for Next.js cache
+# volumes:
+#   nextjs-cache:

@@ -2,17 +2,16 @@
 
 import {
   Book,
+  Building,
   Calendar,
   Home,
   HomeIcon,
   Library,
-  MessageCircleCode,
   MessageSquare,
   Package,
   PencilLine,
   Text,
   User,
-  UsersRound,
 } from "lucide-react";
 
 type Submenu = {
@@ -72,22 +71,35 @@ export function getAdminMenuList(pathname: string): Group[] {
               active: pathname === "/admin/manage-student",
               icon: User,
             },
+            {
+              href: "/admin/departments",
+              label: "Departments",
+              active: pathname === "/admin/departments",
+              icon: Building,
+            },
           ],
         },
         {
-          href: "/admin/quality-assurance",
-          label: "Quality Assurance",
-          active: pathname === "/admin/quality-assurance",
-          icon: MessageCircleCode,
+          href: "/admin/case",
+          label: "Case",
+          active: pathname === "/admin/case",
+          icon: Book,
           submenus: [],
         },
-        {
-          href: "/admin/students",
-          label: "Students Statistics",
-          active: pathname === "/admin/students",
-          icon: UsersRound,
-          submenus: [],
-        },
+        // {
+        //   href: "/admin/quality-assurance",
+        //   label: "Quality Assurance",
+        //   active: pathname === "/admin/quality-assurance",
+        //   icon: MessageCircleCode,
+        //   submenus: [],
+        // },
+        // {
+        //   href: "/admin/students",
+        //   label: "Students Statistics",
+        //   active: pathname === "/admin/students",
+        //   icon: UsersRound,
+        //   submenus: [],
+        // },
       ],
     },
     {
