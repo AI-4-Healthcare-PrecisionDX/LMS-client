@@ -227,14 +227,6 @@ export function getTeacherMenuList(pathname: string): Group[] {
         //   icon: Book,
         //   submenus: [],
         // },
-
-        {
-          href: "/teacher/announcements",
-          label: "Announcements",
-          active: ["/teacher/announcements"].includes(pathname),
-          icon: MessageSquare,
-          submenus: [],
-        },
       ],
     },
   ];
