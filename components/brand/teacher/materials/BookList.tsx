@@ -4,7 +4,7 @@ import { TourProvider } from "@reactour/tour";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Book, EllipsisVertical, Search } from "lucide-react";
 import { useState, type ReactElement } from "react";
-import { pdfjs } from "react-pdf";
+// import { pdfjs } from "react-pdf";
 
 const queryClient = new QueryClient();
 
@@ -46,7 +46,7 @@ import TOC from "./TOC";
 import { SectionExclusiveContent, Step } from "./types";
 
 // Set up the worker for react-pdf
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const steps: Step[] = [
   {
