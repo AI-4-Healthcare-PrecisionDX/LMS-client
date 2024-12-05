@@ -4,7 +4,6 @@ import { TourProvider } from "@reactour/tour";
 import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { Book, EllipsisVertical, Search } from "lucide-react";
 import { useState, type ReactElement } from "react";
-import { pdfjs } from "react-pdf";
 
 const queryClient = new QueryClient();
 
@@ -44,9 +43,6 @@ import Link from "next/link";
 import { toast } from "sonner";
 import TOC from "./TOC";
 import { SectionExclusiveContent, Step } from "./types";
-
-// Set up the worker for react-pdf
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 const steps: Step[] = [
   {
@@ -181,8 +177,7 @@ function BookList({
                 <SelectItem value="hidden">Private</SelectItem>
               </SelectContent>
             </Select>
-            <Dialog
-            >
+            <Dialog>
               <DialogTrigger asChild>
                 <Button className="dark:text-white upload-content-button">
                   Upload PDF
@@ -190,7 +185,7 @@ function BookList({
               </DialogTrigger>
               <DialogContent className="w-[90vw] h-full p-0 sm:max-w-none sm:max-h-none sm:p-4">
                 <ScrollArea>
-                  <TOC sectionId={sectionId}/>
+                  <TOC sectionId={sectionId} />
                 </ScrollArea>
               </DialogContent>
             </Dialog>
