@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/use-auth";
 import api from "@/lib/axios-config";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 
 import useFileUpload from "@/hooks/use-upload";
@@ -73,6 +73,20 @@ export function CourseMateriels({
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (materialId: string) => {
+      await api.put(`/course/${courseID}`, {
+        course_materials: courseMaterials
+          .filter((material) => material.library_item.library_id !== materialId)
+          .map((material) => material.library_item.library_id),
+      });
+    },
+    onSuccess: () => {
+      toast.success("Material deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["courses"] });
+    },
+  });
+
   const handleMaterialClick = async (material: CourseMaterial) => {
     setSelectedMaterial(material);
     setIsLoadingPdf(true);
@@ -101,6 +115,12 @@ export function CourseMateriels({
     }
   };
 
+  const handleDelete = (materialId: string) => {
+    if (window.confirm("Are you sure you want to delete this material?")) {
+      deleteMutation.mutate(materialId);
+    }
+  };
+
   const renderUploadButton = () => (
     <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
       Upload New Material <Upload className="h-4 w-4 ml-2" />
@@ -110,16 +130,26 @@ export function CourseMateriels({
   const renderMaterialList = () => (
     <ScrollArea className="max-h-[500px] w-full pr-4">
       {courseMaterials.map((material) => (
-        <Button
-          key={material.library_item.library_id}
-          variant="outline"
-          className="w-full justify-start mb-2"
-          onClick={() => handleMaterialClick(material)}
-        >
-          {material.library_item.material_title}
-
-          <Badge variant="outline">{material.library_item.material_type}</Badge>
-        </Button>
+        <div key={material.library_item.library_id} className="flex mb-2 gap-2">
+          <Button
+            variant="outline"
+            className="w-full justify-start"
+            onClick={() => handleMaterialClick(material)}
+          >
+            {material.library_item.material_title}
+            <Badge variant="outline">
+              {material.library_item.material_type}
+            </Badge>
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => handleDelete(material.library_item.library_id)}
+            className="shrink-0"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       ))}
     </ScrollArea>
   );
@@ -166,13 +196,13 @@ export function CourseMateriels({
 
             <div className="flex-1">{renderMaterialList()}</div>
 
-            {uploadMutation.isPending && (
+            {(uploadMutation.isPending || deleteMutation.isPending) && (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-6 w-6 animate-spin" />
               </div>
             )}
-            {uploadMutation.isError && (
-              <p className="text-sm text-red-500 mt-2">Failed to upload file</p>
+            {(uploadMutation.isError || deleteMutation.isError) && (
+              <p className="text-sm text-red-500 mt-2">Operation failed</p>
             )}
           </div>
         </DialogContent>
