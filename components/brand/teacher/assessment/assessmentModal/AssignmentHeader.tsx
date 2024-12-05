@@ -1,9 +1,12 @@
-// interface AssignmentHeaderProps {
-//   totalQuestions: number;
-//   totalMarks: number;
-// }
+interface AssignmentHeaderProps {
+  totalQuestions: number;
+  totalMarks: number;
+}
 
-export default function AssignmentHeader({ totalQuestions, totalMarks }) {
+export default function AssignmentHeader({
+  totalQuestions,
+  totalMarks,
+}: AssignmentHeaderProps) {
   return (
     <div className="flex items-center justify-between">
       <div>

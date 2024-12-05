@@ -11,22 +11,29 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnimatePresence, motion } from "framer-motion";
-import { Eye, FileText, Loader2, UploadCloud, X } from "lucide-react";
+import { FileText, Loader2, UploadCloud, X } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import { Document, Page, pdfjs } from "react-pdf";
+
+import "@react-pdf-viewer/core/lib/styles/index.css";
+import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import { toast } from "sonner";
 
+import useFileUpload from "@/hooks/use-upload";
 import api from "@/lib/axios-config";
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+import { Viewer, Worker } from "@react-pdf-viewer/core";
 
 export function MaterialView({ pdfs, onPDFsChange }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedPdf, setSelectedPdf] = useState(null);
-  const [numPages, setNumPages] = useState(null);
-  const [pageNumber, setPageNumber] = useState(1);
+  const [selectedPdfName, setSelectedPdfName] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+
+  const defaultLayoutPluginInstance = defaultLayoutPlugin();
+
+  const { getLibraryFileByLibraryID } = useFileUpload();
 
   const uploadToLibrary = useCallback(async (file) => {
     const formData = new FormData();
@@ -46,7 +53,7 @@ export function MaterialView({ pdfs, onPDFsChange }) {
       });
 
       return {
-        library_id: response.data.library_id, // Make sure this matches the API response
+        library_id: response.data.library_id,
         name: file.name,
         file_url: response.data.file_url,
       };
@@ -78,7 +85,6 @@ export function MaterialView({ pdfs, onPDFsChange }) {
       }
 
       if (uploadedPDFs.length > 0) {
-        // Combine existing PDFs with new ones
         const updatedPDFs = [...pdfs, ...uploadedPDFs];
         onPDFsChange(updatedPDFs);
         toast.success(`Successfully uploaded ${uploadedPDFs.length} PDFs`);
@@ -93,6 +99,7 @@ export function MaterialView({ pdfs, onPDFsChange }) {
     },
     [pdfs, onPDFsChange, uploadToLibrary],
   );
+
   const removePDF = useCallback(
     (index) => {
       const newPDFs = [...pdfs];
@@ -109,15 +116,29 @@ export function MaterialView({ pdfs, onPDFsChange }) {
       "application/pdf": [".pdf"],
     },
     disabled: uploading,
-    maxSize: 10 * 1024 * 1024, // 10MB
+    maxSize: 10 * 1024 * 1024,
   });
+
+  const getPdfUrl = async (library_id, name) => {
+    setIsDialogOpen(true);
+    setIsLoadingPdf(true);
+    try {
+      const { data } = await getLibraryFileByLibraryID(library_id);
+      setSelectedPdf(data?.file_url);
+      setSelectedPdfName(name);
+    } catch (error) {
+      toast.error("Failed to load PDF");
+      setIsDialogOpen(false);
+    } finally {
+      setIsLoadingPdf(false);
+    }
+  };
 
   return (
     <div>
       <Card className="mb-6 bg-white dark:bg-gray-800">
         <CardContent className="pt-6">
           <div className="flex flex-col gap-4">
-            {/* Upload area */}
             <div
               {...getRootProps()}
               className={`relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors
@@ -155,7 +176,6 @@ export function MaterialView({ pdfs, onPDFsChange }) {
               )}
             </div>
 
-            {/* Display PDFs */}
             <AnimatePresence>
               {pdfs.length > 0 && (
                 <motion.div
@@ -170,25 +190,23 @@ export function MaterialView({ pdfs, onPDFsChange }) {
                           key={pdf.library_id}
                           layout
                           className="relative group"
+                          onClick={async () => {
+                            await getPdfUrl(pdf.library_id, pdf.name);
+                          }}
                         >
-                          <div className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 group-hover:border-blue-500 transition-colors">
+                          <div className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 group-hover:border-blue-500 transition-colors cursor-pointer">
                             <div className="w-full h-full flex items-center justify-center">
                               <FileText className="w-8 h-8 text-gray-400" />
                             </div>
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                               <Button
-                                variant="secondary"
-                                size="icon"
-                                className="w-8 h-8"
-                                onClick={() => setSelectedPdf(pdf)}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button
                                 variant="destructive"
                                 size="icon"
                                 className="w-8 h-8"
-                                onClick={() => removePDF(index)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removePDF(index);
+                                }}
                               >
                                 <X className="w-4 h-4" />
                               </Button>
@@ -208,54 +226,28 @@ export function MaterialView({ pdfs, onPDFsChange }) {
         </CardContent>
       </Card>
 
-      {/* PDF Preview Dialog */}
-      <Dialog
-        open={Boolean(selectedPdf)}
-        onOpenChange={() => setSelectedPdf(null)}
-      >
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl w-full h-[80vh]">
           <DialogHeader>
-            <DialogTitle>{selectedPdf?.name}</DialogTitle>
+            <DialogTitle>{selectedPdfName}</DialogTitle>
           </DialogHeader>
-          {selectedPdf && (
-            <div className="flex flex-col items-center h-full">
+          <div className="flex flex-col items-center h-full">
+            {isLoadingPdf ? (
+              <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin" />
+                <span className="ml-2">Loading PDF...</span>
+              </div>
+            ) : (
               <div className="flex-1 w-full overflow-auto">
-                <Document
-                  file={selectedPdf.file_url}
-                  onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                  className="flex justify-center"
-                >
-                  <Page
-                    pageNumber={pageNumber}
-                    className="max-w-full"
-                    renderTextLayer={true}
-                    renderAnnotationLayer={true}
+                <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
+                  <Viewer
+                    fileUrl={selectedPdf}
+                    plugins={[defaultLayoutPluginInstance]}
                   />
-                </Document>
+                </Worker>
               </div>
-              <div className="flex items-center gap-4 p-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setPageNumber((prev) => Math.max(prev - 1, 1))}
-                  disabled={pageNumber <= 1}
-                >
-                  Previous
-                </Button>
-                <span className="text-sm">
-                  Page {pageNumber} of {numPages}
-                </span>
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    setPageNumber((prev) => Math.min(prev + 1, numPages || 1))
-                  }
-                  disabled={pageNumber >= (numPages || 1)}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
