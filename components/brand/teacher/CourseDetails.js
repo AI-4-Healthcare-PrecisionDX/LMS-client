@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
+import AnnouncementPage from "./announcement";
 import AssignmentDashboard from "./assessment/AssignmentDashboard";
 import ExamEvaluation from "./assessment/ExamEvaluation";
 import CourseDashboard from "./CourseDashboard";
@@ -22,10 +23,10 @@ export default function CourseDetails({
 }) {
   // Get initial tab from localStorage, default to 'dashboard'
   const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('activeTab') || 'dashboard';
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("activeTab") || "dashboard";
     }
-    return 'dashboard';
+    return "dashboard";
   });
 
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -33,8 +34,8 @@ export default function CourseDetails({
 
   // Save active tab to localStorage whenever it changes
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('activeTab', activeTab);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("activeTab", activeTab);
     }
   }, [activeTab]);
 
@@ -53,7 +54,9 @@ export default function CourseDetails({
       <div className="mb-8">
         <h1 className="text-3xl font-bold">{courseName}</h1>
         <p className="text-md">Section: {section}</p>
-        { totalStudents && <p className="text-md">Total Students: {totalStudents}</p>}
+        {totalStudents && (
+          <p className="text-md">Total Students: {totalStudents}</p>
+        )}
         <p className="text-gray-600 text-md">Instructor: {instructor}</p>
       </div>
 
@@ -76,6 +79,9 @@ export default function CourseDetails({
               <TabsTrigger className="w-full" value="discussions">
                 Discussions
               </TabsTrigger>
+              <TabsTrigger className="w-full" value="announcements">
+                Announcements
+              </TabsTrigger>
               <TabsTrigger className="w-full" value="inbox">
                 Inbox
               </TabsTrigger>
@@ -88,7 +94,10 @@ export default function CourseDetails({
         </TabsContent>
         <TabsContent value="assignments">
           {isDashboard && (
-            <AssignmentDashboard examEvaluation={handleAssignmentClick} sectionId={sectionId} />
+            <AssignmentDashboard
+              examEvaluation={handleAssignmentClick}
+              sectionId={sectionId}
+            />
           )}
           {!isDashboard && (
             <div className="space-y-2">
@@ -98,13 +107,19 @@ export default function CourseDetails({
           )}
         </TabsContent>
         <TabsContent value="materials">
-          <BookListWithTour section_exclusive_contents={section_exclusive_contents} sectionId={sectionId}/>
+          <BookListWithTour
+            section_exclusive_contents={section_exclusive_contents}
+            sectionId={sectionId}
+          />
         </TabsContent>
         <TabsContent value="performance">
           <PerformanceDashboard />
         </TabsContent>
         <TabsContent value="discussions">
           <DiscussionsContent />
+        </TabsContent>
+        <TabsContent value="announcements">
+          <AnnouncementPage />
         </TabsContent>
         <TabsContent value="inbox">
           <TeacherInbox selectedStudent={selectedStudent} />
