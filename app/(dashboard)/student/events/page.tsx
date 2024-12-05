@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import { compareAsc, format, isFuture, isSameDay, parseISO } from "date-fns";
 import {
@@ -41,7 +42,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { useMutation, useQuery, useQueryClient } from "react-query";
 import { z } from "zod";
 
 interface Event {
@@ -94,10 +94,10 @@ const eventSchema = z.object({
 
 const CalendarEvents = () => {
   const queryClient = useQueryClient();
-  const { data: events = [], refetch } = useQuery<Event[]>(
-    "events",
-    fetchEvents,
-  );
+  const { data: events = [], refetch } = useQuery<Event[]>({
+    queryKey: ["events"],
+    queryFn: fetchEvents,
+  });
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isAddEventOpen, setIsAddEventOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({
@@ -153,23 +153,26 @@ const CalendarEvents = () => {
     return filteredEvents;
   };
 
-  const addEventMutation = useMutation(addEvent, {
+  const addEventMutation = useMutation({
+    mutationFn: addEvent,
     onSuccess: () => {
-      queryClient.invalidateQueries("events");
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       refetch();
     },
   });
 
-  const updateEventMutation = useMutation(updateEvent, {
+  const updateEventMutation = useMutation({
+    mutationFn: updateEvent,
     onSuccess: () => {
-      queryClient.invalidateQueries("events");
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       refetch();
     },
   });
 
-  const deleteEventMutation = useMutation(deleteEvent, {
+  const deleteEventMutation = useMutation({
+    mutationFn: deleteEvent,
     onSuccess: () => {
-      queryClient.invalidateQueries("events");
+      queryClient.invalidateQueries({ queryKey: ["events"] });
       refetch();
     },
   });

@@ -181,8 +181,7 @@ function BookList({
                 <SelectItem value="hidden">Private</SelectItem>
               </SelectContent>
             </Select>
-            <Dialog
-            >
+            <Dialog>
               <DialogTrigger asChild>
                 <Button className="dark:text-white upload-content-button">
                   Upload PDF
@@ -190,7 +189,7 @@ function BookList({
               </DialogTrigger>
               <DialogContent className="w-[90vw] h-full p-0 sm:max-w-none sm:max-h-none sm:p-4">
                 <ScrollArea>
-                  <TOC sectionId={sectionId}/>
+                  <TOC sectionId={sectionId} />
                 </ScrollArea>
               </DialogContent>
             </Dialog>

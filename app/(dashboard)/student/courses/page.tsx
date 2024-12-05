@@ -1,646 +1,400 @@
 "use client";
-
-import React, { useReducer, useState } from "react";
-import {
-  Search,
-  BookOpen,
-  ExternalLink,
-  Calendar,
-  Star,
-  Clock,
-  Brain,
-  FileText,
-  Video,
-  Download,
-} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import api from "@/lib/axios-config";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, BookOpen, Microscope, Search } from "lucide-react";
+import Link from "next/link";
+import { useReducer } from "react";
+import { toast } from "sonner";
+import { z } from "zod";
 
-interface Resource {
-  type: "video" | "pdf" | "quiz" | "case";
-  title: string;
-  duration?: string;
-  size?: string;
-  questions?: number;
-  difficulty?: string;
-}
+// Zod schemas
+const UserSchema = z.object({
+  email: z.string(),
+  first_name: z.string(),
+  last_name: z.string(),
+  is_active: z.boolean(),
+});
 
-interface Course {
-  id: number;
-  title: string;
-  category: string;
-  isFavorite: boolean;
-  progress: number;
-  nextLesson: string;
-  totalHours: number;
-  completedHours: number;
-  hasLiveSession: boolean;
-  nextLiveSession?: string;
-  resources: Resource[];
-}
+const TeacherSchema = z.object({
+  teacher_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  user: UserSchema,
+});
 
-interface MedicalResource {
-  id: number;
-  title: string;
-  url: string;
-  category: string;
-  description: string;
-}
+const DepartmentSchema = z.object({
+  department_name: z.string(),
+  department_id: z.string().uuid(),
+  branch_id: z.string().uuid(),
+  updated_at: z.string().datetime(),
+});
 
-interface Deadline {
-  id: number;
-  title: string;
-  date: string;
-  type: string;
-  location: string;
-  duration: string;
-  requirements: string[];
-  priority: "high" | "medium" | "low";
-}
+const TemplateCourseSchema = z.object({
+  template_name: z.string(),
+  template_description: z.string(),
+  template_year: z.string(),
+  course_outline: z.string(),
+  department_id: z.string().uuid(),
+  template_course_id: z.string().uuid(),
+  admin_id: z.string().uuid(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+  course_materials: z.array(z.unknown()),
+  branch_id: z.string().uuid(),
+  department: DepartmentSchema,
+});
 
-interface StudyStats {
-  weeklyStudyHours: number;
-  weeklyGoal: number;
-  completedAssessments: number;
-  totalAssessments: number;
-  averageScore: number;
-  streakDays: number;
-}
+const SectionSchema = z.object({
+  section_name: z.string(),
+  start_date: z.string().datetime(),
+  end_date: z.string().datetime(),
+  template_course_id: z.string().uuid(),
+  section_id: z.string().uuid(),
+  section_code: z.string(),
+  teacher_id: z.string().uuid(),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+  teacher: TeacherSchema,
+  template_course: TemplateCourseSchema,
+  student_count: z.number(),
+  section_exclusive_contents: z.array(z.unknown()),
+});
 
-const initialCourses: Course[] = [
-  {
-    id: 1,
-    title: "Introduction to Anatomy",
-    category: "Anatomy",
-    isFavorite: false,
-    progress: 65,
-    nextLesson: "Musculoskeletal System",
-    totalHours: 40,
-    completedHours: 26,
-    hasLiveSession: true,
-    nextLiveSession: "2024-10-26T14:00:00",
-    resources: [
-      { type: "video", title: "Skeletal System Overview", duration: "45 min" },
-      { type: "pdf", title: "Anatomical Terms Reference", size: "2.3 MB" },
-      { type: "quiz", title: "Week 3 Assessment", questions: 25 },
-    ],
-  },
-  {
-    id: 2,
-    title: "Pharmacology Basics",
-    category: "Pharmacology",
-    isFavorite: true,
-    progress: 42,
-    nextLesson: "Drug Metabolism",
-    totalHours: 35,
-    completedHours: 14,
-    hasLiveSession: false,
-    resources: [
-      { type: "video", title: "Drug Classifications", duration: "60 min" },
-      { type: "pdf", title: "Common Drug Interactions", size: "4.1 MB" },
-      { type: "case", title: "Patient Case Study 1", difficulty: "Medium" },
-    ],
-  },
-];
+type Section = z.infer<typeof SectionSchema>;
 
-const medicalResources: MedicalResource[] = [
-  {
-    id: 1,
-    title: "PubMed",
-    url: "https://pubmed.ncbi.nlm.nih.gov/",
-    category: "Research",
-    description: "Access to biomedical literature",
-  },
-  {
-    id: 2,
-    title: "Medscape",
-    url: "https://www.medscape.com/",
-    category: "Clinical",
-    description: "Medical news and clinical references",
-  },
-];
-
-const upcomingDeadlines: Deadline[] = [
-  {
-    id: 1,
-    title: "Anatomy Practical Examination",
-    date: "2024-10-28",
-    type: "exam",
-    location: "Anatomy Lab 2B",
-    duration: "3 hours",
-    requirements: ["Lab coat", "Dissection kit"],
-    priority: "high",
-  },
-  {
-    id: 2,
-    title: "Patient Case Presentation",
-    date: "2024-11-05",
-    type: "presentation",
-    location: "Clinical Skills Center",
-    duration: "30 minutes",
-    requirements: ["Patient history", "Differential diagnosis"],
-    priority: "medium",
-  },
-];
-
-const studyStats: StudyStats = {
-  weeklyStudyHours: 28,
-  weeklyGoal: 35,
-  completedAssessments: 12,
-  totalAssessments: 15,
-  averageScore: 87,
-  streakDays: 5,
-};
-
-interface State {
+// State management
+type State = {
   searchTerm: string;
-  courses: Course[];
-  selectedView: "grid" | "list";
-  filterCategory: string;
-}
+  courseCode: string;
+};
 
 type Action =
   | { type: "SET_SEARCH_TERM"; payload: string }
-  | { type: "TOGGLE_FAVORITE"; payload: number }
-  | { type: "SET_VIEW"; payload: "grid" | "list" }
-  | { type: "SET_FILTER"; payload: string };
+  | { type: "SET_COURSE_CODE"; payload: string }
+  | { type: "RESET_COURSE_CODE" };
+
+const initialState: State = {
+  searchTerm: "",
+  courseCode: "",
+};
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "SET_SEARCH_TERM":
       return { ...state, searchTerm: action.payload };
-    case "TOGGLE_FAVORITE":
-      return {
-        ...state,
-        courses: state.courses.map((course) =>
-          course.id === action.payload
-            ? { ...course, isFavorite: !course.isFavorite }
-            : course,
-        ),
-      };
-    case "SET_VIEW":
-      return { ...state, selectedView: action.payload };
-    case "SET_FILTER":
-      return { ...state, filterCategory: action.payload };
+    case "SET_COURSE_CODE":
+      return { ...state, courseCode: action.payload };
+    case "RESET_COURSE_CODE":
+      return { ...state, courseCode: "" };
     default:
       return state;
   }
 }
 
-interface CourseCardProps {
-  course: Course;
-  onToggleFavorite: (id: number) => void;
-}
+export default function CoursesPage() {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const queryClient = useQueryClient();
 
-const CourseCard: React.FC<CourseCardProps> = ({
-  course,
-  onToggleFavorite,
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
+  // Fetch sections
+  const {
+    data: sections,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["sections"],
+    queryFn: async () => {
+      const response = await api.get<Section[]>("/student/get-sections");
+
+      return response.data;
+    },
+  });
+
+  // Join section mutation
+  const joinSectionMutation = useMutation({
+    mutationFn: async (sectionCode: string) => {
+      await api.post(`student/join-section?section_code=${sectionCode}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sections"] });
+      toast.success("Successfully joined the course");
+      dispatch({ type: "RESET_COURSE_CODE" });
+    },
+    onError: (error) => {
+      toast.error("Failed to join course: " + error.message);
+    },
+  });
+
+  const handleJoinCourse = () => {
+    if (state.courseCode.trim()) {
+      joinSectionMutation.mutate(state.courseCode);
+    }
+  };
+
+  const filteredSections = sections?.filter(
+    (section) =>
+      section.template_course.template_name
+        .toLowerCase()
+        .includes(state.searchTerm.toLowerCase()) ||
+      section.section_code
+        .toLowerCase()
+        .includes(state.searchTerm.toLowerCase()),
+  );
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500">
+          Error loading courses: {error.message}
+        </div>
+      </div>
+    );
+  }
+
+  if (!sections || sections.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg p-8 mb-8">
+          <h1 className="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
+            My Courses
+          </h1>
+        </div>
+
+        <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <Input
+              placeholder="Search courses..."
+              className="pl-10"
+              value={state.searchTerm}
+              onChange={(e) =>
+                dispatch({ type: "SET_SEARCH_TERM", payload: e.target.value })
+              }
+            />
+          </div>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="bg-primary hover:bg-primary/90">
+                Join New Course
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Join a Course</DialogTitle>
+                <DialogDescription>
+                  Enter the course section code provided by your instructor
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Input
+                  placeholder="Enter course code"
+                  value={state.courseCode}
+                  onChange={(e) =>
+                    dispatch({
+                      type: "SET_COURSE_CODE",
+                      payload: e.target.value,
+                    })
+                  }
+                  required
+                />
+                {joinSectionMutation.isError && (
+                  <p className="text-red-500">
+                    {joinSectionMutation.error.message}
+                  </p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button onClick={handleJoinCourse}>Join Course</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="text-center text-gray-500">
+          <p>You haven't joined any courses yet.</p>
+          <p>Use the "Join New Course" button to enroll in a course.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Card className="flex flex-col justify-between hover:shadow-lg transition-shadow">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <Badge variant={course.hasLiveSession ? "destructive" : "default"}>
-            {course.category}
-          </Badge>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onToggleFavorite(course.id)}
-                >
-                  <Star
-                    className={`h-4 w-4 ${course.isFavorite ? "fill-yellow-400" : ""}`}
-                  />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {course.isFavorite
-                    ? "Remove from favorites"
-                    : "Add to favorites"}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+    <div className="container mx-auto px-4 py-8">
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg p-8 mb-8">
+        <h1 className="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
+          My Courses
+        </h1>
+      </div>
+
+      <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Input
+            placeholder="Search courses..."
+            className="pl-10"
+            value={state.searchTerm}
+            onChange={(e) =>
+              dispatch({ type: "SET_SEARCH_TERM", payload: e.target.value })
+            }
+          />
         </div>
-        <CardTitle className="text-lg">{course.title}</CardTitle>
-        <CardDescription>Next: {course.nextLesson}</CardDescription>
-        <div className="mt-2">
-          <Progress value={course.progress} className="h-2" />
-          <div className="flex justify-between text-sm text-muted-foreground mt-1">
-            <span>{course.progress}% Complete</span>
-            <span>
-              {course.completedHours}/{course.totalHours} hours
-            </span>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {course.hasLiveSession && course.nextLiveSession && (
-          <div className="flex items-center text-sm text-red-600">
-            <Clock className="h-4 w-4 mr-1" />
-            Live Session: {new Date(course.nextLiveSession).toLocaleString()}
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="flex gap-2">
-        <Button className="flex-1">
-          <BookOpen className="mr-2 h-4 w-4" /> Continue
-        </Button>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+
+        <Dialog>
           <DialogTrigger asChild>
-            <Button variant="outline">
-              <FileText className="h-4 w-4" />
+            <Button className="bg-primary hover:bg-primary/90">
+              Join New Course
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Course Resources</DialogTitle>
+              <DialogTitle>Join a Course</DialogTitle>
               <DialogDescription>
-                Access materials for {course.title}
+                Enter the course section code provided by your instructor
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              {course.resources.map((resource, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {resource.type === "video" && <Video className="h-4 w-4" />}
-                    {resource.type === "pdf" && (
-                      <FileText className="h-4 w-4" />
-                    )}
-                    {resource.type === "quiz" && <Brain className="h-4 w-4" />}
-                    <div>
-                      <p className="font-medium">{resource.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {resource.duration ||
-                          resource.size ||
-                          (resource.questions
-                            ? `${resource.questions} questions`
-                            : "")}
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+            <div className="py-4">
+              <Input
+                placeholder="Enter course code"
+                value={state.courseCode}
+                onChange={(e) =>
+                  dispatch({ type: "SET_COURSE_CODE", payload: e.target.value })
+                }
+              />
             </div>
+            <DialogFooter>
+              <Button onClick={handleJoinCourse}>Join Course</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
-      </CardFooter>
-    </Card>
-  );
-};
+      </div>
 
-export default function ClassroomPage() {
-  const [state, dispatch] = useReducer(reducer, {
-    searchTerm: "",
-    courses: initialCourses,
-    selectedView: "grid",
-    filterCategory: "all",
-  });
-
-  const filteredCourses = state.courses.filter(
-    (course) =>
-      course.title.toLowerCase().includes(state.searchTerm.toLowerCase()) &&
-      (state.filterCategory === "all" ||
-        course.category === state.filterCategory),
-  );
-
-  return (
-    <div className="min-h-screen">
-      <div className="container mx-auto p-4 space-y-6">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Study Hours</CardTitle>
-              <div className="text-2xl font-bold">
-                {studyStats.weeklyStudyHours}/{studyStats.weeklyGoal}h
-              </div>
-              <Progress
-                value={
-                  (studyStats.weeklyStudyHours / studyStats.weeklyGoal) * 100
-                }
-                className="h-2"
-              />
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Assessments</CardTitle>
-              <div className="text-2xl font-bold">
-                {studyStats.completedAssessments}/{studyStats.totalAssessments}
-              </div>
-              <Progress
-                value={
-                  (studyStats.completedAssessments /
-                    studyStats.totalAssessments) *
-                  100
-                }
-                className="h-2"
-              />
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
-                Average Score
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredSections?.map((section) => (
+          <Card
+            key={section.section_id}
+            className="hover:shadow-lg transition-shadow overflow-hidden"
+          >
+            <CardHeader className="border-b bg-secondary/10">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <span className="font-mono">{section.section_code}</span>
+                </div>
+                <Badge variant="outline" className="text-xs">
+                  {new Date() < new Date(section.start_date)
+                    ? "Upcoming"
+                    : new Date() > new Date(section.end_date)
+                      ? "Completed"
+                      : "Active"}
+                </Badge>
               </CardTitle>
-              <div className="text-2xl font-bold">
-                {studyStats.averageScore}%
-              </div>
-              <Progress value={studyStats.averageScore} className="h-2" />
             </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">
-                Study Streak
-              </CardTitle>
-              <div className="text-2xl font-bold">
-                {studyStats.streakDays} days
+            <CardContent className="pt-6">
+              <h3 className="font-semibold text-xl mb-4 text-primary">
+                {section.template_course.template_name}
+              </h3>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-secondary/20 rounded-full">
+                    <Microscope className="h-4 w-4 text-primary" />
+                  </div>
+                  <p className="text-sm">
+                    <span className="font-medium">Department:</span>{" "}
+                    {section.template_course.department.department_name}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-secondary/20 rounded-full">
+                    <Microscope className="h-4 w-4 text-primary" />
+                  </div>
+                  <p className="text-sm">
+                    <span className="font-medium">Instructor:</span>{" "}
+                    {section.teacher.user.first_name}{" "}
+                    {section.teacher.user.last_name}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 bg-secondary/10 p-4 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium mb-1">Course Materials</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {section.template_course.course_materials.length}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium mb-1">
+                      Exclusive Content
+                    </p>
+                    <p className="text-2xl font-bold text-primary">
+                      {section.section_exclusive_contents.length}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-between text-sm p-3 bg-secondary/10 rounded-lg">
+                  <div>
+                    <p className="font-medium">Start Date</p>
+                    <p>
+                      {new Date(section.start_date).toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        },
+                      )}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium">End Date</p>
+                    <p>
+                      {new Date(section.end_date).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <Progress value={studyStats.streakDays * 20} className="h-2" />
-            </CardHeader>
+            </CardContent>
+            <CardFooter className="flex justify-end items-center bg-secondary/5 mt-4">
+              <Link href={`/student/courses/${section.section_id}`}>
+                <Button className="gap-2 bg-primary hover:bg-primary/90">
+                  View Course <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </CardFooter>
           </Card>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-12">
-          <div className="md:col-span-8 space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <CardTitle>My Courses</CardTitle>
-                  <div className="flex gap-2">
-                    <div className="relative w-64">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search courses"
-                        className="pl-8"
-                        value={state.searchTerm}
-                        onChange={(e) =>
-                          dispatch({
-                            type: "SET_SEARCH_TERM",
-                            payload: e.target.value,
-                          })
-                        }
-                      />
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline">Filter</Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            dispatch({ type: "SET_FILTER", payload: "all" })
-                          }
-                        >
-                          All Courses
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            dispatch({ type: "SET_FILTER", payload: "Anatomy" })
-                          }
-                        >
-                          Anatomy
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            dispatch({
-                              type: "SET_FILTER",
-                              payload: "Pharmacology",
-                            })
-                          }
-                        >
-                          Pharmacology
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="active" className="mb-4">
-                  <TabsList>
-                    <TabsTrigger value="active">Active Courses</TabsTrigger>
-                    <TabsTrigger value="completed">Completed</TabsTrigger>
-                    <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="active">
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      {filteredCourses.map((course) => (
-                        <CourseCard
-                          key={course.id}
-                          course={course}
-                          onToggleFavorite={(id) =>
-                            dispatch({ type: "TOGGLE_FAVORITE", payload: id })
-                          }
-                        />
-                      ))}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-4 space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Resources</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {Array.from(
-                    medicalResources.reduce((acc, resource) => {
-                      if (!acc.has(resource.category)) {
-                        acc.set(resource.category, []);
-                      }
-                      acc.get(resource.category)?.push(resource);
-                      return acc;
-                    }, new Map<string, MedicalResource[]>()),
-                  ).map(([category, resources]) => (
-                    <div key={category}>
-                      <h3 className="font-medium mb-2">{category}</h3>
-                      <ul className="space-y-2">
-                        {resources.map((resource) => (
-                          <li key={resource.id}>
-                            <a
-                              href={resource.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center text-blue-600 hover:underline"
-                            >
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              <div>
-                                <span>{resource.title}</span>
-                                <p className="text-sm text-muted-foreground">
-                                  {resource.description}
-                                </p>
-                              </div>
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Upcoming Deadlines</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-4">
-                  {upcomingDeadlines.map((deadline) => (
-                    <li key={deadline.id} className="space-y-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="font-medium">{deadline.title}</span>
-                          <Badge
-                            variant={
-                              deadline.priority === "high"
-                                ? "destructive"
-                                : "default"
-                            }
-                            className="ml-2"
-                          >
-                            {deadline.priority}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="flex items-center">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {deadline.date}
-                        </Badge>
-                        <Badge variant="outline" className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {deadline.duration}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        <div>Location: {deadline.location}</div>
-                        <div>Requirements:</div>
-                        <ul className="list-disc list-inside ml-2">
-                          {deadline.requirements.map((req, index) => (
-                            <li key={index}>{req}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Study Statistics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium">
-                        Weekly Progress
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {studyStats.weeklyStudyHours}/{studyStats.weeklyGoal}{" "}
-                        hours
-                      </span>
-                    </div>
-                    <Progress
-                      value={
-                        (studyStats.weeklyStudyHours / studyStats.weeklyGoal) *
-                        100
-                      }
-                      className="h-2"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between mb-1">
-                      <span className="text-sm font-medium">
-                        Assessments Completed
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {studyStats.completedAssessments}/
-                        {studyStats.totalAssessments}
-                      </span>
-                    </div>
-                    <Progress
-                      value={
-                        (studyStats.completedAssessments /
-                          studyStats.totalAssessments) *
-                        100
-                      }
-                      className="h-2"
-                    />
-                  </div>
-
-                  <div className="pt-4 border-t">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <div className="text-sm font-medium">Average Score</div>
-                        <div className="text-2xl font-bold">
-                          {studyStats.averageScore}%
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium">Study Streak</div>
-                        <div className="text-2xl font-bold">
-                          {studyStats.streakDays} days
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );

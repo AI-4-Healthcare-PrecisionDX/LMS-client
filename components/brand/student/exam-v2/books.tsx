@@ -15,7 +15,7 @@ import {
   Search,
 } from "lucide-react";
 import Link from "next/link";
-import { useReducer, useState } from "react";
+import { useEffect, useReducer, useState } from "react";
 import { toast } from "sonner";
 
 import { BreadcrumbResponsive } from "@/components/BreadCrumb";
@@ -125,13 +125,48 @@ const courses = ["all", "course1", "course2", "course3"];
 // BookList component
 const BookList = () => {
   const { getLibraries } = useFileUpload();
-  const { data, isLoading, error } = useQuery({
+  const {
+    data: books = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["books"],
     queryFn: getLibraries,
   });
 
   const [state, dispatch] = useReducer(reducer, initialState);
   const { setIsOpen } = useTour();
+
+  // Update filtered books whenever books data, search term, or filters change
+  useEffect(() => {
+    if (!books) return;
+
+    let filtered = [...books];
+
+    // Apply search filter
+    if (state.searchTerm) {
+      const searchLower = state.searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (book) =>
+          book.material_title.toLowerCase().includes(searchLower) ||
+          book.author.toLowerCase().includes(searchLower),
+      );
+    }
+
+    // Apply category filter
+    if (state.categoryFilter !== "all") {
+      filtered = filtered.filter(
+        (book) => book.material_type.toLowerCase() === state.categoryFilter,
+      );
+    }
+
+    // Apply course filter
+    if (state.courseFilter !== "all") {
+      filtered = filtered.filter((book) => book.course === state.courseFilter);
+    }
+
+    dispatch({ type: "SET_FILTERED_BOOKS", payload: filtered });
+  }, [books, state.searchTerm, state.categoryFilter, state.courseFilter]);
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error fetching books: {(error as Error).message}</div>;
@@ -178,8 +213,8 @@ const BookList = () => {
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {state.filteredBooks.length > 0 ? (
-          state.filteredBooks.map((book) => (
+        {books.length > 0 ? (
+          books.map((book: BookMaterial) => (
             <BookCard key={book.library_id} book={book} />
           ))
         ) : (
@@ -253,7 +288,7 @@ const BookCard = ({ book }: { book: BookMaterial }) => {
   );
 
   const renderPdfViewer = () => (
-    <div className="h-[600px]">
+    <div className="h-[90vh] w-[90vw] mx-auto max-w-none max-h-none">
       <Viewer fileUrl={pdfUrl || ""} plugins={[defaultLayoutPluginInstance]} />
     </div>
   );
@@ -297,6 +332,7 @@ const BookCard = ({ book }: { book: BookMaterial }) => {
               try {
                 const url = await getLibraryFileByLibraryID(book.library_id);
                 setPdfUrl(url);
+                setIsPdfOpen(true);
               } catch (error) {
                 toast.error("Failed to load book");
                 setPdfUrl(null);

@@ -162,7 +162,10 @@ const useFileUpload = () => {
       );
 
       dispatch({ type: UPLOAD_ACTIONS.SUCCESS });
-      return response.data;
+      const proxyUrl = `/teacher/api/getPdf?url=${encodeURIComponent(
+        response.data.file_url,
+      )}`;
+      return proxyUrl;
     } catch (err: AxiosError | any) {
       dispatch({
         type: UPLOAD_ACTIONS.FAILURE,

@@ -485,14 +485,6 @@ export default function TOC() {
           </Button>
         </div>
       </form>
-      {state.apiResponse && (
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-2">API Response:</h2>
-          <pre className="bg-gray-100 p-3 rounded overflow-x-auto">
-            {state.apiResponse}
-          </pre>
-        </div>
-      )}
     </div>
   );
 }

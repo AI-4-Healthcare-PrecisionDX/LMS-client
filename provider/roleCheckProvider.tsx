@@ -2,8 +2,7 @@
 
 import Loading from "@/app/(dashboard)/loading";
 import { useAuth } from "@/hooks/use-auth";
-import { useRouter, usePathname } from "next/navigation";
-import React from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 import { ReactNode } from "react";
 
@@ -21,11 +20,15 @@ export default function RoleCheckProvider({
     return Loading();
   }
 
-  if (userRole !== currentRole) {
+  if (userRole !== currentRole && currentRole !== "public-library") {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-900">
         <div className="bg-gray-800 p-8 rounded-lg shadow-lg text-center">
-          <img src="/assets/logo_final.png" alt="Logo" className="mx-auto mb-4 w-24 h-24" />
+          <img
+            src="/assets/logo_final.png"
+            alt="Logo"
+            className="mx-auto mb-4 w-24 h-24"
+          />
           <h1 className="text-2xl font-bold text-red-500 mb-4">
             Access Denied 🚫
           </h1>
