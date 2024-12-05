@@ -95,7 +95,7 @@ export default function AnnouncementPage() {
     queryKey: ["announcements"],
     queryFn: async () => {
       const response = await api.get(
-        `/announcement/?section_id=${sectionId}&skip=0&limit=100`,
+        `/announcement/section/${sectionId}?skip=0&limit=100`,
       );
       return z.array(AnnouncementSchema).parse(response.data);
     },
