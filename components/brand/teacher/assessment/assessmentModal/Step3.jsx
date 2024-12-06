@@ -54,12 +54,7 @@ export default function Step3({
           question_text: String(q.question_text || ""),
           question_type: String(q.question_type || ""),
           marks: Number(q.marks) || 0,
-          options_for_mcq:
-            q.question_type === "mcq"
-              ? q.options_for_mcq.map((opt) =>
-                  typeof opt === "string" ? opt : opt.text,
-                )
-              : [],
+          options_for_mcq: q.options_for_mcq,
           expected_answer: Array.isArray(q.expected_answer)
             ? q.expected_answer.map((ans) => String(ans || ""))
             : [],

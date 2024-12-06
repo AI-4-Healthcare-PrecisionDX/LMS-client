@@ -86,20 +86,23 @@ const useCreateAssignment = () => {
       try {
         const formattedData = {
           ...assignmentData,
-          assignment_materials: Array.isArray(assignmentData.assignment_materials)
+          assignment_materials: Array.isArray(
+            assignmentData.assignment_materials,
+          )
             ? assignmentData.assignment_materials
             : [],
           questions: assignmentData.questions.map((q) => ({
             ...q,
             marks: Number(q.marks),
-            options_for_mcq: q.question_type === "mcq"
-              ? q.options_for_mcq.map(opt => 
-                  typeof opt === 'string' ? opt : opt.text
-                )
-              : [],
+            options_for_mcq:
+              q.question_type === "mcq"
+                ? q.options_for_mcq.map((opt) =>
+                    typeof opt === "string" ? opt : opt.text,
+                  )
+                : [],
             expected_answer: Array.isArray(q.expected_answer)
               ? q.expected_answer
-              : []
+              : [],
           })),
         };
 
@@ -113,7 +116,7 @@ const useCreateAssignment = () => {
       } catch (error) {
         console.error("Creation error:", error.response?.data);
         throw new Error(
-          error.response?.data?.message || "Failed to create assignment"
+          error.response?.data?.message || "Failed to create assignment",
         );
       }
     },
@@ -374,7 +377,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
         question_text: q.question_text,
         question_type: q.question_type,
         marks: Number(q.marks) || 0,
-        options_for_mcq: (q.options_for_mcq || []).map((opt) => opt.text || ""), // Convert to array of strings
+        options_for_mcq: q.options_for_mcq, // Convert to array of strings
         expected_answer: q.expected_answer || [],
         question_id: q.question_id, // Preserve question_id for updates
       })),

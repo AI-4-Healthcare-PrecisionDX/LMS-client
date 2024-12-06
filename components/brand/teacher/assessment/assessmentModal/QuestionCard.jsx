@@ -56,7 +56,6 @@ const QuestionText = ({ value, onChange }) => (
   </div>
 );
 
-// MCQ option component
 const MCQOption = ({
   option,
   index,
@@ -67,7 +66,7 @@ const MCQOption = ({
   <div className="flex items-center space-x-3">
     <div className="flex-1">
       <Input
-        value={option}
+        value={option || ""} // Add fallback for empty value
         onChange={(e) => onOptionChange(e.target.value)}
         placeholder={`Option ${index + 1}`}
       />
@@ -97,14 +96,15 @@ const MCQSection = ({ options, expectedAnswer, onUpdate }) => (
           onOptionChange={(value) => {
             const newOptions = [...options];
             newOptions[optionIndex] = value;
-            const newExpectedAnswers =
-              expectedAnswer?.filter((ans) => ans !== options[optionIndex]) ||
-              [];
-            if (newExpectedAnswers.includes(value)) {
-              onUpdate(newOptions, newExpectedAnswers);
-            } else {
-              onUpdate(newOptions);
-            }
+            onUpdate(newOptions);
+            // const newExpectedAnswers =
+            //   expectedAnswer?.filter((ans) => ans !== options[optionIndex]) ||
+            //   [];
+            // if (newExpectedAnswers.includes(value)) {
+            //   onUpdate(newOptions, newExpectedAnswers);
+            // } else {
+            //   onUpdate(newOptions);
+            // }
           }}
           onCorrectToggle={() => {
             const currentExpectedAnswers = Array.isArray(expectedAnswer)
