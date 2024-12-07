@@ -215,8 +215,7 @@ export default function ManageCases() {
         throw new Error("Validation failed");
       }
       const response = await api.post("/admin/create_scenario", caseData);
-      const parsedData = caseSchema.parse(response.data);
-      return parsedData;
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cases"] });
@@ -242,8 +241,7 @@ export default function ManageCases() {
         throw new Error("Validation failed");
       }
       const response = await api.put(`/admin/create_scenario/${id}`, data);
-      const parsedData = caseSchema.parse(response.data);
-      return parsedData;
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cases"] });
@@ -254,6 +252,7 @@ export default function ManageCases() {
     onError: (error) => {
       if (error instanceof Error) {
         if (error.message === "Validation failed") {
+          toast.error("Please fill in all required fields correctly");
         } else {
           toast.error(error.message || "Failed to update case");
         }

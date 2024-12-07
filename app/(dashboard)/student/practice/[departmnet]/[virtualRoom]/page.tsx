@@ -13,6 +13,7 @@ import { useTour } from "@reactour/tour";
 import { useMutation } from "@tanstack/react-query";
 import { CirclePlay, Mic, Send, Square } from "lucide-react";
 import Image from "next/image";
+import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -36,6 +37,7 @@ const SpeechBubble = ({ message }: { message: string }) => {
 };
 
 function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
+  const params = useParams();
   const textareaRef = useRef(null);
   const [start, setStart] = useState(false);
   const [aiResponse, setAiResponse] = useState("");
@@ -501,7 +503,7 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
           <DoctorNote />
         </div>
       </div>
-      <DecisionPoint />
+      <DecisionPoint virtualRoom={virtualRoom} />
     </div>
   );
 }
