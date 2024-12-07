@@ -1,5 +1,5 @@
 "use client";
-
+export const runtime = "edge";
 import ConversationsTab from "@/components/brand/student/virtual-room/details/convertions";
 import DiagnosisTab from "@/components/brand/student/virtual-room/details/diagnosis-tab";
 import EvaluationsTab from "@/components/brand/student/virtual-room/details/evaluation";
