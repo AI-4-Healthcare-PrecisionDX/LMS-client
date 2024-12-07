@@ -17,25 +17,39 @@ export const initialState = {
 };
 
 const updateQuestionField = (question, field, value) => {
+  // Handle special cases for MCQ options
   if (field === "options_for_mcq") {
-    return {
+    // Don't modify expected_answer unless necessary
+    const updatedQuestion = {
       ...question,
       options_for_mcq: [...value],
-      expected_answer:
-        question.expected_answer?.filter((answer) => value.includes(answer)) ||
-        [],
     };
-  }
 
-  if (field === "expected_answer" && question.question_type === "mcq") {
-    if (
-      !Array.isArray(value) ||
-      !value.every((v) => question.options_for_mcq?.includes(v))
-    ) {
-      return question;
+    // Only filter expected_answer if it contains invalid options
+    if (question.expected_answer?.some((answer) => !value.includes(answer))) {
+      updatedQuestion.expected_answer = question.expected_answer.filter(
+        (answer) => value.includes(answer),
+      );
     }
+
+    return updatedQuestion;
   }
 
+  // Handle expected_answer update for MCQ
+  if (field === "expected_answer" && question.question_type === "mcq") {
+    // Ensure value is always an array
+    const answerArray = Array.isArray(value) ? value : [value];
+    // Only update if all answers are in options
+    if (answerArray.every((v) => question.options_for_mcq?.includes(v))) {
+      return {
+        ...question,
+        expected_answer: answerArray,
+      };
+    }
+    return question;
+  }
+
+  // Handle marks validation
   if (field === "marks") {
     const numValue = parseInt(value);
     if (isNaN(numValue) || numValue < 0) {
@@ -44,7 +58,9 @@ const updateQuestionField = (question, field, value) => {
     return { ...question, marks: numValue };
   }
 
+  // Handle expected_answer for broad questions
   if (field === "expected_answer" && question.question_type === "broad") {
+    // Ensure the value is always an array
     const answerArray = Array.isArray(value) ? value : [value];
     return {
       ...question,
@@ -52,6 +68,7 @@ const updateQuestionField = (question, field, value) => {
     };
   }
 
+  // Default case for simple field updates
   return {
     ...question,
     [field]: value,
@@ -86,6 +103,8 @@ export function reducer(state, action) {
       return { ...state, isModalOpen: action.payload };
     case ACTIONS.SET_CURRENT_STEP:
       return { ...state, currentStep: action.payload };
+    case ACTIONS.SET_SORT_BY:
+      return { ...state, sortBy: action.payload };
     case ACTIONS.SET_NEW_ASSIGNMENT:
       return {
         ...state,
@@ -93,8 +112,6 @@ export function reducer(state, action) {
       };
     case ACTIONS.SET_EDITING_ASSIGNMENT:
       return { ...state, editingAssignment: action.payload };
-    case ACTIONS.SET_SORT_BY:
-      return { ...state, sortBy: action.payload };
     case ACTIONS.SET_STUDENT_MARKS:
       return {
         ...state,
@@ -172,7 +189,7 @@ export function reducer(state, action) {
     case ACTIONS.RESET_STATE:
       return {
         ...initialState,
-        sortBy: state.sortBy, // Preserve sort preference
+        sortBy: state.sortBy,
       };
 
     case ACTIONS.SET_QUESTIONS:
