@@ -50,3 +50,6 @@ export const isAuthenticatedAtom = atomWithStorage<boolean>(
 );
 export const isLoggedInAtom = atomWithStorage<boolean>("isLoggedIn", false);
 export const userRoleAtom = atomWithStorage<string | null>("userRole", null);
+
+// Doctor Note
+export const doctorNoteAtom = atom<string>("");
