@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
 
-export default function Step1({ onNext }) {
-  const [assessmentType, setAssessmentType] = useState(null);
-  const [category, setCategory] = useState(null);
+export default function Step1({ onNext }: { onNext: (details: any) => void }) {
+  const [assessmentType, setAssessmentType] = useState<string | null>(null);
+  const [category, setCategory] = useState<string | null>(null);
 
   return (
     <div className="space-y-8">
@@ -16,9 +16,8 @@ export default function Step1({ onNext }) {
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card
-          className={`cursor-pointer transition-all hover:shadow-lg ${
-            assessmentType === "assignment" ? "ring-2 ring-primary" : ""
-          }`}
+          className={`cursor-pointer transition-all hover:shadow-lg ${assessmentType === "assignment" ? "ring-2 ring-primary" : ""
+            }`}
           onClick={() => setAssessmentType("assignment")}
         >
           <CardContent className="p-6">
@@ -30,9 +29,8 @@ export default function Step1({ onNext }) {
         </Card>
 
         <Card
-          className={`cursor-pointer transition-all hover:shadow-lg ${
-            assessmentType === "viva" ? "ring-2 ring-primary" : ""
-          }`}
+          className={`cursor-pointer transition-all hover:shadow-lg ${assessmentType === "viva" ? "ring-2 ring-primary" : ""
+            }`}
           onClick={() => setAssessmentType("viva")}
         >
           <CardContent className="p-6">
@@ -52,9 +50,8 @@ export default function Step1({ onNext }) {
 
           <div className="grid gap-6 md:grid-cols-2">
             <Card
-              className={`cursor-pointer transition-all hover:shadow-lg ${
-                category === "ai-generated" ? "ring-2 ring-primary" : ""
-              }`}
+              className={`cursor-pointer transition-all hover:shadow-lg ${category === "ai-generated" ? "ring-2 ring-primary" : ""
+                }`}
               onClick={() => setCategory("ai-generated")}
             >
               <CardContent className="p-6">
@@ -66,9 +63,8 @@ export default function Step1({ onNext }) {
             </Card>
 
             <Card
-              className={`cursor-pointer transition-all hover:shadow-lg ${
-                category === "manual" ? "ring-2 ring-primary" : ""
-              }`}
+              className={`cursor-pointer transition-all hover:shadow-lg ${category === "manual" ? "ring-2 ring-primary" : ""
+                }`}
               onClick={() => setCategory("manual")}
             >
               <CardContent className="p-6">

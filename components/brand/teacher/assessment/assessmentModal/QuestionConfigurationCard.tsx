@@ -53,14 +53,14 @@ export default function QuestionConfigurationCard() {
     { mcq: 0, broad: 0 },
   );
 
-  const handleTogglePattern = (key) => {
+  const handleTogglePattern = (key: string) => {
     setState((prev) => ({
       ...prev,
       expandedPattern: prev.expandedPattern === key ? null : key,
     }));
   };
 
-  const handleIncrementQuestion = (pattern, type) => {
+  const handleIncrementQuestion = (pattern: string, type: string) => {
     setState((prev) => ({
       ...prev,
       patternCounts: {
@@ -73,7 +73,7 @@ export default function QuestionConfigurationCard() {
     }));
   };
 
-  const handleDecrementQuestion = (pattern, type) => {
+  const handleDecrementQuestion = (pattern: string, type: string) => {
     setState((prev) => ({
       ...prev,
       patternCounts: {
@@ -114,11 +114,10 @@ export default function QuestionConfigurationCard() {
               {patterns.map(({ key, label, icon: Icon }) => (
                 <motion.div
                   key={key}
-                  className={`p-3 rounded-lg border ${
-                    state.expandedPattern === key
-                      ? "border-primary bg-primary/5"
-                      : "border-gray-200"
-                  } cursor-pointer transition-all hover:border-primary`}
+                  className={`p-3 rounded-lg border ${state.expandedPattern === key
+                    ? "border-primary bg-primary/5"
+                    : "border-gray-200"
+                    } cursor-pointer transition-all hover:border-primary`}
                   onClick={() => handleTogglePattern(key)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}

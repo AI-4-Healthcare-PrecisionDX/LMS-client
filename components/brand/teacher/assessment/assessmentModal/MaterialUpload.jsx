@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import useFileUpload from "@/hooks/use-upload";
@@ -13,6 +13,7 @@ import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 import { AnimatePresence, motion } from "framer-motion";
 import { FileText, Loader2, UploadCloud, X } from "lucide-react";
+import { title } from "process";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
@@ -20,7 +21,7 @@ export function MaterialView({ pdfs, onPDFsChange }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedPdf, setSelectedPdf] = useState(null);
-  // const [selectedPdfName, setSelectedPdfName] = useState("");
+  const [selectedPdfName, setSelectedPdfName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
 
@@ -32,7 +33,7 @@ export function MaterialView({ pdfs, onPDFsChange }) {
     const formData = new FormData();
     formData.append("pdf_file", file);
     formData.append("material_type", file.type);
-    formData.append("material_title", file.name);
+    formData.append("material_title", file.title);
 
     try {
       const response = await api.post("/utils/library/file_upload", formData, {
@@ -47,7 +48,7 @@ export function MaterialView({ pdfs, onPDFsChange }) {
 
       return {
         library_id: response.data.library_id,
-        name: file.name,
+        name: file.title,
         file_url: response.data.file_url,
       };
     } catch (error) {
@@ -119,7 +120,7 @@ export function MaterialView({ pdfs, onPDFsChange }) {
       const file_url = await getLibraryFileByLibraryID(library_id);
       setSelectedPdf(file_url);
       console.log("selectedPdf", selectedPdf);
-      // setSelectedPdfName(name);
+      setSelectedPdfName(title);
     } catch (error) {
       toast.error("Failed to load PDF");
       setIsDialogOpen(false);
@@ -221,9 +222,9 @@ export function MaterialView({ pdfs, onPDFsChange }) {
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="w-3/4 h-screen max-w-none m-0 p-6">
-          {/* <DialogHeader>
+          <DialogHeader>
             <DialogTitle>{selectedPdfName}</DialogTitle>
-          </DialogHeader> */}
+          </DialogHeader>
           {isLoadingPdf ? (
             <div className="flex-1 flex items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin" />

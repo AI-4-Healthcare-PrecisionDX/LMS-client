@@ -20,6 +20,7 @@ export default function CourseDetails({
   totalStudents,
   instructor,
   section_exclusive_contents,
+  template_course,
 }) {
   // Get initial tab from localStorage, default to 'dashboard'
   const [activeTab, setActiveTab] = useState(() => {
@@ -110,6 +111,7 @@ export default function CourseDetails({
           <BookListWithTour
             section_exclusive_contents={section_exclusive_contents}
             sectionId={sectionId}
+            template_course={template_course}
           />
         </TabsContent>
         <TabsContent value="performance">

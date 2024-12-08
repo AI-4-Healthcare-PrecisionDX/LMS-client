@@ -1,3 +1,5 @@
+import { AssignmentMaterial, Question } from "./types";
+
 export const initialState = {
   assignments: [],
   newAssignment: {},
@@ -16,7 +18,7 @@ export const initialState = {
   materials: [],
 };
 
-const updateQuestionField = (question, field, value) => {
+const updateQuestionField = (question: Question, field: string, value: any) => {
   // Handle special cases for MCQ options
   if (field === "options_for_mcq") {
     // Don't modify expected_answer unless necessary
@@ -68,7 +70,6 @@ const updateQuestionField = (question, field, value) => {
     };
   }
 
-  // Default case for simple field updates
   return {
     ...question,
     [field]: value,
@@ -97,7 +98,7 @@ export const ACTIONS = {
   SET_MATERIALS: "SET_MATERIALS",
 };
 
-export function reducer(state, action) {
+export function reducer(state: any, action: any) {
   switch (action.type) {
     case ACTIONS.SET_MODAL_OPEN:
       return { ...state, isModalOpen: action.payload };
@@ -112,29 +113,8 @@ export function reducer(state, action) {
       };
     case ACTIONS.SET_EDITING_ASSIGNMENT:
       return { ...state, editingAssignment: action.payload };
-    case ACTIONS.SET_STUDENT_MARKS:
-      return {
-        ...state,
-        studentMarks: { ...state.studentMarks, ...action.payload },
-      };
     case ACTIONS.ADD_ASSIGNMENT:
       return { ...state, assignments: [...state.assignments, action.payload] };
-    case ACTIONS.UPDATE_ASSIGNMENT:
-      return {
-        ...state,
-        assignments: state.assignments.map((a) =>
-          a.assignment_id === action.payload.assignment_id
-            ? { ...a, ...action.payload }
-            : a,
-        ),
-      };
-    case ACTIONS.DELETE_ASSIGNMENT:
-      return {
-        ...state,
-        assignments: state.assignments.filter(
-          (a) => a.assignment_id !== action.payload,
-        ),
-      };
     case ACTIONS.SET_ASSIGNMENT_TITLE:
       return { ...state, assignment_title: action.payload };
     case ACTIONS.SET_START_TIME:
@@ -153,12 +133,12 @@ export function reducer(state, action) {
         marks: action.payload === "mcq" ? 5 : 10,
         ...(action.payload === "mcq"
           ? {
-              options_for_mcq: ["", "", "", ""],
-              expected_answer: [],
-            }
+            options_for_mcq: ["", "", "", ""],
+            expected_answer: [],
+          }
           : {
-              expected_answer: [""],
-            }),
+            expected_answer: [""],
+          }),
       };
       return {
         ...state,
@@ -171,7 +151,7 @@ export function reducer(state, action) {
         console.error("Invalid question index:", index);
         return state;
       }
-      const updatedQuestions = state.questions.map((question, i) =>
+      const updatedQuestions = state.questions.map((question: Question, i: number) =>
         i === index ? updateQuestionField(question, field, value) : question,
       );
       return {
@@ -183,7 +163,7 @@ export function reducer(state, action) {
       return {
         ...state,
         questions: state.questions.filter(
-          (_, index) => index !== action.payload,
+          (_: Question, index: number) => index !== action.payload,
         ),
       };
     case ACTIONS.RESET_STATE:
@@ -221,7 +201,7 @@ export function reducer(state, action) {
           ...state.editingAssignment,
           assignment_materials: (
             state.editingAssignment?.assignment_materials || []
-          ).filter((material) => material.id !== action.payload),
+          ).filter((material: AssignmentMaterial) => material.assignment_material_id !== action.payload),
         },
       };
     case "SET_MATERIALS":

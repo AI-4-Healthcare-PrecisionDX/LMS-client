@@ -26,12 +26,16 @@ export default function QuestionTypeButtons({
   dispatch,
   disabled = false,
   showTooltips = true,
+}: {
+  dispatch: (action: any) => void;
+  disabled?: boolean;
+  showTooltips?: boolean;
 }) {
-  const handleAddQuestion = (type) => {
+  const handleAddQuestion = (type: string) => {
     dispatch({ type: "ADD_QUESTION", payload: type });
   };
 
-  const ButtonWrapper = ({ children, tooltip }) => {
+  const ButtonWrapper = ({ children, tooltip }: { children: React.ReactNode; tooltip: string }) => {
     if (!showTooltips) return <>{children}</>;
 
     return (

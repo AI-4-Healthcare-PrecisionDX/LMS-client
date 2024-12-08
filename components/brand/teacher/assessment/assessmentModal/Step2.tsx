@@ -12,12 +12,17 @@ export default function Step2({
   onBack,
   selectedBooks,
   selectedChapters = {},
+}: {
+  onNext: (details: any) => void;
+  onBack: (details: any) => void;
+  selectedBooks: string[];
+  selectedChapters: Record<string, string[]>;
 }) {
   const [currentBooks, setCurrentBooks] = useState(selectedBooks || []);
   const [currentChapters, setCurrentChapters] = useState(selectedChapters);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const handleBookToggle = (bookId) => {
+  const handleBookToggle = (bookId: string) => {
     setCurrentBooks((prev) =>
       prev.includes(bookId)
         ? prev.filter((id) => id !== bookId)
@@ -25,7 +30,7 @@ export default function Step2({
     );
   };
 
-  const handleChapterToggle = (bookId, chapterId) => {
+  const handleChapterToggle = (bookId: string, chapterId: string) => {
     setCurrentChapters((prev) => ({
       ...prev,
       [bookId]: prev[bookId]
@@ -65,8 +70,10 @@ export default function Step2({
                     <div className="flex items-center space-x-3">
                       <Checkbox
                         id={`book-${book.id}`}
-                        checked={currentBooks.includes(book.id)}
-                        onCheckedChange={() => handleBookToggle(book.id)}
+                        checked={currentBooks.includes(book.id.toString())}
+                        onCheckedChange={() =>
+                          handleBookToggle(book.id.toString())
+                        }
                       />
                       <label
                         htmlFor={`book-${book.id}`}
@@ -75,32 +82,36 @@ export default function Step2({
                         {book.title}
                       </label>
                     </div>
-                    {currentBooks.includes(book.id) && book.chapterDetails && (
-                      <div className="ml-6 space-y-2">
-                        {book.chapterDetails.map((chapter) => (
-                          <div
-                            key={chapter.id}
-                            className="flex items-center space-x-3"
-                          >
-                            <Checkbox
-                              id={`chapter-${book.id}-${chapter.id}`}
-                              checked={currentChapters[book.id]?.includes(
-                                chapter.id,
-                              )}
-                              onCheckedChange={() =>
-                                handleChapterToggle(book.id, chapter.id)
-                              }
-                            />
-                            <label
-                              htmlFor={`chapter-${book.id}-${chapter.id}`}
-                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    {currentBooks.includes(book.id.toString()) &&
+                      book.chapterDetails && (
+                        <div className="ml-6 space-y-2">
+                          {book.chapterDetails.map((chapter) => (
+                            <div
+                              key={chapter.id}
+                              className="flex items-center space-x-3"
                             >
-                              {chapter.title}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                              <Checkbox
+                                id={`chapter-${book.id}-${chapter.id}`}
+                                checked={currentChapters[book.id]?.includes(
+                                  chapter.id.toString(),
+                                )}
+                                onCheckedChange={() =>
+                                  handleChapterToggle(
+                                    book.id.toString(),
+                                    chapter.id.toString(),
+                                  )
+                                }
+                              />
+                              <label
+                                htmlFor={`chapter-${book.id}-${chapter.id}`}
+                                className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                {chapter.title}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                   </div>
                 ))}
               </div>
