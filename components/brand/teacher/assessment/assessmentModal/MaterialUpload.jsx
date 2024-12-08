@@ -5,19 +5,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import useFileUpload from "@/hooks/use-upload";
+import api from "@/lib/axios-config";
+import { Viewer } from "@react-pdf-viewer/core";
+import "@react-pdf-viewer/core/lib/styles/index.css";
+import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
+import "@react-pdf-viewer/default-layout/lib/styles/index.css";
 import { AnimatePresence, motion } from "framer-motion";
 import { FileText, Loader2, UploadCloud, X } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
-
-import "@react-pdf-viewer/core/lib/styles/index.css";
-import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import { toast } from "sonner";
-
-import useFileUpload from "@/hooks/use-upload";
-import api from "@/lib/axios-config";
-import { Viewer, Worker } from "@react-pdf-viewer/core";
-
 export function MaterialView({ pdfs, onPDFsChange }) {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -118,8 +116,9 @@ export function MaterialView({ pdfs, onPDFsChange }) {
     setIsDialogOpen(true);
     setIsLoadingPdf(true);
     try {
-      const { data } = await getLibraryFileByLibraryID(library_id);
-      setSelectedPdf(data?.file_url);
+      const file_url = await getLibraryFileByLibraryID(library_id);
+      setSelectedPdf(file_url);
+      console.log("selectedPdf", selectedPdf);
       // setSelectedPdfName(name);
     } catch (error) {
       toast.error("Failed to load PDF");
@@ -137,10 +136,9 @@ export function MaterialView({ pdfs, onPDFsChange }) {
             <div
               {...getRootProps()}
               className={`relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors
-                ${
-                  isDragActive
-                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900"
-                    : "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600"
+                ${isDragActive
+                  ? "border-blue-500 bg-blue-50 dark:bg-blue-900"
+                  : "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border-gray-300 dark:border-gray-600"
                 }`}
             >
               <input {...getInputProps()} />
@@ -222,27 +220,23 @@ export function MaterialView({ pdfs, onPDFsChange }) {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl w-full h-[80vh]">
+        <DialogContent className="w-3/4 h-screen max-w-none m-0 p-6">
           {/* <DialogHeader>
             <DialogTitle>{selectedPdfName}</DialogTitle>
           </DialogHeader> */}
-          <div className="flex flex-col items-center h-full">
-            {isLoadingPdf ? (
-              <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin" />
-                <span className="ml-2">Loading PDF...</span>
-              </div>
-            ) : (
-              <div className="flex-1 w-full overflow-auto">
-                <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
-                  <Viewer
-                    fileUrl={selectedPdf}
-                    plugins={[defaultLayoutPluginInstance]}
-                  />
-                </Worker>
-              </div>
-            )}
-          </div>
+          {isLoadingPdf ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <span className="ml-2">Loading PDF...</span>
+            </div>
+          ) : (
+            <div className=" w-full h-4/6 mt-10 mb-5">
+              <Viewer
+                fileUrl={selectedPdf}
+                plugins={[defaultLayoutPluginInstance]}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
