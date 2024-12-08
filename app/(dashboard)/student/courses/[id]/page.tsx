@@ -1,175 +1,99 @@
-"use client";
-export const runtime = "edge";
-import Loading from "@/app/(dashboard)/loading";
-import api from "@/lib/axios-config";
-import { useQuery } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
-import { useReducer } from "react";
+import React from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AnnouncementCard from "@/components/course/announcement";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import Classwork from "@/components/course/classwork";
+import MaterialCard from "@/components/course/materials";
+import CourseCard from "@/components/course/coursecard";
 
-// Type definitions
-interface Section {
-  section_name: string;
-  start_date: string;
-  end_date: string;
-  section_id: string;
-  section_code: string;
-  teacher: {
-    user: {
-      first_name: string;
-      last_name: string;
-    };
-  };
-  template_course: {
-    template_name: string;
-    department: {
-      department_name: string;
-    };
-    course_materials: Array<{
-      library_item: {
-        material_title: string;
-        material_type: string;
-      };
-    }>;
-  };
-  section_exclusive_contents: Array<{
-    title: string;
-    library_item: {
-      material_title: string;
-      material_type: string;
-    };
-  }>;
-}
-
-// State management
-type State = {
-  section: Section | null;
-};
-
-type Action = { type: "SET_SECTION"; payload: Section };
-
-const initialState: State = {
-  section: null,
-};
-
-function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case "SET_SECTION":
-      return { ...state, section: action.payload };
-    default:
-      return state;
-  }
-}
-
-export default function CourseDetailsPage() {
-  const [state, dispatch] = useReducer(reducer, initialState);
-  const { id } = useParams();
-
-  const {
-    data: sections,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["sections"],
-    queryFn: async () => {
-      const response = await api.get<Section[]>("/student/get-sections");
-      return response.data;
-    },
-  });
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-500">
-          Error loading section: {error.message}
-        </div>
-      </div>
-    );
-  }
-
-  if (!state.section) {
-    return null;
-  }
-
+const CoursePage: React.FC = () => {
   return (
-    <div className="min-h-screen">
-      <div className="container mx-auto p-4 space-y-6">
-        {sections
-          ?.filter((section) => section.section_code === id)
-          .map((section) => (
-            <div key={section.section_id} className="space-y-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h1 className="text-3xl font-bold mb-2">
-                  {section.template_course.template_name}
-                </h1>
-                <p className="text-gray-600 mb-4">
-                  {section.template_course.department.department_name}
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h2 className="font-semibold">Section Details</h2>
-                    <p>Section Code: {section.section_code}</p>
-                    <p>Section Name: {section.section_name}</p>
-                    <p>
-                      Start Date:{" "}
-                      {new Date(section.start_date).toLocaleDateString()}
-                    </p>
-                    <p>
-                      End Date:{" "}
-                      {new Date(section.end_date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div>
-                    <h2 className="font-semibold">Instructor</h2>
-                    <p>
-                      {section.teacher.user.first_name}{" "}
-                      {section.teacher.user.last_name}
-                    </p>
-                  </div>
-                </div>
-              </div>
+    <>
+      <Tabs defaultValue="anouncement" className="w-full mt-2 items-center">
+        <TabsList className="sticky top-0 z-10 border-b shadow-sm ml-32">
+          <TabsTrigger value="anouncement">Announcement</TabsTrigger>
+          <TabsTrigger value="classwork">Classwork</TabsTrigger>
+          <TabsTrigger value="materials">Materials</TabsTrigger>
+        </TabsList>
+        <TabsContent value="anouncement">
+          <div className="w-full mt-8 max-w-screen-lg mx-auto p-4 space-y-4">
+            <ScrollArea>
+              <CourseCard
+                courseName="Robi Datathon 3.0 Bangladesh"
+                section="69"
+                teacher="Nishan"
+                department="420"
+              />
+              <AnnouncementCard
+                teacherAvatarUrl="https://github.com/shadcn.png"
+                teacherName="Nishan"
+                date="Mar 25"
+                content="The Datathon practice virtual session will be held tomorrow Tuesday 26-03-2024 at 10AM to 11:30AM."
+                studentAvatarUrl="https://github.com/shadcn.png"
+              />
+              <AnnouncementCard
+                teacherAvatarUrl="https://github.com/shadcn.png"
+                teacherName="Nishan"
+                date="Mar 24"
+                content="Remember to submit your project proposals by this Friday!"
+                studentAvatarUrl="https://github.com/shadcn.png"
+              />
+            </ScrollArea>
+          </div>
+        </TabsContent>
+        <TabsContent value="classwork">
+          <div className="w-full mt-8 max-w-screen-lg mx-auto p-4 space-y-4">
+            <ScrollArea>
+              <CourseCard
+                courseName="Robi Datathon 3.0 Bangladesh"
+                section="69"
+                teacher="Nishan"
+                department="420"
+              />
+              <Classwork
+                title="Classwork 1"
+                description="Complete the exercise and submit by the due date."
+                dueDate="2024-03-30"
+                studentAvatarUrl="https://github.com/shadcn.png"
+                instructionFileUrl="/path/to/instructions.pdf"
+                instructionFileName="Dataset_Analysis_Instructions.pdf"
+                instructionFileType="pdf"
+              />
+              <Classwork
+                title="Classwork 69"
+                description="Complete the exercise and submit by the due date."
+                dueDate="2069-06-09"
+                studentAvatarUrl="https://github.com/shadcn.png"
+                instructionFileUrl="/path/to/instructions.pdf"
+                instructionFileName="Assembly Language is best.docx"
+                instructionFileType="docx"
+              />
+            </ScrollArea>
+          </div>
+        </TabsContent>
 
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-2xl font-bold mb-4">Course Materials</h2>
-                <div className="space-y-2">
-                  {section.template_course.course_materials.map(
-                    (material, index) => (
-                      <div key={index} className="flex items-center gap-2">
-                        <span className="text-gray-600">
-                          {material.library_item.material_type}:
-                        </span>
-                        <span>{material.library_item.material_title}</span>
-                      </div>
-                    ),
-                  )}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-2xl font-bold mb-4">
-                  Section Exclusive Content
-                </h2>
-                <div className="space-y-2">
-                  {section.section_exclusive_contents.map((content, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <span className="text-gray-600">
-                        {content.library_item.material_type}:
-                      </span>
-                      <span>{content.library_item.material_title}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ))}
-      </div>
-    </div>
+        <TabsContent value="materials">
+          <div className="w-full mt-8 max-w-screen-lg mx-auto p-4 space-y-4">
+            <ScrollArea>
+              <CourseCard
+                courseName="Robi Datathon 3.0 Bangladesh"
+                section="69"
+                teacher="Nishan"
+                department="420"
+              />
+              <MaterialCard
+                title="Lecture Notes"
+                description="This document contains all the key points covered in the lecture."
+                fileUrl="/path/to/lecture_notes.pdf"
+                fileName="Lecture_Notes.pdf"
+                studentAvatarUrl="https://github.com/shadcn.png"
+              />
+            </ScrollArea>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </>
   );
-}
+};
+
+export default CoursePage;
