@@ -2,7 +2,6 @@
 
 import CaseForm from "@/components/brand/admin/case/case-form";
 import CaseList from "@/components/brand/admin/case/list";
-import CaseLoadingSkeleton from "@/components/brand/admin/case/loading";
 import { caseReducer } from "@/components/brand/admin/case/reducer";
 import {
   Case,
@@ -11,6 +10,7 @@ import {
   departmentArraySchema,
 } from "@/components/brand/admin/case/types";
 import ErrorMessage from "@/components/brand/shared/error";
+import CaseLoadingSkeleton from "@/components/brand/shared/loading";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
