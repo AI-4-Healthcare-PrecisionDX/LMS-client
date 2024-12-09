@@ -13,6 +13,7 @@ import { useTour } from "@reactour/tour";
 import { useMutation } from "@tanstack/react-query";
 import { CirclePlay, Mic, Send, Square } from "lucide-react";
 import Image from "next/image";
+import { useParams } from "next/navigation";
 import { useEffect, useReducer, useRef } from "react";
 import { toast } from "sonner";
 
@@ -170,6 +171,7 @@ function reducer(state: State, action: Action): State {
 
 // Main Component
 function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
+
   const [state, dispatch] = useReducer(reducer, initialState);
 
   // Refs
@@ -218,7 +220,7 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
           dispatch({ type: "SET_DOCTOR_INPUT", payload: currentTranscript });
         };
 
-        recognition.onerror = (event: { error: string }) => {
+        recognition.onerror = (_event: { error: string }) => {
           
           stopRecording();
         };
@@ -575,13 +577,9 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
   );
 }
 
-export default function MedicalConsultationTour({
-  params,
-}: {
-  params: { virtualRoom: string };
-}) {
-  const { virtualRoom } = params;
-
+export default function MedicalConsultationTour() {
+  const params = useParams();
+  const virtualRoom = params.virtualRoom as string;
   return (
     <Tour>
       <MedicalConsultation virtualRoom={virtualRoom} />
