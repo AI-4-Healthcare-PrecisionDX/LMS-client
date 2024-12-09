@@ -219,7 +219,7 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
         };
 
         recognition.onerror = (event: { error: string }) => {
-          console.error("Speech recognition error", event.error);
+          
           stopRecording();
         };
       }
@@ -298,8 +298,9 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
       }
     },
     onError: (error) => {
-      console.error("Error sending message:", error);
-      toast.error("Failed to send message. Please try again.");
+      toast.error(
+        error instanceof Error ? error.message : "Please try again later",
+      );
     },
   });
 
