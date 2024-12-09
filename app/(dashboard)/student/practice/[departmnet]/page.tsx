@@ -23,6 +23,7 @@ import { Brain, CheckCircle2, Clock, Info } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useReducer } from "react";
+import { toast } from "sonner";
 
 type Thread = {
   name: string | null;
@@ -93,7 +94,9 @@ export default function DepartmentScenarios() {
         `/student/practice/${params.departmnet}/${scenario_thread_id}`,
       );
     } catch (error) {
-      console.error("Error starting test:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Please try again later",
+      );
     }
   };
 
@@ -163,7 +166,7 @@ export default function DepartmentScenarios() {
           </li>
           <li>
             <span className="font-medium text-gray-900 dark:text-white capitalize">
-              {params.departmnet.toString().replace(/-/g, " ")}
+              {params.departmnet?.toString().replace(/-/g, " ")}
             </span>
           </li>
         </ol>
