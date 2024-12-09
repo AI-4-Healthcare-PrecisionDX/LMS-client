@@ -196,7 +196,7 @@ const EventCard = ({
 
 const CalendarEvents = () => {
   const queryClient = useQueryClient();
-  const { data: events = [], isLoading } = useQuery<Event[]>({
+  const { data: events = [] } = useQuery<Event[]>({
     queryKey: ["events"],
     queryFn: fetchEvents,
   });
@@ -270,7 +270,7 @@ const CalendarEvents = () => {
         event: eventData,
       });
     } else {
-      addEventMutation.mutate(eventData);
+      addEventMutation.mutate({ ...eventData, is_completed: false });
     }
   };
 
