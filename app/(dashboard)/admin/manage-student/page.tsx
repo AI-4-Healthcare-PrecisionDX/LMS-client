@@ -96,6 +96,8 @@ const fetchAdmins = async (): Promise<Admin[]> => {
 export default function AdminManagement() {
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const queryClient = useQueryClient();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const form = useForm<AdminFormData>({
     resolver: zodResolver(adminSchema),
@@ -340,45 +342,78 @@ export default function AdminManagement() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {admins?.map((admin) => (
-              <TableRow key={admin.user_id}>
-                <TableCell className="font-medium">
-                  {`${admin.first_name} ${admin.last_name}`}
-                  <div className="md:hidden mt-1 text-sm text-gray-500">
+            {admins
+              ?.slice(
+                (currentPage - 1) * itemsPerPage,
+                currentPage * itemsPerPage,
+              )
+              .map((admin) => (
+                <TableRow key={admin.user_id}>
+                  <TableCell className="font-medium">
+                    {`${admin.first_name} ${admin.last_name}`}
+                    <div className="md:hidden mt-1 text-sm text-gray-500">
+                      {admin.email}
+                    </div>
+                    <div className="md:hidden mt-1 text-sm text-gray-500">
+                      {admin.phone_number}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {admin.email}
-                  </div>
-                  <div className="md:hidden mt-1 text-sm text-gray-500">
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {admin.gender}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
                     {admin.phone_number}
-                  </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  {admin.email}
-                </TableCell>
-                <TableCell className="hidden lg:table-cell">
-                  {admin.gender}
-                </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  {admin.phone_number}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="outline"
-                    className="mr-2"
-                    onClick={() => handleEdit(admin)}
-                  >
-                    Edit
-                  </Button>
-                  {/* <Button
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      className="mr-2"
+                      onClick={() => handleEdit(admin)}
+                    >
+                      Edit
+                    </Button>
+                    {/* <Button
           variant="destructive"
           onClick={() => handleDelete(admin.user_id)}
           >
           Delete
           </Button> */}
-                </TableCell>
-              </TableRow>
-            ))}
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex justify-between items-center mt-4">
+        <Button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </Button>
+        <span>
+          Page {currentPage} of{" "}
+          {Math.ceil((admins?.length || 0) / itemsPerPage)}
+        </span>
+        <Button
+          onClick={() =>
+            setCurrentPage((prev) =>
+              Math.min(
+                prev + 1,
+                Math.ceil((admins?.length || 0) / itemsPerPage),
+              ),
+            )
+          }
+          disabled={
+            currentPage === Math.ceil((admins?.length || 0) / itemsPerPage)
+          }
+        >
+          Next
+        </Button>
       </div>
     </div>
   );
