@@ -1,5 +1,7 @@
 "use client";
 
+import ErrorMessage from "@/components/brand/shared/error";
+import CaseLoadingSkeleton from "@/components/brand/shared/loading";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -29,7 +31,7 @@ import api from "@/lib/axios-config";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -94,6 +96,8 @@ const fetchAdmins = async (): Promise<Admin[]> => {
 export default function AdminManagement() {
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const queryClient = useQueryClient();
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   const form = useForm<AdminFormData>({
     resolver: zodResolver(adminSchema),
@@ -175,60 +179,12 @@ export default function AdminManagement() {
     });
   };
 
-  //   const handleDelete = (userId: string) => {
-  //     if (window.confirm("Are you sure you want to delete this admin?")) {
-  //       deleteMutation.mutate(userId);
-  //     }
-  //   };
-
   if (isLoading) {
-    return (
-      <div className="container p-6 space-y-8">
-        <div className="h-8 w-48 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-2">
-              <div className="h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-              <div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-            </div>
-          ))}
-        </div>
-        <div className="mt-8">
-          <div className="h-12 w-full bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="mt-4 h-16 w-full bg-gray-200 dark:bg-gray-800 rounded animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
-    );
+    return <CaseLoadingSkeleton />;
   }
 
   if (isError) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
-        <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full">
-          <AlertCircle className="w-8 h-8 text-red-600" />
-        </div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-          Error Loading Students
-        </h2>
-        <p className="text-gray-500 dark:text-gray-400">
-          {(error?.response?.data as { detail: string })?.detail ||
-            "An unexpected error occurred while loading the student list"}
-        </p>
-        <Button
-          variant="outline"
-          onClick={() =>
-            queryClient.invalidateQueries({ queryKey: ["manage-students"] })
-          }
-        >
-          Try Again
-        </Button>
-      </div>
-    );
+    return <ErrorMessage error={error} title="Error Loading Students" />;
   }
 
   return (
@@ -374,42 +330,91 @@ export default function AdminManagement() {
         </form>
       </Form>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Gender</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {admins?.map((admin) => (
-            <TableRow key={admin.user_id}>
-              <TableCell>{`${admin.first_name} ${admin.last_name}`}</TableCell>
-              <TableCell>{admin.email}</TableCell>
-              <TableCell>{admin.gender}</TableCell>
-              <TableCell>{admin.phone_number}</TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  className="mr-2"
-                  onClick={() => handleEdit(admin)}
-                >
-                  Edit
-                </Button>
-                {/* <Button
-        variant="destructive"
-        onClick={() => handleDelete(admin.user_id)}
-        >
-        Delete
-        </Button> */}
-              </TableCell>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="whitespace-nowrap">Name</TableHead>
+              <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead className="hidden lg:table-cell">Gender</TableHead>
+              <TableHead className="hidden md:table-cell">Phone</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {admins
+              ?.slice(
+                (currentPage - 1) * itemsPerPage,
+                currentPage * itemsPerPage,
+              )
+              .map((admin) => (
+                <TableRow key={admin.user_id}>
+                  <TableCell className="font-medium">
+                    {`${admin.first_name} ${admin.last_name}`}
+                    <div className="md:hidden mt-1 text-sm text-gray-500">
+                      {admin.email}
+                    </div>
+                    <div className="md:hidden mt-1 text-sm text-gray-500">
+                      {admin.phone_number}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {admin.email}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {admin.gender}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {admin.phone_number}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="outline"
+                      className="mr-2"
+                      onClick={() => handleEdit(admin)}
+                    >
+                      Edit
+                    </Button>
+                    {/* <Button
+          variant="destructive"
+          onClick={() => handleDelete(admin.user_id)}
+          >
+          Delete
+          </Button> */}
+                  </TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex justify-between items-center mt-4">
+        <Button
+          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+        >
+          Previous
+        </Button>
+        <span>
+          Page {currentPage} of{" "}
+          {Math.ceil((admins?.length || 0) / itemsPerPage)}
+        </span>
+        <Button
+          onClick={() =>
+            setCurrentPage((prev) =>
+              Math.min(
+                prev + 1,
+                Math.ceil((admins?.length || 0) / itemsPerPage),
+              ),
+            )
+          }
+          disabled={
+            currentPage === Math.ceil((admins?.length || 0) / itemsPerPage)
+          }
+        >
+          Next
+        </Button>
+      </div>
     </div>
   );
 }
