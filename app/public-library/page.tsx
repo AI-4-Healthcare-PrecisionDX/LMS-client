@@ -133,10 +133,11 @@ const materialTypes = ["All Types", "book", "notes", "slides"];
 export default function MedicalLibraryPage() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { getLibraries, getLibraryFileByLibraryID } = useFileUpload();
-  const { isAuthenticated, userRole } = useAuth();
+  const { isAuthenticated, userRole, user } = useAuth();
 
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isPdfOpen, setIsPdfOpen] = useState(false);
+  const { uploadFile } = useFileUpload();
 
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
@@ -185,6 +186,24 @@ export default function MedicalLibraryPage() {
     const startIndex = (state.currentPage - 1) * state.itemsPerPage;
     return filteredResources.slice(startIndex, startIndex + state.itemsPerPage);
   }, [state, filteredAndSortedResources]);
+
+  const handleFileUpload = async (file: File) => {
+    try {
+      await uploadFile({
+        pdfFile: file,
+        materialType: "book",
+        materialTitle: file.name,
+        author: user?.first_name + " " + user?.last_name,
+        visibility: true,
+      });
+      toast.success("File uploaded successfully");
+    } catch (error) {
+      toast.error(
+        "Failed to upload file" +
+          (error instanceof Error ? error.message : "Unknown error"),
+      );
+    }
+  };
 
   if (isLoading) {
     return <CaseLoadingSkeleton />;
@@ -291,6 +310,78 @@ export default function MedicalLibraryPage() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <Input
+            type="file"
+            accept=".pdf"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                // Validate file size
+                if (file.size > 10 * 1024 * 1024) {
+                  toast.error("File size exceeds limit", {
+                    description: "Please upload a PDF file smaller than 10MB",
+                    duration: 3000,
+                  });
+                  e.target.value = ""; // Reset input
+                  return;
+                }
+
+                // Validate file type
+                if (!file.type.includes("pdf")) {
+                  toast.error("Invalid file type", {
+                    description:
+                      "Only PDF files are supported. Please select a valid PDF file.",
+                    duration: 3000,
+                  });
+                  e.target.value = ""; // Reset input
+                  return;
+                }
+
+                toast.loading("Uploading file...", {
+                  id: "upload-toast",
+                });
+
+                handleFileUpload(file)
+                  .then(() => {
+                    toast.success("File uploaded successfully", {
+                      id: "upload-toast",
+                      duration: 2000,
+                    });
+                    e.target.value = ""; // Reset input after successful upload
+                  })
+                  .catch((error) => {
+                    toast.error("Upload failed", {
+                      id: "upload-toast",
+                      description: error.message || "Please try again later",
+                      duration: 3000,
+                    });
+                  });
+              }
+            }}
+            className="hidden"
+            id="pdf-upload"
+          />
+          <Button
+            variant="outline"
+            onClick={() => {
+              document.getElementById("pdf-upload")?.click();
+            }}
+            className="w-full max-w-md flex items-center justify-center hover:bg-primary/10"
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Choose PDF File
+          </Button>
+          <div className="text-sm text-muted-foreground">
+            Maximum file size: 10MB
+          </div>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Supported format: PDF (.pdf)
         </div>
       </div>
 
