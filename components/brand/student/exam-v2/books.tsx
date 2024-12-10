@@ -165,7 +165,7 @@ const BookList = () => {
 
         // Course filter
         if (state.courseFilter !== "all") {
-          if (book.course !== state.courseFilter) return false;
+          if (book.material_type !== state.courseFilter) return false;
         }
 
         return true;
