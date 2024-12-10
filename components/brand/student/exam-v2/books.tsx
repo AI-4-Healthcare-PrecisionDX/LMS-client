@@ -121,9 +121,6 @@ const reducer = (state: State, action: Action): State => {
   }
 };
 
-const categories = ["all", "fiction", "non-fiction", "science", "history"];
-const courses = ["all", "course1", "course2", "course3"];
-
 // BookList component
 const BookList = () => {
   const { getLibraries } = useFileUpload();
@@ -139,43 +136,16 @@ const BookList = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { setIsOpen } = useTour();
 
-  // Update filtered books whenever books data, search term, or filters change
+  // Filter books based on search term
   useEffect(() => {
-    // Return early if books is null/undefined or empty array
-    if (!books || books.length === 0) return;
-
-    // Create a memoized filter function
-    const filterBooks = () => {
-      return books.filter((book: BookMaterial) => {
-        // Search term filter
-        if (state.searchTerm) {
-          const searchLower = state.searchTerm.toLowerCase();
-          const titleMatch = book.material_title
-            ?.toLowerCase()
-            .includes(searchLower);
-          const authorMatch = book.author?.toLowerCase().includes(searchLower);
-          if (!titleMatch && !authorMatch) return false;
-        }
-
-        // Category filter
-        if (state.categoryFilter !== "all") {
-          if (book.material_type?.toLowerCase() !== state.categoryFilter)
-            return false;
-        }
-
-        // Course filter
-        if (state.courseFilter !== "all") {
-          if (book.material_type !== state.courseFilter) return false;
-        }
-
-        return true;
+    if (books) {
+      const filtered = books.filter((book: BookMaterial) => {
+        const searchLower = state.searchTerm.toLowerCase();
+        return book.material_title.toLowerCase().includes(searchLower);
       });
-    };
-
-    // Apply filters and update state
-    const filteredResults = filterBooks();
-    dispatch({ type: "SET_FILTERED_BOOKS", payload: filteredResults });
-  }, [books, state.searchTerm, state.categoryFilter, state.courseFilter]);
+      dispatch({ type: "SET_FILTERED_BOOKS", payload: filtered });
+    }
+  }, [state.searchTerm, books]);
 
   if (isLoading) return <CaseLoadingSkeleton />;
   if (error)
@@ -203,28 +173,12 @@ const BookList = () => {
         </h1>
         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
           <SearchInput searchTerm={state.searchTerm} dispatch={dispatch} />
-          <FilterSelect
-            label="Category"
-            value={state.categoryFilter}
-            options={categories}
-            onChange={(value) =>
-              dispatch({ type: "SET_CATEGORY_FILTER", payload: value })
-            }
-          />
-          <FilterSelect
-            label="Course"
-            value={state.courseFilter}
-            options={courses}
-            onChange={(value) =>
-              dispatch({ type: "SET_COURSE_FILTER", payload: value })
-            }
-          />
           <UploadContent />
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {books.length > 0 ? (
-          books.map((book: BookMaterial) => (
+        {state.filteredBooks.length > 0 ? (
+          state.filteredBooks.map((book: BookMaterial) => (
             <BookCard key={book.library_id} book={book} />
           ))
         ) : (
