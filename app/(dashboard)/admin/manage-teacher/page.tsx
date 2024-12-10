@@ -2,6 +2,17 @@
 
 import ErrorMessage from "@/components/brand/shared/error";
 import CaseLoadingSkeleton from "@/components/brand/shared/loading";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -50,6 +61,9 @@ type Admin = {
   is_active: boolean;
   is_superuser: boolean;
   updated_at: string;
+  teacher: {
+    teacher_id: string;
+  };
 };
 
 // Zod schema
@@ -175,12 +189,6 @@ export default function AdminManagement() {
       phone_number: admin.phone_number,
       password: "", // Don't set the password when editing
     });
-  };
-
-  const handleDelete = (userId: string) => {
-    if (window.confirm("Are you sure you want to delete this teacher?")) {
-      deleteMutation.mutate(userId);
-    }
   };
 
   if (isLoading) {
@@ -381,13 +389,36 @@ export default function AdminManagement() {
                       >
                         Edit
                       </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(admin.user_id)}
-                      >
-                        Delete
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            className="bg-red-100 text-red-500 hover:bg-red-200"
+                            size="sm"
+                          >
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Teacher</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this teacher? This
+                              action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() =>
+                                deleteMutation.mutate(admin.teacher.teacher_id)
+                              }
+                              className="bg-red-100 text-red-500 hover:bg-red-200"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>

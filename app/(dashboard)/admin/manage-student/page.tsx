@@ -2,6 +2,17 @@
 
 import ErrorMessage from "@/components/brand/shared/error";
 import CaseLoadingSkeleton from "@/components/brand/shared/loading";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -51,6 +62,9 @@ type Admin = {
   is_active: boolean;
   is_superuser: boolean;
   updated_at: string;
+  student: {
+    student_id: string;
+  };
 };
 
 // Zod schema
@@ -83,9 +97,9 @@ const updateStudent = async ({
   return response.data;
 };
 
-// const deleteAdmin = async (userId: string): Promise<void> => {
-//   await api.delete(`/admin/delete-student/${userId}`);
-// };
+const deleteAdmin = async (userId: string): Promise<void> => {
+  await api.delete(`/admin/delete-student/${userId}`);
+};
 
 const fetchAdmins = async (): Promise<Admin[]> => {
   const response = await api.get(`/admin/students`);
@@ -148,16 +162,16 @@ export default function AdminManagement() {
     },
   });
 
-  //   const deleteMutation = useMutation({
-  //     mutationFn: deleteAdmin,
-  //     onSuccess: () => {
-  //       queryClient.invalidateQueries({ queryKey: ["manage-students"] });
-  //       toast.success("Admin deleted successfully");
-  //     },
-  //     onError: (error: Error) => {
-  //       toast.error(`Error deleting admin: ${error.message}`);
-  //     },
-  //   });
+  const deleteMutation = useMutation({
+    mutationFn: deleteAdmin,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manage-students"] });
+      toast.success("Student deleted successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Error deleting admin: ${error.message}`);
+    },
+  });
 
   const onSubmit = (data: AdminFormData) => {
     if (editingAdmin) {
@@ -375,12 +389,33 @@ export default function AdminManagement() {
                     >
                       Edit
                     </Button>
-                    {/* <Button
-          variant="destructive"
-          onClick={() => handleDelete(admin.user_id)}
-          >
-          Delete
-          </Button> */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button className="bg-red-100 text-red-500 hover:bg-red-200">
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Student</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this student? This
+                            action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() =>
+                              deleteMutation.mutate(admin.student.student_id)
+                            }
+                            className="bg-red-100 text-red-500 hover:bg-red-200"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}
