@@ -27,6 +27,7 @@ type Menu = {
   active: boolean;
   icon: any;
   submenus: Submenu[];
+  openInNewTab?: boolean;
 };
 
 type Group = {
@@ -198,6 +199,14 @@ export function getStudentMenuList(pathname: string): Group[] {
           icon: MessageSquare,
           submenus: [],
         },
+        {
+          href: "/public-library",
+          label: "Public Library",
+          active: pathname.includes("/public-library"),
+          icon: Book,
+          openInNewTab: true,
+          submenus: [],
+        },
       ],
     },
   ];
@@ -222,13 +231,14 @@ export function getTeacherMenuList(pathname: string): Group[] {
           icon: MessageSquare,
           submenus: [],
         },
-        // {
-        //   href: "/teacher/course-details/1",
-        //   label: "Courses",
-        //   active: ["/teacher/course-details"].includes(pathname),
-        //   icon: Book,
-        //   submenus: [],
-        // },
+        {
+          href: "/public-library",
+          label: "Public Library",
+          active: pathname.includes("/public-library"),
+          icon: Book,
+          openInNewTab: true,
+          submenus: [],
+        },
       ],
     },
   ];
