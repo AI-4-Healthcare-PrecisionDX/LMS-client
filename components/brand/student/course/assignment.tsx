@@ -83,7 +83,7 @@ export default function AssignmentSection({
   };
 
   const renderLoadingState = () => (
-    <div className="flex items-center justify-center h-[600px]">
+    <div className="flex items-center justify-center h-full">
       <Loader2 className="h-6 w-6 animate-spin" />
       <p className="ml-2">Loading PDF...</p>
     </div>

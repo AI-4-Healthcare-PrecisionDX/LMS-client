@@ -48,6 +48,8 @@ import { TourProvider, useTour } from "@reactour/tour";
 import { useQuery } from "@tanstack/react-query";
 
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
+import ErrorMessage from "../../shared/error";
+import CaseLoadingSkeleton from "../../shared/loading";
 import { BookMaterial } from "./types";
 import UploadContent from "./UploadPdf";
 
@@ -139,37 +141,45 @@ const BookList = () => {
 
   // Update filtered books whenever books data, search term, or filters change
   useEffect(() => {
-    if (!books) return;
+    // Return early if books is null/undefined or empty array
+    if (!books || books.length === 0) return;
 
-    let filtered = [...books];
+    // Create a memoized filter function
+    const filterBooks = () => {
+      return books.filter((book: BookMaterial) => {
+        // Search term filter
+        if (state.searchTerm) {
+          const searchLower = state.searchTerm.toLowerCase();
+          const titleMatch = book.material_title
+            ?.toLowerCase()
+            .includes(searchLower);
+          const authorMatch = book.author?.toLowerCase().includes(searchLower);
+          if (!titleMatch && !authorMatch) return false;
+        }
 
-    // Apply search filter
-    if (state.searchTerm) {
-      const searchLower = state.searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (book) =>
-          book.material_title.toLowerCase().includes(searchLower) ||
-          book.author.toLowerCase().includes(searchLower),
-      );
-    }
+        // Category filter
+        if (state.categoryFilter !== "all") {
+          if (book.material_type?.toLowerCase() !== state.categoryFilter)
+            return false;
+        }
 
-    // Apply category filter
-    if (state.categoryFilter !== "all") {
-      filtered = filtered.filter(
-        (book) => book.material_type.toLowerCase() === state.categoryFilter,
-      );
-    }
+        // Course filter
+        if (state.courseFilter !== "all") {
+          if (book.course !== state.courseFilter) return false;
+        }
 
-    // Apply course filter
-    if (state.courseFilter !== "all") {
-      filtered = filtered.filter((book) => book.course === state.courseFilter);
-    }
+        return true;
+      });
+    };
 
-    dispatch({ type: "SET_FILTERED_BOOKS", payload: filtered });
+    // Apply filters and update state
+    const filteredResults = filterBooks();
+    dispatch({ type: "SET_FILTERED_BOOKS", payload: filteredResults });
   }, [books, state.searchTerm, state.categoryFilter, state.courseFilter]);
 
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error fetching books: {(error as Error).message}</div>;
+  if (isLoading) return <CaseLoadingSkeleton />;
+  if (error)
+    return <ErrorMessage error={error as Error} title="Error fetching books" />;
 
   return (
     <div className="container mx-auto px-4 pb-8 dark:text-gray-100">
