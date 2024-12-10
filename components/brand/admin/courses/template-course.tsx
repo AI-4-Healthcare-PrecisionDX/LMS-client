@@ -36,7 +36,13 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { CourseMateriels } from "./course-materials";
 import { reducer } from "./reducer";
-import { Course, courseSchema, Department, State } from "./types";
+import {
+  Course,
+  CourseMaterial,
+  courseSchema,
+  Department,
+  State,
+} from "./types";
 
 const initialState: State = {
   searchTerm: "",
@@ -63,15 +69,18 @@ const updateCourse = async ({
   id,
   ...course
 }: { id: string } & z.infer<typeof courseSchema>) => {
-  const { data } = await api.put(`/course/${id}`, {
-    template_name: course.template_name,
-    template_description: course.template_description,
-    template_year: course.template_year,
-    department_id: course.department_id,
-    template_course_access: course.template_course_access,
-    course_materials: course.course_materials,
-  });
-  return data;
+  try {
+    const { data } = await api.put(`/course/${id}`, {
+      template_name: course.template_name,
+      template_description: course.template_description,
+      template_year: course.template_year,
+      department_id: course.department_id,
+      course_materials: course.course_materials,
+    });
+    return data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Failed to update course");
+  }
 };
 
 const deleteCourse = async (id: string) => {
@@ -93,7 +102,6 @@ export default function TemplateCourse() {
       template_description: "",
       template_year: "",
       department_id: "",
-      template_course_access: [],
       course_materials: [],
     },
   });
@@ -116,6 +124,9 @@ export default function TemplateCourse() {
       form.reset();
       toast.success("Course created successfully");
     },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to create course");
+    },
   });
 
   const updateMutation = useMutation({
@@ -127,9 +138,9 @@ export default function TemplateCourse() {
       form.reset();
       toast.success("Course updated successfully");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("Update error:", error);
-      toast.error("Failed to update course");
+      toast.error(error.message || "Failed to update course");
     },
   });
 
@@ -138,6 +149,9 @@ export default function TemplateCourse() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["courses"] });
       toast.success("Course deleted successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to delete course");
     },
   });
 
@@ -175,6 +189,9 @@ export default function TemplateCourse() {
       template_description: course.template_description,
       template_year: course.template_year,
       department_id: course.department_id,
+      course_materials: course.course_materials.map(
+        (material: CourseMaterial) => material.library_item.library_id,
+      ),
     });
     setIsOpen(true);
   };
@@ -193,7 +210,6 @@ export default function TemplateCourse() {
         template_description: "",
         template_year: "",
         department_id: "",
-        template_course_access: [],
         course_materials: [],
       });
     }
