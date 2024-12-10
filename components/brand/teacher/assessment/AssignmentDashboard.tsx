@@ -22,6 +22,7 @@ import { format } from "date-fns";
 import { Filter, MoreHorizontal } from "lucide-react";
 import { useReducer } from "react";
 import { toast } from "sonner";
+import { SectionExclusiveContent, TemplateCourse } from "../materials/types";
 import Step1 from "./assessmentModal/Step1";
 import Step2 from "./assessmentModal/Step2";
 import Step3 from "./assessmentModal/Step3";
@@ -60,7 +61,7 @@ const fetchAssignments = async (sectionId: string) => {
 };
 
 // Main Component
-export default function AssignmentDashboard({ examEvaluation, sectionId }: { examEvaluation: () => void, sectionId: string }) {
+export default function AssignmentDashboard({ examEvaluation, sectionId, section_exclusive_contents, template_course }: { examEvaluation: () => void, sectionId: string, section_exclusive_contents: SectionExclusiveContent[], template_course: TemplateCourse }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { isAuthenticated } = useAuth();
 
@@ -114,6 +115,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }: { exa
   };
 
   const handleStep2Next = (details: any) => {
+    console.log("details", details);
     dispatch({
       type: ACTIONS.SET_NEW_ASSIGNMENT,
       payload: {
@@ -439,6 +441,8 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }: { exa
               onBack={handleBack}
               selectedBooks={state.newAssignment.bookIds}
               selectedChapters={state.newAssignment.chapterIds}
+              section_exclusive_contents={section_exclusive_contents}
+              template_course={template_course}
             />
           )}
 

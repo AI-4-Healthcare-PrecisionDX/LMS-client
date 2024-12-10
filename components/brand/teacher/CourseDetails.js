@@ -98,6 +98,8 @@ export default function CourseDetails({
             <AssignmentDashboard
               examEvaluation={handleAssignmentClick}
               sectionId={sectionId}
+              section_exclusive_contents={section_exclusive_contents}
+              template_course={template_course}
             />
           )}
           {!isDashboard && (

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import useFileUpload from "@/hooks/use-upload";
@@ -223,7 +223,7 @@ export function MaterialView({ pdfs, onPDFsChange }) {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="w-3/4 h-screen max-w-none m-0 p-6">
           <DialogHeader>
-            <DialogTitle>{selectedPdfName}</DialogTitle>
+            {/* <DialogTitle>{selectedPdfName}</DialogTitle> */}
           </DialogHeader>
           {isLoadingPdf ? (
             <div className="flex-1 flex items-center justify-center">

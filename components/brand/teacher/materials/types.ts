@@ -66,3 +66,39 @@ export interface CourseMaterial {
 }
 
 export type CourseMaterials = CourseMaterial[];
+
+export interface ContentMeta {
+  library_id: string;
+  material_file: string;
+  author: string;
+  updated_at: string;
+  user_id: string;
+  material_type: string;
+  material_title: string;
+  material_description: string | null;
+  visibility: boolean;
+  created_at: string;
+}
+
+export interface PageRange {
+  start: number;
+  end: number;
+}
+
+export interface Section {
+  id: string;
+  title: string;
+  pageRanges: PageRange;
+}
+
+export interface Chapter {
+  id: string;
+  title: string;
+  pageRanges: PageRange;
+  sections: Section[];
+}
+
+export interface ContentOutline {
+  content_meta: ContentMeta;
+  content_outline: Chapter[];
+}

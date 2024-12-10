@@ -1,7 +1,7 @@
 "use client";
 
 import { TourProvider } from "@reactour/tour";
-import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
+import { QueryClient, useMutation } from "@tanstack/react-query";
 import { Book, EllipsisVertical, Loader2, Search } from "lucide-react";
 import { useState, type ReactElement } from "react";
 // import { pdfjs } from "react-pdf";
@@ -44,6 +44,7 @@ import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { Viewer } from "@react-pdf-viewer/core";
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import { toast } from "sonner";
+import { useFilteredContents } from "../materials";
 import TOC from "./TOC";
 import { SectionExclusiveContent, Step, TemplateCourse } from "./types";
 
@@ -90,63 +91,14 @@ function BookList({
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
-  const { getLibraryFileForCourseByLibraryID } = useFileUpload();
+  const { getLibraryFileByLibraryID } = useFileUpload();
 
-
-  const { data: filteredContents } = useQuery({
-    queryKey: [
-      "filteredContents",
-      searchTerm,
-      filterVisibility,
-      filterMaterialType,
-    ],
-    queryFn: () => {
-      // Combine both arrays and deduplicate by library_id
-      const allContents = [
-        ...section_exclusive_contents.map(content => ({
-          ...content,
-          source: 'section'
-        })),
-        ...(template_course.course_materials || []).map(material => ({
-          library_item: material,
-          source: 'template'
-        }))
-      ];
-
-      const uniqueContents = allContents.filter((content, index, self) =>
-        index === self.findIndex((c) =>
-          c.library_item.library_id === content.library_item.library_id
-        )
-      );
-
-      console.log("uniqueContents", uniqueContents);
-
-      return uniqueContents.filter((content) => {
-        const materialTitle = content.library_item?.material_title?.toLowerCase() || '';
-        const author = (content.library_item.author) ? content.library_item.author.toLowerCase() : (content.library_item.material_title) ? content.library_item.material_title : content.library_item.library_item.material_title || '';
-        const description = content.library_item?.material_description?.toLowerCase() || '';
-        const searchTermLower = searchTerm.toLowerCase();
-
-        const matchesSearch =
-          searchTerm === "" ||
-          materialTitle.includes(searchTermLower) ||
-          author.includes(searchTermLower) ||
-          description.includes(searchTermLower);
-
-        const matchesMaterialType =
-          filterMaterialType === "all" ||
-          (content.library_item.material_type ? content.library_item.material_type : content.library_item.library_item.material_type) === filterMaterialType;
-
-        const matchesVisibility =
-          filterVisibility === "all" ||
-          (filterVisibility === "visible"
-            ? (content.library_item.visibility ? content.library_item.visibility : content.library_item.library_item.visibility)
-            : !content.library_item?.visibility);
-
-        return matchesSearch && matchesMaterialType && matchesVisibility;
-      });
-    },
-    enabled: !!section_exclusive_contents && !!template_course?.course_materials,
+  const { data: filteredContents } = useFilteredContents({
+    section_exclusive_contents,
+    template_course,
+    searchTerm,
+    filterVisibility,
+    filterMaterialType
   });
 
   const uniqueMaterialTypes = Array.from(
@@ -182,7 +134,7 @@ function BookList({
     setIsDialogOpen(true);
     setIsLoadingPdf(true);
     try {
-      const file_url = await getLibraryFileForCourseByLibraryID((library_item.library_id) ? library_item.library_id : library_item.library_item.library_id);
+      const file_url = await getLibraryFileByLibraryID((library_item.library_id) ? library_item.library_id : library_item.library_item.library_id);
       setSelectedPdf(file_url);
       console.log("selectedPdf", selectedPdf);
       setSelectedPdfName((library_item.material_title) ? library_item.material_title : library_item.library_item.material_title);
@@ -252,9 +204,9 @@ function BookList({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-1">
         {filteredContents?.map(
-          (content: any, index: number) => (
+          (content: any) => (
             <Card
-              key={index}
+              key={content.section_exclusive_content_id || content.library_item.library_id}
               className="flex flex-col h-full hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300"
             >
               <CardHeader className="bg-primary p-4">
@@ -293,11 +245,11 @@ function BookList({
                   <Tooltip>
                     <TooltipTrigger>
                       <h4 className="text-sm pt-2 text-gray-300">
-                        {truncateString(content.library_item.author, 30)}
+                        {truncateString((content.library_item.author) ? content.library_item.author : content.library_item.library_item.author, 30)}
                       </h4>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{(content.title) ? content.title : content.library_item.author}</p>
+                      <p>{(content.library_item.author) ? content.library_item.author : content.library_item.library_item.author}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
