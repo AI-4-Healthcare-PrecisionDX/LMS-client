@@ -78,8 +78,8 @@ const updateCourse = async ({
       course_materials: course.course_materials,
     });
     return data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Failed to update course");
+  } catch (error) {
+    throw new Error("Failed to update course" || error);
   }
 };
 
@@ -124,7 +124,7 @@ export default function TemplateCourse() {
       form.reset();
       toast.success("Course created successfully");
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error.message || "Failed to create course");
     },
   });
@@ -138,8 +138,7 @@ export default function TemplateCourse() {
       form.reset();
       toast.success("Course updated successfully");
     },
-    onError: (error: any) => {
-      console.error("Update error:", error);
+    onError: (error) => {
       toast.error(error.message || "Failed to update course");
     },
   });
@@ -150,7 +149,7 @@ export default function TemplateCourse() {
       queryClient.invalidateQueries({ queryKey: ["courses"] });
       toast.success("Course deleted successfully");
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(error.message || "Failed to delete course");
     },
   });
