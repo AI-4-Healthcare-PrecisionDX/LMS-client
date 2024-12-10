@@ -79,7 +79,7 @@ const updateCourse = async ({
     });
     return data;
   } catch (error) {
-    throw new Error("Failed to update course" || error);
+    throw new Error(`Failed to update course: ${error}`);
   }
 };
 
@@ -139,7 +139,7 @@ export default function TemplateCourse() {
       toast.success("Course updated successfully");
     },
     onError: (error) => {
-      toast.error(error.message || "Failed to update course");
+      toast.error("Failed to update course");
     },
   });
 
