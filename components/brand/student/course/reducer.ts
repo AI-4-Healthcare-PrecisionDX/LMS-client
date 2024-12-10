@@ -6,7 +6,7 @@ type State = {
   selectedAssignment: Assignment | null;
 };
 
-type Action =
+export type Action =
   | { type: "SET_SECTION"; payload: Section }
   | { type: "SET_SELECTED_ASSIGNMENT"; payload: Assignment | null };
 

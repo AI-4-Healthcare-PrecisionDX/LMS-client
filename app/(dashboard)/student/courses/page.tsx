@@ -173,7 +173,7 @@ export default function CoursesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg p-8 mb-8">
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg p-8 mb-8 dark:from-primary/20 dark:via-primary/10 dark:to-primary/20">
         <h1 className="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
           My Courses
         </h1>
@@ -181,7 +181,7 @@ export default function CoursesPage() {
 
       <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <Input
             placeholder="Search courses..."
             className="pl-10"
@@ -223,8 +223,10 @@ export default function CoursesPage() {
 
       {filteredSections?.length === 0 && (
         <div className="flex items-center justify-center min-h-screen">
-          <div className="text-gray-500">No courses found</div>
-          <div className="text-gray-500">
+          <div className="text-gray-500 dark:text-gray-400">
+            No courses found
+          </div>
+          <div className="text-gray-500 dark:text-gray-400">
             You are not enrolled in any courses yet. Please contact your
             instructor to get enrolled. If you have a course code, you can join
             a course by clicking the button above.
@@ -236,20 +238,20 @@ export default function CoursesPage() {
         {filteredSections?.map((section) => (
           <Card
             key={section.section_id}
-            className="hover:shadow-lg transition-shadow overflow-hidden group relative"
+            className="hover:shadow-lg transition-shadow overflow-hidden group relative dark:border-gray-800"
           >
-            <div className="h-32 bg-gradient-to-r from-primary/30 to-primary/10 relative">
+            <div className="h-32 bg-gradient-to-r from-primary/30 to-primary/10 dark:from-primary/20 dark:to-primary/5 relative">
               <div className="absolute bottom-4 left-4">
-                <h3 className="text-2xl font-bold text-gray-800">
+                <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
                   {section.template_course.template_name}
                 </h3>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
                     {section.teacher.user.first_name}{" "}
                     {section.teacher.user.last_name}
                   </span>
-                  <span className="w-1 h-1 bg-gray-400 rounded-full" />
-                  <span className="text-sm font-mono text-gray-600">
+                  <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full" />
+                  <span className="text-sm font-mono text-gray-600 dark:text-gray-300">
                     {section.section_code}
                   </span>
                 </div>
@@ -257,7 +259,7 @@ export default function CoursesPage() {
               <div className="absolute top-4 right-4">
                 <Badge
                   variant="outline"
-                  className="bg-white/80 backdrop-blur-sm"
+                  className="bg-white/80 dark:bg-black/50 backdrop-blur-sm"
                 >
                   {new Date() < new Date(section.start_date)
                     ? "Upcoming"
@@ -270,14 +272,14 @@ export default function CoursesPage() {
 
             <CardContent className="pt-4">
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
                   <Microscope className="h-4 w-4" />
                   <span className="text-sm">
                     {section.template_course.department.department_name}
                   </span>
                 </div>
 
-                <div className="flex justify-between text-sm text-gray-600">
+                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
                   <div className="flex items-center gap-1">
                     <BookOpen className="h-4 w-4" />
                     <span>
@@ -292,7 +294,7 @@ export default function CoursesPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-gray-600">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                   <CalendarIcon className="h-4 w-4" />
                   <span>
                     {new Date(section.start_date).toLocaleDateString("en-US", {
@@ -317,7 +319,7 @@ export default function CoursesPage() {
               >
                 <Button
                   variant="ghost"
-                  className="w-full justify-between hover:bg-primary/5"
+                  className="w-full justify-between hover:bg-primary/5 dark:hover:bg-primary/10"
                 >
                   Open Course
                   <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
