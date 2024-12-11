@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { BookOpen, CalendarIcon } from "lucide-react";
 import { useEffect } from "react";
 
-export function BasicDetailsCard({ state, dispatch, category }) {
+export default function BasicDetailsCard({ state, dispatch, category }: { state: any, dispatch: any, category: string }) {
   useEffect(() => {
     if (!state.editingAssignment) {
       const now = new Date();
@@ -30,7 +30,7 @@ export function BasicDetailsCard({ state, dispatch, category }) {
     }
   }, []);
 
-  const handleTimeChange = (date, timeString, type) => {
+  const handleTimeChange = (date: Date, timeString: string, type: string) => {
     if (!date) return;
 
     // Parse the time string into hours and minutes

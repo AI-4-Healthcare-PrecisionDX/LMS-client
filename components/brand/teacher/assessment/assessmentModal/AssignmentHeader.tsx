@@ -1,23 +1,28 @@
+import { Badge } from "@/components/ui/badge";
+import { GraduationCap, Timer } from "lucide-react";
+
 interface AssignmentHeaderProps {
   totalQuestions: number;
   totalMarks: number;
+  isEditing: boolean;
 }
 
 export default function AssignmentHeader({
   totalQuestions,
   totalMarks,
+  isEditing,
 }: AssignmentHeaderProps) {
   return (
     <div className="flex items-center justify-between">
       <div>
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-          Create Assignment
+          {isEditing ? "Edit Assignment" : "Create Assignment"}
         </h2>
         <p className="text-gray-500 dark:text-gray-400 mt-2">
           Configure your assignment details and questions
         </p>
       </div>
-      {/* <div className="flex items-center space-x-4 pr-1">
+      <div className="flex items-center space-x-4 pr-1">
         <Badge variant="outline" className="px-4 py-2">
           <Timer className="w-4 h-4 mr-2" />
           Total Questions: {totalQuestions}
@@ -26,7 +31,7 @@ export default function AssignmentHeader({
           <GraduationCap className="w-4 h-4 mr-2" />
           Total Marks: {totalMarks}
         </Badge>
-      </div> */}
+      </div>
     </div>
   );
 }

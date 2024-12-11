@@ -1,8 +1,8 @@
 "use client";
 
 import { TourProvider } from "@reactour/tour";
-import { QueryClient, useMutation, useQuery } from "@tanstack/react-query";
-import { Book, EllipsisVertical, Search } from "lucide-react";
+import { QueryClient, useMutation } from "@tanstack/react-query";
+import { Book, EllipsisVertical, Loader2, Search } from "lucide-react";
 import { useState, type ReactElement } from "react";
 // import { pdfjs } from "react-pdf";
 
@@ -31,19 +31,22 @@ import {
 } from "@/components/ui/tooltip";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import useFileUpload from "@/hooks/use-upload";
 import api from "@/lib/axios-config";
 import { DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
-import Link from "next/link";
+import { Viewer } from "@react-pdf-viewer/core";
+import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import { toast } from "sonner";
+import { useFilteredContents } from "../materials";
 import TOC from "./TOC";
-import { SectionExclusiveContent, Step } from "./types";
+import { SectionExclusiveContent, Step, TemplateCourse } from "./types";
 
 // Set up the worker for react-pdf
 // pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -73,54 +76,40 @@ const truncateString = (str: string | undefined, maxLength: number): string =>
 function BookList({
   section_exclusive_contents,
   sectionId,
+  template_course,
 }: {
   section_exclusive_contents: SectionExclusiveContent[];
   sectionId: string;
+  template_course: TemplateCourse;
 }): ReactElement {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterMaterialType, setFilterMaterialType] = useState("all");
   const [filterVisibility, setFilterVisibility] = useState("all");
-  const { data: filteredContents } = useQuery({
-    queryKey: [
-      "filteredContents",
-      searchTerm,
-      filterVisibility,
-      filterMaterialType,
-    ],
-    queryFn: () => {
-      return section_exclusive_contents.filter((content) => {
-        const matchesSearch =
-          searchTerm === "" ||
-          content.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          content.library_item.material_title
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          content.library_item.author
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
+  const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
+  const [selectedPdfName, setSelectedPdfName] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const defaultLayoutPluginInstance = defaultLayoutPlugin();
 
-        const matchesMaterialType =
-          filterMaterialType === "all" ||
-          content.library_item.material_type === filterMaterialType;
+  const { getLibraryFileByLibraryID } = useFileUpload();
 
-        const matchesVisibility =
-          filterVisibility === "all" ||
-          (filterVisibility === "visible"
-            ? content.library_item.visibility
-            : !content.library_item.visibility);
-
-        return matchesSearch && matchesMaterialType && matchesVisibility;
-      });
-    },
-    enabled: !!section_exclusive_contents,
+  const { data: filteredContents } = useFilteredContents({
+    section_exclusive_contents,
+    template_course,
+    searchTerm,
+    filterVisibility,
+    filterMaterialType
   });
 
   const uniqueMaterialTypes = Array.from(
-    new Set(
-      section_exclusive_contents.map(
+    new Set([
+      ...section_exclusive_contents.map(
         (content) => content.library_item.material_type,
       ),
-    ),
+      ...(template_course.course_materials || []).map(
+        (material) => material.library_item.material_type,
+      ),
+    ]),
   );
 
   const { mutate: deleteContent, isPending: isDeleting } = useMutation({
@@ -140,6 +129,22 @@ function BookList({
       toast.error("Unable to delete the book. Please try again.");
     },
   });
+
+  const getPdfUrl = async (library_item: any) => {
+    setIsDialogOpen(true);
+    setIsLoadingPdf(true);
+    try {
+      const file_url = await getLibraryFileByLibraryID((library_item.library_id) ? library_item.library_id : library_item.library_item.library_id);
+      setSelectedPdf(file_url);
+      console.log("selectedPdf", selectedPdf);
+      setSelectedPdfName((library_item.material_title) ? library_item.material_title : library_item.library_item.material_title);
+    } catch (error) {
+      toast.error("Failed to load PDF");
+      setIsDialogOpen(false);
+    } finally {
+      setIsLoadingPdf(false);
+    }
+  };
 
   return (
     <div className="container mx-auto pt-8">
@@ -199,9 +204,9 @@ function BookList({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-1">
         {filteredContents?.map(
-          (content: SectionExclusiveContent, index: number) => (
+          (content: any) => (
             <Card
-              key={index}
+              key={content.section_exclusive_content_id || content.library_item.library_id}
               className="flex flex-col h-full hover:shadow-lg transform hover:-translate-y-1 transition-all duration-300"
             >
               <CardHeader className="bg-primary p-4">
@@ -212,9 +217,6 @@ function BookList({
                       <EllipsisVertical className="w-5 h-5 text-white" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="bg-background text-white">
-                      {/* <DropdownMenuItem className="p-2 hover:bg-primary">
-                    Edit
-                  </DropdownMenuItem> */}
                       <DropdownMenuItem
                         className="p-2 hover:bg-primary text-red-500"
                         onClick={() =>
@@ -231,11 +233,11 @@ function BookList({
                   <Tooltip>
                     <TooltipTrigger>
                       <h2 className="text-xl font-semibold text-white">
-                        {truncateString(content.title, 30)}
+                        {truncateString((content.library_item.material_title) ? content.library_item.material_title : content.library_item.library_item.material_title, 30)}
                       </h2>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{content.title}</p>
+                      <p>{(content.library_item.material_title) ? content.library_item.material_title : content.library_item.library_item.material_title}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -243,11 +245,11 @@ function BookList({
                   <Tooltip>
                     <TooltipTrigger>
                       <h4 className="text-sm pt-2 text-gray-300">
-                        {truncateString(content.library_item.author, 30)}
+                        {truncateString((content.library_item.author) ? content.library_item.author : content.library_item.library_item.author, 30)}
                       </h4>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>{content.library_item.author}</p>
+                      <p>{(content.library_item.author) ? content.library_item.author : content.library_item.library_item.author}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -256,7 +258,7 @@ function BookList({
               <CardContent className="flex-grow p-4">
                 <div className="flex flex-wrap gap-2 mb-4">
                   <Badge variant="outline">
-                    {content.library_item.material_type}
+                    {(content.library_item.material_type) ? content.library_item.material_type : content.library_item.library_item.material_type}
                   </Badge>
                   <Badge variant="secondary">
                     {content.library_item.visibility ? "Public" : "Private"}
@@ -271,19 +273,34 @@ function BookList({
               </CardContent>
 
               <CardFooter className="p-4 mx-auto">
-                <Link
-                  target="_blank"
-                  href={`/teacher/view/${encodeURIComponent(content.library_item.library_id)}`}
-                >
-                  <Button className="w-full read-book-button" variant="outline">
-                    Read Book
-                  </Button>
-                </Link>
+                <Button onClick={() => getPdfUrl(content.library_item)} className="w-full read-book-button" variant="outline">
+                  Read Book
+                </Button>
               </CardFooter>
             </Card>
           ),
         )}
       </div>
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="w-3/4 h-screen max-w-none m-0 p-6">
+          <DialogHeader>
+            <DialogTitle>{selectedPdfName}</DialogTitle>
+          </DialogHeader>
+          {isLoadingPdf ? (
+            <div className="flex-1 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <span className="ml-2">Loading PDF...</span>
+            </div>
+          ) : (
+            <div className=" w-full h-4/6 mt-10 mb-5">
+              <Viewer
+                fileUrl={selectedPdf as string}
+                plugins={[defaultLayoutPluginInstance]}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -291,15 +308,18 @@ function BookList({
 export default function BookListWithTour({
   section_exclusive_contents,
   sectionId,
+  template_course,
 }: {
   section_exclusive_contents: SectionExclusiveContent[];
   sectionId: string;
+  template_course: TemplateCourse;
 }): ReactElement {
   return (
     <TourProvider steps={steps}>
       <BookList
         section_exclusive_contents={section_exclusive_contents}
         sectionId={sectionId}
+        template_course={template_course}
       />
     </TourProvider>
   );

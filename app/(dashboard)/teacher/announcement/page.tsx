@@ -29,6 +29,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import api from "@/lib/axios-config";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -74,6 +81,7 @@ export default function AnnouncementPage() {
     string | null
   >(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSection, setSelectedSection] = useState<string>("all");
   const [currentAnnouncement, setCurrentAnnouncement] =
     useState<Announcement | null>(null);
   const [formData, setFormData] = useState({
@@ -95,6 +103,14 @@ export default function AnnouncementPage() {
       return z.array(AnnouncementSchema).parse(response.data);
     },
   });
+
+  // Get unique sections from announcements
+  const sections = useMemo(() => {
+    const uniqueSections = new Set(
+      announcements.map((a) => a.section.section_name),
+    );
+    return Array.from(uniqueSections);
+  }, [announcements]);
 
   // Update announcement mutation
   const updateMutation = useMutation({
@@ -162,16 +178,22 @@ export default function AnnouncementPage() {
   };
 
   const filteredAnnouncements = useMemo(() => {
-    return announcements.filter(
-      (announcement) =>
+    return announcements.filter((announcement) => {
+      const matchesSearch =
         announcement.announcement_title
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
         announcement.announcement_description
           .toLowerCase()
-          .includes(searchTerm.toLowerCase()),
-    );
-  }, [announcements, searchTerm]);
+          .includes(searchTerm.toLowerCase());
+
+      const matchesSection =
+        selectedSection === "all" ||
+        announcement.section.section_name === selectedSection;
+
+      return matchesSearch && matchesSection;
+    });
+  }, [announcements, searchTerm, selectedSection]);
 
   if (isLoading) {
     return (
@@ -202,6 +224,19 @@ export default function AnnouncementPage() {
           <CardTitle className="text-2xl font-bold">Announcements</CardTitle>
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full md:w-auto">
+            <Select value={selectedSection} onValueChange={setSelectedSection}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by section" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sections</SelectItem>
+                {sections.map((section) => (
+                  <SelectItem key={section} value={section}>
+                    {section}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Input
               type="text"
               placeholder="Search announcements..."

@@ -94,6 +94,7 @@ const CoursePage = () => {
         totalStudents={sectionData.student_count}
         instructor={sectionData.teacher.user.first_name}
         section_exclusive_contents={sectionData.section_exclusive_contents}
+        template_course={sectionData.template_course}
       />
     </div>
   );

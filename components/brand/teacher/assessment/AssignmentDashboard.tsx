@@ -22,14 +22,18 @@ import { format } from "date-fns";
 import { Filter, MoreHorizontal } from "lucide-react";
 import { useReducer } from "react";
 import { toast } from "sonner";
+import { SectionExclusiveContent, TemplateCourse } from "../materials/types";
 import Step1 from "./assessmentModal/Step1";
 import Step2 from "./assessmentModal/Step2";
 import Step3 from "./assessmentModal/Step3";
 import VivaStep from "./assessmentModal/VivaStep";
+import { useCreateAssignment, useUpdateAssignment } from "./hooks";
 import { ACTIONS, initialState, reducer } from "./reducer";
+import { Assignment, Assignments, Question } from "./types";
 
-// Utility Functions
-const getSortLabel = (sortBy) => {
+type SortBy = "start_time" | "deadline" | "name";
+
+const getSortLabel = (sortBy: SortBy) => {
   const labels = {
     start_time: "Start Date",
     deadline: "Deadline",
@@ -38,10 +42,10 @@ const getSortLabel = (sortBy) => {
   return labels[sortBy] || "Sort By";
 };
 
-const sortAssignments = (assignments, sortBy) => {
+const sortAssignments = (assignments: Assignments, sortBy: SortBy) => {
   return [...assignments].sort((a, b) => {
     if (sortBy === "start_time" || sortBy === "deadline") {
-      return new Date(a[sortBy]) - new Date(b[sortBy]);
+      return new Date(a[sortBy]).getTime() - new Date(b[sortBy]).getTime();
     }
     return sortBy === "name"
       ? a.assignment_title.localeCompare(b.assignment_title)
@@ -49,135 +53,7 @@ const sortAssignments = (assignments, sortBy) => {
   });
 };
 
-// const formatAssignmentData = (assignmentData) => {
-//   return {
-//     assignment_type: String(assignmentData.assignment_type || ""),
-//     assignment_title: String(assignmentData.assignment_title || ""),
-//     assignment_description: String(assignmentData.assignment_description || ""),
-//     number_of_questions: Number(assignmentData.number_of_questions) || 0,
-//     total_marks: Number(assignmentData.total_marks) || 0,
-//     start_time: new Date(assignmentData.start_time).toISOString(),
-//     deadline: new Date(assignmentData.deadline).toISOString(),
-//     section_id: assignmentData.section_id,
-//     assignment_materials: Array.isArray(assignmentData.assignment_materials)
-//       ? assignmentData.assignment_materials
-//       : [],
-//     questions: (assignmentData.questions || []).map((q) => ({
-//       question_text: String(q.question_text || ""),
-//       question_type: String(q.question_type || ""),
-//       marks: Number(q.marks) || 0,
-//       options_for_mcq:
-//         q.question_type === "mcq"
-//           ? (q.options_for_mcq || []).map((opt) => ({
-//               option_text: String(opt.option_text || "").trim(),
-//               is_correct: Boolean(opt.is_correct),
-//             }))
-//           : [],
-//       expected_answer: Array.isArray(q.expected_answer)
-//         ? q.expected_answer.map((ans) => String(ans || ""))
-//         : [],
-//     })),
-//   };
-// };
-
-const useCreateAssignment = () => {
-  return useMutation({
-    mutationFn: async (assignmentData) => {
-      try {
-        const formattedData = {
-          ...assignmentData,
-          assignment_materials: Array.isArray(
-            assignmentData.assignment_materials,
-          )
-            ? assignmentData.assignment_materials
-            : [],
-          questions: assignmentData.questions.map((q) => ({
-            ...q,
-            marks: Number(q.marks),
-            options_for_mcq:
-              q.question_type === "mcq"
-                ? q.options_for_mcq.map((opt) =>
-                    typeof opt === "string" ? opt : opt.text,
-                  )
-                : [],
-            expected_answer: Array.isArray(q.expected_answer)
-              ? q.expected_answer
-              : [],
-          })),
-        };
-
-        console.log("Formatted data being sent:", formattedData);
-
-        const response = await api.post(
-          "/assignment/create-assignment",
-          formattedData,
-        );
-        return response.data;
-      } catch (error) {
-        console.error("Creation error:", error.response?.data);
-        throw new Error(
-          error.response?.data?.message || "Failed to create assignment",
-        );
-      }
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-};
-
-const useUpdateAssignment = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (assignmentData) => {
-      try {
-        const formattedData = {
-          ...assignmentData,
-          questions: assignmentData.questions.map((q) => ({
-            ...q,
-            marks: Number(q.marks),
-            options_for_mcq:
-              q.question_type === "mcq"
-                ? (q.options_for_mcq || []).map((opt) =>
-                    typeof opt === "string" ? opt : opt.text || "",
-                  )
-                : [],
-            expected_answer: Array.isArray(q.expected_answer)
-              ? q.expected_answer.map((ans) => String(ans || ""))
-              : [],
-          })),
-          assignment_materials: Array.isArray(
-            assignmentData.assignment_materials,
-          )
-            ? assignmentData.assignment_materials
-            : [],
-        };
-
-        console.log("Sending update request:", formattedData);
-        const response = await api.put(
-          `/assignment/${assignmentData.assignment_id}`,
-          formattedData,
-        );
-        return response.data;
-      } catch (error) {
-        console.error("Update error details:", error.response?.data);
-        throw new Error(
-          error.response?.data?.message || "Failed to update assignment",
-        );
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["assignments"]);
-      toast.success("Assignment updated successfully");
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
-};
-
-const fetchAssignments = async (sectionId) => {
+const fetchAssignments = async (sectionId: string) => {
   const { data } = await api.get(
     `/assignment/section/${sectionId}/assignments`,
   );
@@ -185,7 +61,17 @@ const fetchAssignments = async (sectionId) => {
 };
 
 // Main Component
-export default function AssignmentDashboard({ examEvaluation, sectionId }) {
+export default function AssignmentDashboard({
+  examEvaluation,
+  sectionId,
+  section_exclusive_contents,
+  template_course,
+}: {
+  examEvaluation: () => void;
+  sectionId: string;
+  section_exclusive_contents: SectionExclusiveContent[];
+  template_course: TemplateCourse;
+}) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { isAuthenticated } = useAuth();
 
@@ -201,7 +87,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     dispatch({ type: ACTIONS.SET_QUESTIONS, payload: [] }); // Add this line to clear questions
   };
 
-  const handleStep1Next = (details) => {
+  const handleStep1Next = (details: any) => {
     dispatch({ type: ACTIONS.SET_NEW_ASSIGNMENT, payload: details });
     // Check if assessmentType is viva, set to step 4, otherwise step 2
     dispatch({
@@ -216,7 +102,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     // console.log("details", details);
   };
 
-  const handleBack = (details) => {
+  const handleBack = (details: any) => {
     if (state.currentStep > 1) {
       // If we're in VivaStep (step 4), go back to step 1
       if (state.currentStep === 4) {
@@ -238,12 +124,14 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     // console.log("details", details);
   };
 
-  const handleStep2Next = (details) => {
+  const handleStep2Next = (details: any) => {
+    // console.log("details", details);
     dispatch({
       type: ACTIONS.SET_NEW_ASSIGNMENT,
       payload: {
         bookIds: details.bookIds,
         chapterIds: details.chapterIds || {},
+        selectedPdf: details.selectedPdf, // Store PDF in state
       },
     });
     dispatch({ type: ACTIONS.SET_CURRENT_STEP, payload: 3 });
@@ -251,7 +139,8 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
 
   const { mutate: createAssignment } = useCreateAssignment();
 
-  const handlePublish = (finalAssignment) => {
+  const handlePublish = (finalAssignment: Assignment) => {
+    // console.log("finalAssignment", finalAssignment);
     if (state.editingAssignment) {
       handleUpdateAssignment(finalAssignment);
     } else {
@@ -300,7 +189,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
         return;
       }
 
-      createAssignment(newAssignmentEntry, {
+      createAssignment(newAssignmentEntry as Assignment, {
         onSuccess: () => {
           dispatch({
             type: ACTIONS.ADD_ASSIGNMENT,
@@ -309,7 +198,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
           dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
           toast.success("Assignment created successfully");
         },
-        onError: (error) => {
+        onError: (error: any) => {
           console.error(
             "Assignment creation failed:",
             error?.response?.data || error,
@@ -326,9 +215,8 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
       });
     }
   };
-
   const { data: Assignments, isLoading } = useQuery({
-    queryKey: queryClient.invalidateQueries(["assignments", sectionId]),
+    queryKey: ["assignments", sectionId],
     queryFn: () => fetchAssignments(sectionId),
     enabled: !!sectionId && isAuthenticated,
     // staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
@@ -336,9 +224,10 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
   });
 
   const { mutate: deleteAssignment } = useMutation({
-    mutationFn: (assignmentId) => api.delete(`/assignment/${assignmentId}`),
+    mutationFn: (assignmentId: string) =>
+      api.delete(`/assignment/${assignmentId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries(["assignments", sectionId]);
+      queryClient.invalidateQueries({ queryKey: ["assignments", sectionId] });
       toast.success("Assignment deleted successfully");
     },
     onError: (error) => {
@@ -347,7 +236,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     },
   });
 
-  const handleDelete = (assignmentId) => {
+  const handleDelete = (assignmentId: string) => {
     deleteAssignment(assignmentId);
   };
 
@@ -355,7 +244,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     ? sortAssignments(Assignments, state.sortBy)
     : [];
 
-  const handleUpdateAssignment = (finalAssignment) => {
+  const handleUpdateAssignment = (finalAssignment: Assignment) => {
     if (!state.editingAssignment?.assignment_id) {
       toast.error("No assignment ID found for updating");
       return;
@@ -373,7 +262,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
         state.editingAssignment.assignment_type,
       section_id: sectionId,
       number_of_questions: questions.length,
-      questions: questions.map((q) => ({
+      questions: questions.map((q: Question) => ({
         question_text: q.question_text,
         question_type: q.question_type,
         marks: Number(q.marks) || 0,
@@ -384,7 +273,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
       assignment_materials: finalAssignment.assignment_materials || [],
     };
 
-    updateAssignment(updatedAssignment, {
+    updateAssignment(updatedAssignment as Assignment, {
       onSuccess: () => {
         dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
         dispatch({ type: ACTIONS.SET_EDITING_ASSIGNMENT, payload: null });
@@ -392,7 +281,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
     });
   };
 
-  const handleEdit = async (assignmentId) => {
+  const handleEdit = async (assignmentId: string) => {
     try {
       const { data: assignmentData } = await api.get(
         `/assignment/${assignmentId}`,
@@ -404,7 +293,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
         ...assignmentData,
         start_time: new Date(assignmentData.start_time),
         deadline: new Date(assignmentData.deadline),
-        questions: assignmentData.assignment_questions.map((q) => ({
+        questions: assignmentData.assignment_questions.map((q: Question) => ({
           question_id: q.question_id,
           question_text: q.question_text,
           question_type: q.question_type,
@@ -482,7 +371,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
             <TableHead>Start Date</TableHead>
             <TableHead>Deadline</TableHead>
             <TableHead>Total Marks</TableHead>
-            <TableHead>Submitted</TableHead>
+            {/* <TableHead>Submitted</TableHead> */}
             <TableHead>Action</TableHead>
           </TableRow>
         </TableHeader>
@@ -492,8 +381,8 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
               <TableCell colSpan={6}>Loading assignments...</TableCell>
             </TableRow>
           ) : (
-            sortedAssignments.map((assignment) => (
-              <TableRow key={assignment.assignmnent_id}>
+            sortedAssignments.map((assignment: Assignment) => (
+              <TableRow key={assignment.assignment_id}>
                 <TableCell onClick={examEvaluation}>
                   {assignment.assignment_title}
                 </TableCell>
@@ -504,7 +393,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
                   {format(new Date(assignment.deadline), "PPp")}
                 </TableCell>
                 <TableCell>{assignment.total_marks}</TableCell>
-                <TableCell>{assignment.submitted}</TableCell>
+                {/* <TableCell>{assignment.submitted}</TableCell> */}
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -523,13 +412,13 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
                       >
                         Delete
                       </DropdownMenuItem>
-                      <DropdownMenuItem
+                      {/* <DropdownMenuItem
                         onClick={() =>
                           handleCheckSubmission(assignment.assignment_id)
                         }
                       >
                         Check Submission
-                      </DropdownMenuItem>
+                      </DropdownMenuItem> */}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -545,7 +434,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
           dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: open })
         }
       >
-        <DialogContent className="w-[90vw] h-[90vh] sm:max-w-none sm:max-h-none sm:p-4">
+        <DialogContent className="w-screen h-screen sm:max-w-none sm:max-h-none sm:p-4">
           {/* <DialogHeader>
             <DialogTitle>
               {state.editingAssignment ? "Edit Assignment" : ""}
@@ -559,10 +448,12 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
 
           {state.currentStep === 2 && (
             <Step2
-              onNext={handleStep2Next}
-              onBack={handleBack}
+              onNext={(details) => handleStep2Next(details)}
+              onBack={() => handleBack(state.newAssignment)}
               selectedBooks={state.newAssignment.bookIds}
               selectedChapters={state.newAssignment.chapterIds}
+              section_exclusive_contents={section_exclusive_contents}
+              template_course={template_course}
             />
           )}
 
@@ -575,6 +466,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId }) {
                   ? state.editingAssignment.assignment_type
                   : state.newAssignment?.category
               }
+              sectionId={sectionId}
               state={state}
               dispatch={dispatch}
             />
