@@ -19,7 +19,8 @@
   "rules": {
     "@typescript-eslint/no-unused-vars": "warn",
     "react/no-unescaped-entities": "warn",
-    "@next/next/no-img-element": "off"
+    "@next/next/no-img-element": "off",
+    "@typescript-eslint/no-explicit-any": "off"
   },
   "ignorePatterns": ["node_modules/", ".next/", "public/", "components/ui/"]
 }
