@@ -124,7 +124,7 @@ const getIcon = (type: string) => {
   }
 };
 
-const materialTypes = ["All Types", "book", "notes", "slides"];
+const materialTypes = ["All Types", "Book", "Lecture", "Thesis"];
 
 export default function MedicalLibraryPage() {
   const [state, dispatch] = useReducer(reducer, initialState);

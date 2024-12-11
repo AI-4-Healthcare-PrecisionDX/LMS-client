@@ -16,10 +16,12 @@ import {
 import { Input } from "@/components/ui/input";
 import api from "@/lib/axios-config";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import {
   ArrowRight,
   BookOpen,
   CalendarIcon,
+  FileText,
   Microscope,
   Search,
 } from "lucide-react";
@@ -139,8 +141,11 @@ export default function CoursesPage() {
       toast.success("Successfully joined the course");
       dispatch({ type: "RESET_COURSE_CODE" });
     },
-    onError: (error) => {
-      toast.error("Failed to join course: " + error.message);
+    onError: (error: AxiosError) => {
+      toast.error(
+        (error.response?.data as { detail: string })?.detail ||
+          "Failed to join course",
+      );
     },
   });
 
@@ -170,10 +175,21 @@ export default function CoursesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg p-8 mb-8 dark:from-primary/20 dark:via-primary/10 dark:to-primary/20">
-        <h1 className="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
-          My Courses
-        </h1>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 mb-8">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-2">
+              My Courses
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              Access your enrolled clinical courses and learning materials. View
+              course content, assignments and track your progress.
+            </p>
+          </div>
+          <div className="hidden md:flex items-center justify-center w-16 h-16 rounded-full bg-primary/10">
+            <FileText className="w-8 h-8 text-primary" />
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">

@@ -21,16 +21,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 import { Note, useNotes } from "@/hooks/useNotes";
-import { FileText, User, X } from "lucide-react";
+import { FileText, StickyNoteIcon, User, X } from "lucide-react";
 
 const items = [
   { href: "/student", label: "Home" },
@@ -195,49 +188,6 @@ const ResourceManagementPage = () => {
 
       {/* Search and Filter */}
       <div className="flex flex-col items-start justify-between mb-4 space-y-4 md:flex-row">
-        <div className="flex flex-col w-full gap-4 md:flex-row">
-          {/* Sort Section */}
-          <div>
-            <label className="block text-sm font-medium">Sort</label>
-            <Select
-              value={sortOption}
-              onValueChange={(value: "time" | "teacher") =>
-                setSortOption(value)
-              }
-            >
-              <SelectTrigger className="w-full md:w-[280px]">
-                <SelectValue placeholder="Select sorting option" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="time">Sort by Time</SelectItem>
-                <SelectItem value="teacher">Sort by Teacher</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Filter by Teacher */}
-          <div>
-            <label className="block text-sm font-medium">
-              Filter by Teacher
-            </label>
-            <Select value={filterTeacher} onValueChange={setFilterTeacher}>
-              <SelectTrigger className="w-full md:w-[280px]">
-                <SelectValue placeholder="All Teachers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Teachers</SelectItem>
-                {Array.from(
-                  new Set(notes.map((note: Note) => note.note_teacher)),
-                ).map((teacher) => (
-                  <SelectItem key={teacher} value={teacher}>
-                    {teacher}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
         {/* Search */}
         <div className="relative flex items-center w-full md:w-[280px]">
           <SearchIcon className="absolute w-6 h-6 text-gray-500 transform -translate-y-1/2 left-2 top-1/2 dark:text-gray-300" />
@@ -300,7 +250,15 @@ const ResourceManagementPage = () => {
               </Card>
             ))
           ) : (
-            <p className="text-gray-500 dark:text-gray-400">No notes found.</p>
+            <div className="col-span-full flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-800/50 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-700">
+              <StickyNoteIcon className="h-12 w-12 text-gray-400 dark:text-gray-500 mb-3" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
+                No notes found
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Get started by creating your first note
+              </p>
+            </div>
           )}
         </div>
       </ScrollArea>

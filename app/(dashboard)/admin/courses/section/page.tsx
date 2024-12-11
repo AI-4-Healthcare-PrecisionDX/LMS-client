@@ -3,14 +3,18 @@
 
 import { format } from "date-fns";
 import {
+  BookOpen,
   CalendarIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  Key,
   Loader2Icon,
   Pencil,
   PlusIcon,
   SearchIcon,
   Trash2,
+  User,
+  Users,
 } from "lucide-react";
 import { useReducer, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -499,20 +503,31 @@ export default function Component() {
               <CardTitle>{section.section_name}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-500 mb-2">
-                {section.template_course.template_name}
-              </p>
-              <p className="text-sm mb-2">
-                Teacher: {section.teacher.user.first_name}{" "}
-                {section.teacher.user.last_name}
-              </p>
-              <p className="text-sm mb-2">
-                Students: {section.student_count ?? 0}
-              </p>
-              <div className="flex items-center text-sm text-gray-500">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {format(new Date(section.start_date), "MMM d, yyyy")} -{" "}
-                {format(new Date(section.end_date), "MMM d, yyyy")}
+              <div className="space-y-2">
+                <div className="flex items-center text-sm text-gray-500 mb-2">
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  <span>{section.template_course.template_name}</span>
+                </div>
+                <div className="flex items-center text-sm mb-2">
+                  <User className="mr-2 h-4 w-4 text-gray-500" />
+                  <span>
+                    Teacher: {section.teacher.user.first_name}{" "}
+                    {section.teacher.user.last_name}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm mb-2">
+                  <Key className="h-4 w-4 text-gray-500" />
+                  <span>Section Code: {section.section_code}</span>
+                </div>
+                <div className="flex items-center text-sm mb-2">
+                  <Users className="mr-2 h-4 w-4 text-gray-500" />
+                  <span>Students: {section.student_count ?? 0}</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-500">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(new Date(section.start_date), "MMM d, yyyy")} -{" "}
+                  {format(new Date(section.end_date), "MMM d, yyyy")}
+                </div>
               </div>
             </CardContent>
             <CardFooter className="flex justify-between">
