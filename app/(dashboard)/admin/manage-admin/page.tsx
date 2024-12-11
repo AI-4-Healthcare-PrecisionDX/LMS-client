@@ -93,6 +93,7 @@ export default function AdminManagement() {
     },
     onError: (error: Error) => {
       toast.error(`Error updating admin: ${error.message}`);
+      queryClient.invalidateQueries({ queryKey: ["admins"] });
     },
   });
 
@@ -104,6 +105,7 @@ export default function AdminManagement() {
   //   },
   //   onError: (error: Error) => {
   //     toast.error(`Error deleting admin: ${error.message}`);
+  //     queryClient.invalidateQueries({ queryKey: ["admins"] });
   //   },
   // });
 

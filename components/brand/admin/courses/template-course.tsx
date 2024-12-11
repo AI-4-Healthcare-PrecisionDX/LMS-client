@@ -29,6 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import api from "@/lib/axios-config";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { Edit, Loader2, Plus, Search, Trash2 } from "lucide-react";
 import { useReducer, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -138,8 +139,11 @@ export default function TemplateCourse() {
       form.reset();
       toast.success("Course updated successfully");
     },
-    onError: (error) => {
-      toast.error("Failed to update course");
+    onError: (error: AxiosError) => {
+      toast.error(
+        (error.response?.data as { detail: string })?.detail ||
+          "Failed to update course",
+      );
     },
   });
 
@@ -175,6 +179,7 @@ export default function TemplateCourse() {
       updateMutation.mutate({
         id: editingCourse.template_course_id,
         ...values,
+        department_id: editingCourse.department_id, // Keep original department_id when editing
       });
     } else {
       createMutation.mutate(values);
@@ -302,16 +307,22 @@ export default function TemplateCourse() {
                         <FormLabel>Department</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          disabled={departments?.length === 0}
+                          defaultValue={
+                            field.value ? field.value.toString() : undefined
+                          }
+                          disabled={
+                            !!editingCourse || departments?.length === 0
+                          }
                         >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue
                                 placeholder={
-                                  departments?.length === 0
-                                    ? "No departments available"
-                                    : "Select department"
+                                  editingCourse
+                                    ? editingCourse.department.department_name
+                                    : departments?.length === 0
+                                      ? "No departments available"
+                                      : "Select department"
                                 }
                               />
                             </SelectTrigger>
@@ -336,7 +347,7 @@ export default function TemplateCourse() {
                     disabled={
                       createMutation.isPending ||
                       updateMutation.isPending ||
-                      departments?.length === 0
+                      (!editingCourse && departments?.length === 0)
                     }
                   >
                     {(createMutation.isPending || updateMutation.isPending) && (

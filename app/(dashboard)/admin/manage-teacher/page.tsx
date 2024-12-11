@@ -41,6 +41,7 @@ import {
 import api from "@/lib/axios-config";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -130,44 +131,53 @@ export default function AdminManagement() {
     isLoading,
     isError,
     error,
-  } = useQuery<Admin[], Error>({
-    queryKey: ["admins"],
+  } = useQuery<Admin[], AxiosError>({
+    queryKey: ["manage-teachers"],
     queryFn: fetchAdmins,
   });
 
   const createMutation = useMutation({
     mutationFn: (data: AdminFormData) => createAdmin({ data }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admins"] });
-      toast.success("Admin created successfully");
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
+      toast.success("Teacher created successfully");
       form.reset();
     },
-    onError: (error: Error) => {
-      toast.error(`Error creating admin: ${error.message}`);
+    onError: (error: AxiosError) => {
+      toast.error(
+        `Failed to create teacher: ${(error.response?.data as { detail: string })?.detail}`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: updateAdmin,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admins"] });
-      toast.success("Admin updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
+      toast.success("Teacher updated successfully");
       setEditingAdmin(null);
       form.reset();
     },
-    onError: (error: Error) => {
-      toast.error(`Error updating admin: ${error.message}`);
+    onError: (error: AxiosError) => {
+      toast.error(
+        `Failed to update teacher: ${(error.response?.data as { detail: string })?.detail}`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteAdmin,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admins"] });
-      toast.success("Admin deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
+      toast.success("Teacher deleted successfully");
     },
-    onError: (error: Error) => {
-      toast.error(`Error deleting admin: ${error.message}`);
+    onError: (error: AxiosError) => {
+      toast.error(
+        `Failed to delete teacher: ${(error.response?.data as { detail: string })?.detail}`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
     },
   });
 

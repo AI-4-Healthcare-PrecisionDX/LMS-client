@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { format } from "date-fns";
@@ -69,6 +70,7 @@ import {
 import api from "@/lib/axios-config";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 
 export default function Component() {
   const [state, dispatch] = useReducer(reducer, {
@@ -123,13 +125,8 @@ export default function Component() {
   const { data: teachers, error: teachersError } = useQuery({
     queryKey: ["teachers"],
     queryFn: async () => {
-      try {
-        const response = await api.get<Teacher[]>("/admin/teachers");
-        return response.data;
-      } catch (error) {
-        toast.error("Failed to fetch teachers. Please try again later.");
-        throw error;
-      }
+      const response = await api.get<Teacher[]>("/admin/teachers");
+      return response.data;
     },
   });
 
@@ -143,9 +140,11 @@ export default function Component() {
       form.reset();
       toast.success("Section added successfully!");
     },
-    onError: (error) => {
-      toast.error("Failed to add section. Please try again.");
-      console.error("Add section error:", error);
+    onError: (error: AxiosError) => {
+      toast.error(
+        (error.response?.data as { detail: string })?.detail ||
+          "Failed to add section",
+      );
     },
   });
 
@@ -160,9 +159,11 @@ export default function Component() {
       setEditingSection(null);
       toast.success("Section updated successfully");
     },
-    onError: (error) => {
-      toast.error("Failed to update section. Please try again.");
-      console.error("Edit section error:", error);
+    onError: (error: AxiosError) => {
+      toast.error(
+        (error.response?.data as { detail: string })?.detail ||
+          "Failed to update section",
+      );
     },
   });
 
@@ -173,9 +174,11 @@ export default function Component() {
       queryClient.invalidateQueries({ queryKey: ["sections"] });
       toast.success("Section deleted successfully");
     },
-    onError: (error) => {
-      toast.error("Failed to delete section. Please try again.");
-      console.error("Delete section error:", error);
+    onError: (error: AxiosError) => {
+      toast.error(
+        (error.response?.data as { detail: string })?.detail ||
+          "Failed to delete section",
+      );
     },
   });
 
@@ -219,23 +222,18 @@ export default function Component() {
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      await addSectionMutation.mutateAsync(values);
-    } catch (error) {
-      console.error("Form submission error:", error);
-    }
+    await addSectionMutation.mutateAsync(values);
   };
 
   const onEditSubmit = async (values: z.infer<typeof formSchema>) => {
     if (editingSection) {
-      try {
-        await editSectionMutation.mutateAsync({
-          ...values,
-          section_id: editingSection.section_id,
-        });
-      } catch (error) {
-        console.error("Edit form submission error:", error);
-      }
+      await editSectionMutation.mutateAsync({
+        ...values,
+        section_id: editingSection.section_id,
+        // Keep original teacher and course IDs
+        teacher_id: editingSection.teacher.teacher_id,
+        template_course_id: editingSection.template_course.template_course_id,
+      });
     }
   };
 
@@ -243,8 +241,8 @@ export default function Component() {
     setEditingSection(section);
     editForm.reset({
       section_name: section.section_name,
-      start_date: section.start_date,
-      end_date: section.end_date,
+      start_date: format(new Date(section.start_date), "yyyy-MM-dd"),
+      end_date: format(new Date(section.end_date), "yyyy-MM-dd"),
       template_course_id: section.template_course.template_course_id,
       teacher_id: section.teacher.teacher_id,
     });
@@ -252,11 +250,7 @@ export default function Component() {
   };
 
   const handleDelete = async (sectionId: string) => {
-    try {
-      await deleteSectionMutation.mutateAsync(sectionId);
-    } catch (error) {
-      console.error("Delete section error:", error);
-    }
+    await deleteSectionMutation.mutateAsync(sectionId);
   };
 
   if (isLoading) {
@@ -527,7 +521,7 @@ export default function Component() {
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
+                  <Button className="bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40">
                     <Trash2 className="mr-2 h-4 w-4" /> Delete
                   </Button>
                 </AlertDialogTrigger>
@@ -632,32 +626,14 @@ export default function Component() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Course</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a course" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {courses?.map(
-                          (course: {
-                            template_course_id: string;
-                            template_name: string;
-                          }) => (
-                            <SelectItem
-                              key={course.template_course_id}
-                              value={course.template_course_id}
-                            >
-                              {course.template_name}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
+                    <FormControl>
+                      <Input
+                        value={
+                          editingSection?.template_course.template_name || ""
+                        }
+                        disabled
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />
@@ -667,27 +643,15 @@ export default function Component() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Teacher</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a teacher" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {teachers?.map((teacher) => (
-                          <SelectItem
-                            key={teacher.teacher.teacher_id}
-                            value={teacher.teacher.teacher_id}
-                          >
-                            {teacher.first_name} {teacher.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
+                    <FormControl>
+                      <Input
+                        value={
+                          `${editingSection?.teacher.user.first_name} ${editingSection?.teacher.user.last_name}` ||
+                          ""
+                        }
+                        disabled
+                      />
+                    </FormControl>
                   </FormItem>
                 )}
               />

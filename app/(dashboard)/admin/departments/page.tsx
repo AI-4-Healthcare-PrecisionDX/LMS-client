@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api from "@/lib/axios-config";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import {
   Building2,
   Check,
@@ -24,19 +25,18 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useReducer } from "react";
+import { useReducer, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
 // Zod schemas
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const departmentSchema = z.object({
   department_id: z.string(),
   department_name: z.string().min(1, "Department name is required"),
   branch_id: z.string(),
   updated_at: z.string(),
 });
-
-const departmentArraySchema = z.array(departmentSchema);
 
 type Department = z.infer<typeof departmentSchema>;
 
@@ -83,6 +83,7 @@ const reducer = (state: State, action: Action): State => {
 export default function ManageDepartments() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Fetch departments
   const {
@@ -93,8 +94,7 @@ export default function ManageDepartments() {
     queryKey: ["departments"],
     queryFn: async () => {
       const response = await api.get("/admin/departments");
-      const parsedData = departmentArraySchema.parse(response.data);
-      return parsedData;
+      return response.data;
     },
   });
 
@@ -104,16 +104,19 @@ export default function ManageDepartments() {
       const response = await api.post("/admin/create_department", {
         department_name: name,
       });
-      const parsedData = departmentSchema.parse(response.data);
-      return parsedData;
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
       dispatch({ type: "SET_NEW_DEPARTMENT_NAME", payload: "" });
-      toast.success("Department created successfully");
+      toast.success("Department created successfully!");
     },
-    onError: (error) => {
-      toast.error(error.message || "Failed to create department");
+    onError: (error: AxiosError) => {
+      toast.error(
+        (error.response?.data as { detail: string })?.detail ||
+          "Failed to create department",
+      );
+      queryClient.invalidateQueries({ queryKey: ["departments"] });
     },
   });
 
@@ -123,32 +126,38 @@ export default function ManageDepartments() {
       const response = await api.put(`/admin/departments/${id}`, {
         department_name: name,
       });
-      const parsedData = departmentSchema.parse(response.data);
-      return parsedData;
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
       dispatch({ type: "SET_EDITING", payload: { id: null } });
-      toast.success("Department updated successfully");
+      toast.success("Department updated successfully!");
     },
-    onError: (error) => {
-      toast.error(error.message || "Failed to update department");
+    onError: (error: AxiosError) => {
+      toast.error(
+        (error.response?.data as { detail: string })?.detail ||
+          "Failed to update department",
+      );
+      queryClient.invalidateQueries({ queryKey: ["departments"] });
     },
   });
 
   // Delete department mutation
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      setDeletingId(id);
       const response = await api.delete(`/admin/delete-department/${id}`);
-      const parsedData = departmentSchema.parse(response.data);
-      return parsedData;
+      return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["departments"] });
-      toast.success("Department deleted successfully");
+      toast.success("Department deleted successfully!");
+      setDeletingId(null);
     },
-    onError: (error) => {
-      toast.error(error.message || "Failed to delete department");
+    onError: (error: AxiosError) => {
+      toast.error((error.response?.data as { detail: string })?.detail);
+      queryClient.invalidateQueries({ queryKey: ["departments"] });
+      setDeletingId(null);
     },
   });
 
@@ -285,10 +294,10 @@ export default function ManageDepartments() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        disabled={deleteMutation.isPending}
+                        disabled={deletingId === dept.department_id}
                         className="rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40"
                       >
-                        {deleteMutation.isPending ? (
+                        {deletingId === dept.department_id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <Trash2 className="w-4 h-4" />

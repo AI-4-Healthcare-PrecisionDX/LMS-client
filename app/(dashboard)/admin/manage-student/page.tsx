@@ -86,7 +86,15 @@ const createStudent = async ({
 }: {
   data: AdminFormData;
 }): Promise<Admin> => {
-  const response = await api.post(`/admin/create-student`, data);
+  const response = await api.post(`/admin/create-student`, {
+    first_name: data.first_name,
+    last_name: data.last_name,
+    email: data.email,
+    gender: data.gender,
+    phone_number: data.phone_number,
+    password: data.password,
+    matric_id: data.matric_id,
+  });
   return response.data;
 };
 
@@ -140,12 +148,13 @@ export default function AdminManagement() {
     mutationFn: (data: AdminFormData) => createStudent({ data }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manage-students"] });
-      toast.success("Admin created successfully");
+      toast.success("Student created successfully");
       form.reset();
     },
     onError: (error: AxiosError) => {
-      console.log(error);
-      toast.error(`${(error.response?.data as { detail: string })?.detail}`);
+      toast.error(
+        `Failed to create student: ${(error.response?.data as { detail: string })?.detail}`,
+      );
     },
   });
 
@@ -153,12 +162,15 @@ export default function AdminManagement() {
     mutationFn: updateStudent,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["manage-students"] });
-      toast.success("Admin updated successfully");
+      toast.success("Student updated successfully");
       setEditingAdmin(null);
       form.reset();
     },
     onError: (error: AxiosError) => {
-      toast.error((error.response?.data as { detail: string }).detail);
+      toast.error(
+        `Failed to update student: ${(error.response?.data as { detail: string }).detail}`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["manage-students"] });
     },
   });
 
@@ -169,7 +181,8 @@ export default function AdminManagement() {
       toast.success("Student deleted successfully");
     },
     onError: (error: Error) => {
-      toast.error(`Error deleting admin: ${error.message}`);
+      toast.error(`Failed to delete student: ${error.message}`);
+      queryClient.invalidateQueries({ queryKey: ["manage-students"] });
     },
   });
 
@@ -189,6 +202,7 @@ export default function AdminManagement() {
       email: admin.email,
       gender: admin.gender,
       phone_number: admin.phone_number,
+      matric_id: "",
       password: "", // Don't set the password when editing
     });
   };
@@ -333,7 +347,15 @@ export default function AdminManagement() {
                 variant="outline"
                 onClick={() => {
                   setEditingAdmin(null);
-                  form.reset();
+                  form.reset({
+                    first_name: "",
+                    last_name: "",
+                    email: "",
+                    gender: "",
+                    phone_number: "",
+                    password: "",
+                    matric_id: "",
+                  });
                 }}
                 className="ml-2"
               >
