@@ -51,8 +51,6 @@ interface Step2Props {
   template_course: TemplateCourse;
 }
 
-// Create atom for selected PDF
-
 export default function Step2({
   onNext,
   onBack,
@@ -306,7 +304,7 @@ export default function Step2({
   };
 
   const handlePreviewPdf = () => {
-    if (!selectedPdfState.url) {
+    if (!selectedPdfState?.url) {
       toast.error("Please generate PDF first");
       return;
     }
@@ -445,14 +443,14 @@ export default function Step2({
             </Button>
             <Button
               onClick={handlePreviewPdf}
-              disabled={!selectedPdfState.url || isLoadingPdf}
+              disabled={!selectedPdfState?.url || isLoadingPdf}
               className="w-full md:w-auto"
             >
               Preview PDF
             </Button>
           </div>
 
-          {isDialogOpen && selectedPdfState.url && (
+          {isDialogOpen && selectedPdfState?.url && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogContent className="w-3/4 h-screen max-w-none m-0 p-6">
                 <DialogHeader>
@@ -492,10 +490,10 @@ export default function Step2({
               bookIds: currentBooks,
               chapterIds: currentChapters,
               selectedSections,
-              selectedPdf: selectedPdfState.url,
+              selectedPdf: selectedPdfState?.url || null,
             })
           }
-          disabled={!hasSelectedContent || !selectedPdfState.pdfBytes}
+          disabled={!hasSelectedContent || !selectedPdfState?.pdfBytes}
           size="lg"
           className="text-lg"
         >
