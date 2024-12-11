@@ -130,23 +130,29 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
   const { mutate: createAssignment } = useCreateAssignment();
 
   const handlePublish = (finalAssignment: Assignment) => {
-    // console.log("finalAssignment", finalAssignment);
     if (state.editingAssignment) {
       handleUpdateAssignment(finalAssignment);
     } else {
-      // Get questions array safely
       const questions = Array.isArray(finalAssignment?.questions)
-        ? finalAssignment.questions
+        ? finalAssignment.questions.map(q => ({
+          question_text: q.question_text,
+          question_type: q.question_type,
+          marks: Number(q.marks) || 0,
+          options_for_mcq: q.options_for_mcq || [],
+          expected_answer: q.expected_answer || [],
+          explanation: q.explanation,
+          pattern_type: q.pattern_type,
+          difficulty: q.difficulty,
+          isAIGenerated: q.isAIGenerated // Preserve AI generation flag
+        }))
         : [];
 
-      // Format assignment materials properly
       const assignment_materials = Array.isArray(
         finalAssignment.assignment_materials,
       )
         ? finalAssignment.assignment_materials
         : [];
 
-      // Create new assignment entry with all required fields
       const newAssignmentEntry = {
         assignment_type: state.newAssignment?.category || "manual",
         assignment_title:
@@ -161,8 +167,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
         start_time:
           state.start_time || finalAssignment.start_time || new Date(),
         deadline: state.deadline || finalAssignment.deadline || new Date(),
-        questions: finalAssignment.questions,
-        // Only include the library_ids
+        questions: questions, // Use the mapped questions array
         assignment_materials: assignment_materials,
       };
 
@@ -241,7 +246,18 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
     }
 
     const questions = Array.isArray(finalAssignment?.questions)
-      ? finalAssignment.questions
+      ? finalAssignment.questions.map(q => ({
+        question_id: q.question_id, // Preserve existing question ID if it exists
+        question_text: q.question_text,
+        question_type: q.question_type,
+        marks: Number(q.marks) || 0,
+        options_for_mcq: q.options_for_mcq || [],
+        expected_answer: q.expected_answer || [],
+        explanation: q.explanation,
+        pattern_type: q.pattern_type,
+        difficulty: q.difficulty,
+        isAIGenerated: q.isAIGenerated
+      }))
       : [];
 
     const updatedAssignment = {
@@ -252,14 +268,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
         state.editingAssignment.assignment_type,
       section_id: sectionId,
       number_of_questions: questions.length,
-      questions: questions.map((q: Question) => ({
-        question_text: q.question_text,
-        question_type: q.question_type,
-        marks: Number(q.marks) || 0,
-        options_for_mcq: q.options_for_mcq, // Convert to array of strings
-        expected_answer: q.expected_answer || [],
-        question_id: q.question_id, // Preserve question_id for updates
-      })),
+      questions: questions,
       assignment_materials: finalAssignment.assignment_materials || [],
     };
 
@@ -267,7 +276,12 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
       onSuccess: () => {
         dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
         dispatch({ type: ACTIONS.SET_EDITING_ASSIGNMENT, payload: null });
+        toast.success("Assignment updated successfully");
       },
+      onError: (error) => {
+        toast.error("Failed to update assignment");
+        console.error(error);
+      }
     });
   };
 
@@ -289,8 +303,15 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
           question_type: q.question_type,
           marks: q.marks,
           options_for_mcq: q.options_for_mcq || [],
-          expected_answer: q.expected_answer,
+          expected_answer: q.expected_answer || [],
+          explanation: q.explanation || '',
+          pattern_type: q.pattern_type || '',
+          difficulty: q.difficulty || '',
+          isAiGenerated: q.isAiGenerated || false,
+          ai_metadata: q.ai_metadata || {},
+          text: q.text // Include text field as some AI questions might use this
         })),
+        assignment_materials: assignmentData.assignment_materials || []
       };
 
       dispatch({

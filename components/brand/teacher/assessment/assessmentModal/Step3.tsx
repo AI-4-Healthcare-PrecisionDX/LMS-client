@@ -43,8 +43,6 @@ export default function Step3({
       ? state.materials.map((material: any) => material.library_id)
       : [];
 
-    console.log("assignment_materials", assignment_materials.library_item_id);
-
     if (state.editingAssignment) {
       const updatedAssignment = {
         assignment_id: state.editingAssignment.assignment_id,
@@ -66,6 +64,10 @@ export default function Step3({
           expected_answer: Array.isArray(q.expected_answer)
             ? q.expected_answer.map((ans: string) => String(ans || ""))
             : [],
+          explanation: q.explanation, // Preserve AI explanation
+          pattern_type: q.pattern_type, // Preserve AI pattern type
+          difficulty: q.difficulty, // Preserve AI difficulty
+          isAIGenerated: q.isAIGenerated // Preserve AI generation flag
         })),
         assignment_materials,
       };
@@ -85,7 +87,20 @@ export default function Step3({
         deadline: state.deadline.toISOString(),
         section_id: sectionId,
         assignment_materials,
-        questions: state.questions,
+        questions: questions.map((q: Question) => ({
+          question_id: q.question_id,
+          question_text: String(q.question_text || ""),
+          question_type: String(q.question_type || ""),
+          marks: Number(q.marks) || 0,
+          options_for_mcq: q.options_for_mcq,
+          expected_answer: Array.isArray(q.expected_answer)
+            ? q.expected_answer.map((ans: string) => String(ans || ""))
+            : [],
+          explanation: q.explanation,
+          pattern_type: q.pattern_type,
+          difficulty: q.difficulty,
+          isAIGenerated: q.isAIGenerated
+        })),
       };
 
       onPublish(newAssignment as Assignment);
@@ -127,7 +142,8 @@ export default function Step3({
               <TabsTrigger
                 value="questions"
                 className="text-lg py-3"
-                disabled={category === "manual" && !state.assignment_title}
+                // Remove the category condition to allow access to questions tab
+                disabled={!state.assignment_title}
               >
                 <Edit3 className="w-4 h-4 mr-2" />
                 Questions

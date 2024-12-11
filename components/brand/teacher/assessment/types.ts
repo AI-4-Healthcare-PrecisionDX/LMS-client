@@ -9,19 +9,20 @@ type AssignmentMaterial = {
 };
 
 // Type for Questions
-type Question = {
-    question_id: string;
+export interface Question {
+    question_id?: string;
     question_type: string;
     question_text: string;
     marks: number;
-    options_for_mcq: string[];
+    options_for_mcq?: string[];
     expected_answer: string[];
-    question_description: string;
     // Add AI-specific fields
-    pattern_type?: string;
-    difficulty?: "easy" | "medium" | "hard";
     explanation?: string;
-};
+    pattern_type?: string;
+    difficulty?: string;
+    isAIGenerated?: boolean;
+    isEditable?: boolean;
+}
 
 // Type for Assignment
 type Assignment = {
@@ -42,5 +43,5 @@ type Assignments = Assignment[];
 
 
 
-export type { Assignment, AssignmentMaterial, Assignments, Question };
+export type { Assignment, AssignmentMaterial, Assignments };
 

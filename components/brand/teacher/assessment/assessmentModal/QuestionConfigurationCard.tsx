@@ -37,7 +37,7 @@ interface PatternCounts {
 }
 
 const patterns = [
-  { key: "questionBank" as PatternKey, label: "Question Bank", icon: BookOpen },
+  { key: "questionBank" as PatternKey, label: "Simple Question", icon: BookOpen },
   { key: "adaptiveLearning" as PatternKey, label: "Adaptive Learning", icon: GraduationCap },
   { key: "applicationBased" as PatternKey, label: "Application-based", icon: CheckCircle2 },
   { key: "writingAssignment" as PatternKey, label: "Writing Assignment", icon: Edit3 },
@@ -149,9 +149,6 @@ export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf
       toast.error("Failed to generate questions. Please try again.");
     }
   };
-
-
-  // console.log("aiGenerateQuestionsFormatted", aiGenerateQuestionsFormatted);
 
 
 

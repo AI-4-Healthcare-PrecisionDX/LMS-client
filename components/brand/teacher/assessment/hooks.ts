@@ -16,19 +16,33 @@ export const useCreateAssignment = () => {
                     )
                         ? assignmentData.assignment_materials
                         : [],
-                    questions: assignmentData.questions.map((q) => ({
-                        ...q,
-                        marks: Number(q.marks),
-                        options_for_mcq:
-                            q.question_type === "mcq"
-                                ? q.options_for_mcq.map((opt: any) =>
-                                    typeof opt === "string" ? opt : opt.text,
-                                )
+                    questions: assignmentData.questions.map((q) => {
+                        // Start with basic question formatting
+                        const formattedQuestion = {
+                            ...q,
+                            marks: Number(q.marks),
+                            options_for_mcq:
+                                q.question_type === "mcq"
+                                    ? q.options_for_mcq.map((opt: any) =>
+                                        typeof opt === "string" ? opt : opt.text,
+                                    )
+                                    : [],
+                            expected_answer: Array.isArray(q.expected_answer)
+                                ? q.expected_answer
                                 : [],
-                        expected_answer: Array.isArray(q.expected_answer)
-                            ? q.expected_answer
-                            : [],
-                    })),
+                        };
+
+                        // If the question is AI-generated, preserve any additional AI-specific fields
+                        if (q.isAiGenerated) {
+                            return {
+                                ...formattedQuestion,
+                                question_text: q.question_text || q.text, // Handle both formats
+                                ai_metadata: q.ai_metadata || {}, // Preserve any AI-specific metadata
+                            };
+                        }
+
+                        return formattedQuestion;
+                    }),
                 };
 
                 // console.log("Formatted data being sent:", formattedData);
@@ -59,19 +73,38 @@ export const useUpdateAssignment = () => {
             try {
                 const formattedData = {
                     ...assignmentData,
-                    questions: assignmentData.questions.map((q) => ({
-                        ...q,
-                        marks: Number(q.marks),
-                        options_for_mcq:
-                            q.question_type === "mcq"
-                                ? (q.options_for_mcq || []).map((opt: any) =>
-                                    typeof opt === "string" ? opt : opt.text || "",
-                                )
+                    questions: assignmentData.questions.map((q) => {
+                        // Start with basic question formatting
+                        const formattedQuestion = {
+                            ...q,
+                            question_id: q.question_id, // Preserve the question ID
+                            marks: Number(q.marks),
+                            options_for_mcq:
+                                q.question_type === "mcq"
+                                    ? (q.options_for_mcq || []).map((opt: any) =>
+                                        typeof opt === "string" ? opt : opt.text || "",
+                                    )
+                                    : [],
+                            expected_answer: Array.isArray(q.expected_answer)
+                                ? q.expected_answer.map((ans) => String(ans || ""))
                                 : [],
-                        expected_answer: Array.isArray(q.expected_answer)
-                            ? q.expected_answer.map((ans) => String(ans || ""))
-                            : [],
-                    })),
+                            explanation: q.explanation || "",
+                            pattern_type: q.pattern_type || "",
+                            difficulty: q.difficulty || ""
+                        };
+
+                        // If the question is AI-generated, preserve AI-specific fields
+                        if (q.isAiGenerated) {
+                            return {
+                                ...formattedQuestion,
+                                question_text: q.question_text || q.text, // Handle both formats
+                                ai_metadata: q.ai_metadata || {}, // Preserve AI metadata
+                                isAiGenerated: true
+                            };
+                        }
+
+                        return formattedQuestion;
+                    }),
                     assignment_materials: Array.isArray(
                         assignmentData.assignment_materials,
                     )
