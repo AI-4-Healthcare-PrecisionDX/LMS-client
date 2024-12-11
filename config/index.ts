@@ -27,6 +27,7 @@ type Menu = {
   active: boolean;
   icon: any;
   submenus: Submenu[];
+  openInNewTab?: boolean;
 };
 
 type Group = {
@@ -83,6 +84,13 @@ export function getAdminMenuList(pathname: string): Group[] {
           href: "/admin/case",
           label: "Case",
           active: pathname === "/admin/case",
+          icon: Book,
+          submenus: [],
+        },
+        {
+          href: "/admin/public-library",
+          label: "Public Library",
+          active: pathname.includes("/admin/public-library"),
           icon: Book,
           submenus: [],
         },
@@ -152,33 +160,28 @@ export function getStudentMenuList(pathname: string): Group[] {
         {
           href: "/student/courses",
           label: "My Courses",
-          active: ["/student/courses"].includes(pathname),
+          active: pathname.startsWith("/student/courses"),
           icon: Book,
           submenus: [],
         },
-        {
-          href: "/student/announcements",
-          label: "Announcements",
-          active: ["/student/announcements"].includes(pathname),
-          icon: MessageSquare,
-          submenus: [],
-        },
+        // {
+        //   href: "/student/announcements",
+        //   label: "Announcements",
+        //   active: pathname.startsWith("/student/announcements"),
+        //   icon: MessageSquare,
+        //   submenus: [],
+        // },
         {
           href: "/student/resource-management",
           label: "Note Management",
-          active: ["/student/resource-management"].includes(pathname),
+          active: pathname.startsWith("/student/resource-management"),
           icon: Package,
           submenus: [],
         },
         {
           href: "/student/practice",
           label: "Clinical Practice",
-          active: [
-            "/student/practice",
-            "/student/practice/cases",
-            "/student/practice/virtual-room",
-            "/student/practice/details",
-          ].includes(pathname),
+          active: pathname.startsWith("/student/practice"),
           icon: Text,
           submenus: [],
         },
@@ -192,7 +195,7 @@ export function getStudentMenuList(pathname: string): Group[] {
         {
           href: "/student/events",
           label: "Events",
-          active: ["/student/events"].includes(pathname),
+          active: pathname.startsWith("/student/events"),
           icon: Calendar,
           submenus: [],
         },
@@ -201,6 +204,13 @@ export function getStudentMenuList(pathname: string): Group[] {
           label: "Counselling",
           active: ["/student/counselling"].includes(pathname),
           icon: MessageSquare,
+          submenus: [],
+        },
+        {
+          href: "/student/public-library",
+          label: "Public Library",
+          active: pathname.includes("/student/public-library"),
+          icon: Book,
           submenus: [],
         },
       ],
@@ -227,13 +237,13 @@ export function getTeacherMenuList(pathname: string): Group[] {
           icon: MessageSquare,
           submenus: [],
         },
-        // {
-        //   href: "/teacher/course-details/1",
-        //   label: "Courses",
-        //   active: ["/teacher/course-details"].includes(pathname),
-        //   icon: Book,
-        //   submenus: [],
-        // },
+        {
+          href: "/teacher/public-library",
+          label: "Public Library",
+          active: pathname.includes("/teacher/public-library"),
+          icon: Book,
+          submenus: [],
+        },
       ],
     },
   ];

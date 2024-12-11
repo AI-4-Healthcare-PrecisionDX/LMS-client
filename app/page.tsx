@@ -1,10 +1,10 @@
 "use client";
 
+import axios from "axios";
 import { motion } from "framer-motion";
 import { AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React from "react";
-import axios from "axios";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -20,18 +20,17 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { useLogin } from "@/hooks/useLogin";
 
-
 // Loading spinner component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center">
     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-    <span className="ml-2">Logging in...</span>
+    <span className="ml-2">Loading...</span>
   </div>
 );
 
 export default function Login() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { mutate: login, isPending, error: loginError } = useLogin();
 
   // Navigation effect
@@ -44,7 +43,7 @@ export default function Login() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    
+
     const credentials = {
       username: formData.get("username") as string,
       password: formData.get("password") as string,
@@ -69,6 +68,14 @@ export default function Login() {
     }
     return "An unexpected error occurred";
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">

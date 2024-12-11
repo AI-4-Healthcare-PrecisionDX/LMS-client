@@ -88,3 +88,6 @@ export const questionConfigAtom = atom<QuestionConfigState>({
   expandedPattern: null,
   isQuestionsGenerated: false,
 });
+
+// Doctor Note
+export const doctorNoteAtom = atom<string>("");

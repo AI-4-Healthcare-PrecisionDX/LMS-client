@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CollapseMenuButton } from "./collapse-menu-button";
 import {
   getAdminMenuList,
   getStudentMenuList,
   getTeacherMenuList,
 } from "@/config";
+import { cn } from "@/lib/utils";
+import { CollapseMenuButton } from "./collapse-menu-button";
 
 const getMenuListByRole = (role: string, pathname: string) => {
   switch (role) {
@@ -42,7 +42,10 @@ export function Menu() {
               </p>
 
               {menus.map(
-                ({ href, label, icon: Icon, active, submenus }, index) =>
+                (
+                  { href, label, icon: Icon, active, submenus, openInNewTab },
+                  index,
+                ) =>
                   submenus.length === 0 ? (
                     <div className="w-full" key={index}>
                       <Button
@@ -50,7 +53,10 @@ export function Menu() {
                         className="w-full justify-start h-10 mb-1"
                         asChild
                       >
-                        <Link href={href}>
+                        <Link
+                          href={href}
+                          target={openInNewTab ? "_blank" : undefined}
+                        >
                           <span>
                             <Icon size={18} />
                           </span>

@@ -2,6 +2,8 @@
 
 export const runtime = "edge";
 
+import ErrorMessage from "@/components/brand/shared/error";
+import CaseLoadingSkeleton from "@/components/brand/shared/loading";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,20 +21,49 @@ import {
 } from "@/components/ui/dialog";
 import api from "@/lib/axios-config";
 import { useQuery } from "@tanstack/react-query";
-import { Brain, Info } from "lucide-react";
+import {
+  ArrowLeft,
+  Brain,
+  CheckCircle2,
+  Clock,
+  FileX,
+  Info,
+} from "lucide-react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useReducer } from "react";
+import { toast } from "sonner";
 
-const initialState = {
-  selectedScenario: null as Scenario | null,
+type Thread = {
+  name: string | null;
+  doctor_notes: string | null;
+  diagnosis: string | null;
+  treatment: string | null;
+  scenario_thread_id: string;
 };
 
 type Scenario = {
   scenario_id: string;
   scenario_title: string;
   patient_name: string;
-  patient_age: number;
+  patient_age: string;
+  patient_gender: string;
   patient_chief_complaint: string;
+};
+
+type ScenarioWithThread = {
+  thread: Thread;
+  scenario: Scenario;
+};
+
+type ApiResponse = {
+  department_scenarios: Scenario[];
+  evaluated_scenarios: ScenarioWithThread[];
+  unevaluated_scenarios: ScenarioWithThread[];
+};
+
+const initialState = {
+  selectedScenario: null as Scenario | null,
 };
 
 type State = typeof initialState;
@@ -52,15 +83,11 @@ export default function DepartmentScenarios() {
   const router = useRouter();
   const [, dispatch] = useReducer(reducer, initialState);
 
-  const {
-    data: scenarios = [],
-    isLoading,
-    error,
-  } = useQuery({
+  const { data, isLoading, error } = useQuery<ApiResponse>({
     queryKey: ["scenarios", params.departmnet],
     queryFn: async () => {
       const response = await api.get(
-        `/clinical-practice/department/${params.departmnet}/scenarios?skip=0&limit=100`,
+        `/clinical-practice/department/${params.departmnet}/scenarios`,
       );
       return response.data;
     },
@@ -76,62 +103,82 @@ export default function DepartmentScenarios() {
         `/student/practice/${params.departmnet}/${scenario_thread_id}`,
       );
     } catch (error) {
-      console.error("Error starting test:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Please try again later",
+      );
     }
   };
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-        <div className="text-red-500 text-xl font-semibold mb-4">
-          Error loading scenarios
-        </div>
-        <p className="text-gray-600 dark:text-gray-400 text-center mb-4">
-          {error.message || "Please try again later"}
-        </p>
-        <Button onClick={() => window.location.reload()} variant="outline">
-          Retry
-        </Button>
-      </div>
-    );
+    return <ErrorMessage error={error} title="Error loading scenarios" />;
   }
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-gray-600 dark:text-gray-400">
-          Loading scenarios...
-        </p>
-      </div>
-    );
+    return <CaseLoadingSkeleton />;
   }
 
-  if (!scenarios || scenarios.length === 0) {
+  if (
+    !data ||
+    (!data.department_scenarios.length &&
+      !data.evaluated_scenarios.length &&
+      !data.unevaluated_scenarios.length)
+  ) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-        <div className="text-xl font-semibold mb-4 dark:text-white">
-          No Scenarios Available
+        <FileX className="w-16 h-16 text-gray-400 mb-4" />
+        <div className="text-2xl font-semibold mb-4 dark:text-white">
+          No Clinical Scenarios Found
         </div>
-        <p className="text-gray-600 dark:text-gray-400 text-center mb-4">
-          There are currently no clinical scenarios available for this
-          department.
-        </p>
-        <Button onClick={() => window.location.reload()} variant="outline">
-          Refresh
-        </Button>
+        <div className="max-w-md">
+          <p className="text-gray-600 dark:text-gray-400 text-center mb-2">
+            There are currently no clinical scenarios available for this
+            department.
+          </p>
+          <p className="text-gray-500 dark:text-gray-500 text-sm text-center mb-6">
+            Please check back later or try a different department.
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <Link href="/student/practice" className="flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Go Back
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <nav className="mb-8">
+        <ol className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+          <li>
+            <Link
+              href="/student/practice"
+              className="hover:text-primary transition-colors"
+            >
+              Practice
+            </Link>
+          </li>
+          <li>
+            <span className="mx-2">/</span>
+          </li>
+          <li>
+            <span className="font-medium text-gray-900 dark:text-white capitalize">
+              {params.departmnet?.toString().replace(/-/g, " ")}
+            </span>
+          </li>
+        </ol>
+      </nav>
       <h1 className="text-3xl font-bold mb-8 text-center dark:text-white">
         Clinical Scenarios
       </h1>
-
+      <h2 className="text-2xl font-semibold mb-4 dark:text-white flex items-center gap-2">
+        <Brain className="w-6 h-6 text-blue-500" />
+        Available Scenarios ({data.department_scenarios.length})
+      </h2>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {scenarios.map((scenario: Scenario) => (
+        {data.department_scenarios.map((scenario) => (
           <Card key={scenario.scenario_id} className="flex flex-col">
             <CardHeader>
               <CardTitle className="text-xl font-semibold">
@@ -144,7 +191,7 @@ export default function DepartmentScenarios() {
                 Patient: {scenario.patient_name}
               </p>
               <p className="text-gray-600 dark:text-gray-300">
-                Age: {scenario.patient_age}
+                Age: {scenario.patient_age} | Gender: {scenario.patient_gender}
               </p>
             </CardContent>
 
@@ -165,6 +212,7 @@ export default function DepartmentScenarios() {
                       <h4 className="font-semibold">Patient Information</h4>
                       <p>Name: {scenario.patient_name}</p>
                       <p>Age: {scenario.patient_age}</p>
+                      <p>Gender: {scenario.patient_gender}</p>
                     </div>
                     <div>
                       <h4 className="font-semibold">Chief Complaint</h4>
@@ -185,12 +233,135 @@ export default function DepartmentScenarios() {
                 }}
               >
                 <Brain className="w-4 h-4 mr-2" />
-                Test Skills
+                Start Case
               </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
+
+      {data.evaluated_scenarios.length > 0 && (
+        <>
+          <h2 className="text-2xl font-semibold mb-4 dark:text-white flex items-center gap-2 mt-4">
+            <CheckCircle2 className="w-6 h-6 text-green-500" />
+            Completed Cases ({data.evaluated_scenarios.length})
+          </h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+            {data.evaluated_scenarios.map(({ scenario, thread }) => (
+              <Card key={thread.scenario_thread_id} className="flex flex-col">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold">
+                    {thread.name}
+                  </CardTitle>
+                </CardHeader>
+
+                <CardContent className="flex-grow">
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Patient: {scenario.patient_name}
+                  </p>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Age: {scenario.patient_age} | Gender:{" "}
+                    {scenario.patient_gender}
+                  </p>
+                </CardContent>
+
+                <CardFooter className="flex justify-between gap-4">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <Info className="w-4 h-4 mr-2" />
+                        View Decision
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>My Decision</DialogTitle>
+                      </DialogHeader>
+                      {thread.doctor_notes && (
+                        <div>
+                          <h4 className="font-semibold">My Notes</h4>
+                          <p className="text-gray-600 dark:text-gray-300">
+                            {thread.doctor_notes}
+                          </p>
+                        </div>
+                      )}
+                      {thread.diagnosis && (
+                        <div>
+                          <h4 className="font-semibold">My Diagnosis</h4>
+                          <p className="text-gray-600 dark:text-gray-300">
+                            {thread.diagnosis}
+                          </p>
+                        </div>
+                      )}
+                      {thread.treatment && (
+                        <div>
+                          <h4 className="font-semibold">My Treatment</h4>
+                          <p className="text-gray-600 dark:text-gray-300">
+                            {thread.treatment}
+                          </p>
+                        </div>
+                      )}
+                    </DialogContent>
+                  </Dialog>
+                  <Button
+                    className="w-full"
+                    onClick={() =>
+                      router.push(
+                        `/student/practice/${params.departmnet}/${thread.scenario_thread_id}/details`,
+                      )
+                    }
+                  >
+                    View Evaluation
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
+
+      {data.unevaluated_scenarios.length > 0 && (
+        <>
+          <h2 className="text-2xl font-semibold mb-4 dark:text-white flex items-center gap-2">
+            <Clock className="w-6 h-6 text-yellow-500" />
+            On Going Cases ({data.unevaluated_scenarios.length})
+          </h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+            {data.unevaluated_scenarios.map(({ scenario, thread }) => (
+              <Card key={thread.scenario_thread_id} className="flex flex-col">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold">
+                    {scenario.scenario_title}
+                  </CardTitle>
+                </CardHeader>
+
+                <CardContent className="flex-grow">
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Patient: {scenario.patient_name}
+                  </p>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Age: {scenario.patient_age} | Gender:{" "}
+                    {scenario.patient_gender}
+                  </p>
+                </CardContent>
+
+                <CardFooter>
+                  <Button
+                    className="w-full"
+                    onClick={() =>
+                      router.push(
+                        `/student/practice/${params.departmnet}/${thread.scenario_thread_id}`,
+                      )
+                    }
+                  >
+                    Continue Case
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

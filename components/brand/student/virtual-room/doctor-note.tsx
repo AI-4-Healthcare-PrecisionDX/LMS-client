@@ -1,21 +1,25 @@
 "use client";
 
-import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardHeader,
   CardContent,
   CardFooter,
+  CardHeader,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { doctorNoteAtom } from "@/store";
+import { useSetAtom } from "jotai";
+import { useState } from "react";
 
 export default function DoctorNote() {
   const [note, setNote] = useState("");
   const [isEditing, setIsEditing] = useState(true);
+  const setDoctorNote = useSetAtom(doctorNoteAtom);
 
   const handleSave = () => {
     setIsEditing(false);
+    setDoctorNote(note);
   };
 
   const handleEdit = () => {
