@@ -14,47 +14,86 @@ import { MaterialView } from "./MaterialUpload";
 import QuestionCard from "./QuestionCard";
 import QuestionTypeButtons from "./QuestionTypeButtons";
 
-interface AiGeneratedQuestion {
-  type: string;
+export type QuestionPatternType =
+  | "question_bank"
+  | "adaptive_learning"
+  | "application_based"
+  | "writing_assignment"
+  | "scenario_based";
+
+export type DifficultyLevel = "easy" | "medium" | "hard";
+
+export interface AiGeneratedQuestion {
+  type: QuestionPatternType;
   mcq: boolean;
-  difficulty: string;
+  difficulty: DifficultyLevel;
   question: string;
   options: string[];
   correct_answers: string[];
   explanation: string;
 }
 
-export default function QuestionsList({ state, dispatch, category }: { state: any, dispatch: any, category: string }) {
-  const [pdfs, setPDFs] = useState<any[]>([]);
-  const aiGeneratedQuestions = useAtomValue(aiGeneratedQuestionsAtom);
-  console.log("category", category);
+interface PDF {
+  library_id: string;
+  name: string;
+  file_url: string;
+}
 
-  // ... existing code ...
-  if (category === "ai-generated" && aiGeneratedQuestions?.length > 0) {
-    const formattedQuestions = aiGeneratedQuestions.map((q: AiGeneratedQuestion) => ({
-      question_type: q.mcq ? "mcq" : "broad",
-      question_text: q.question,
-      marks: q.difficulty === "easy" ? 2 : q.difficulty === "medium" ? 5 : 10,
-      options_for_mcq: q.mcq ? q.options : [],
-      expected_answer: q.mcq ? q.correct_answers : [q.correct_answers[0]],
-      explanation: q.explanation,
-      pattern_type: q.type,
-      difficulty: q.difficulty
-    }));
+interface Material {
+  library_item_id: string;
+}
 
-    dispatch({
-      type: "SET_QUESTIONS",
-      payload: formattedQuestions
-    });
-  }
-  // ... existing code ...
+interface AssignmentState {
+  editingAssignment?: {
+    assignment_materials?: Material[];
+  };
+  questions?: Question[];
+}
+
+interface DispatchAction {
+  type: "SET_QUESTIONS" | "SET_MATERIALS";
+  payload: FormattedQuestion[] | PDF[];
+}
+
+interface FormattedQuestion {
+  question_type: "mcq" | "broad";
+  question_text: string;
+  marks: number;
+  options_for_mcq: string[];
+  expected_answer: string[];
+  explanation: string;
+  pattern_type: QuestionPatternType;
+  difficulty: DifficultyLevel;
+}
+
+export default function QuestionsList({
+  state,
+  dispatch,
+  category,
+  isGenerated,
+}: {
+  state: AssignmentState;
+  dispatch: (action: DispatchAction) => void;
+  category: string;
+  isGenerated: boolean;
+}) {
+  const [pdfs, setPDFs] = useState<PDF[]>([]);
+  const aiGeneratedQuestions = useAtomValue<AiGeneratedQuestion[]>(
+    aiGeneratedQuestionsAtom,
+  );
+
+  const [questionAi, setQuestionAi] = useState<FormattedQuestion[]>([]);
+
   useEffect(() => {
     const loadExistingPDFs = async () => {
-      if (state.editingAssignment?.assignment_materials?.length > 0) {
+      if (
+        state.editingAssignment?.assignment_materials &&
+        state.editingAssignment.assignment_materials.length > 0
+      ) {
         try {
           const existingPDFs = await Promise.all(
             state.editingAssignment.assignment_materials.map(
-              async (material: any) => {
+              async (material) => {
                 const materialId = material.library_item_id;
 
                 try {
@@ -75,8 +114,9 @@ export default function QuestionsList({ state, dispatch, category }: { state: an
             ),
           );
 
-          const validPDFs: any[] = existingPDFs.filter((pdf) => pdf !== null);
-          console.log("existingPDFs", validPDFs);
+          const validPDFs = existingPDFs.filter(
+            (pdf): pdf is PDF => pdf !== null,
+          );
 
           setPDFs(validPDFs);
           dispatch({
@@ -93,7 +133,29 @@ export default function QuestionsList({ state, dispatch, category }: { state: an
     if (state.editingAssignment) {
       loadExistingPDFs();
     }
-  }, [state.editingAssignment]);
+  }, [state.editingAssignment, dispatch]);
+
+  useEffect(() => {
+    if (aiGeneratedQuestions.length > 0) {
+      const formattedQuestions = aiGeneratedQuestions.map((q) => ({
+        question_type: q.mcq ? "mcq" : "broad",
+        question_text: q.question,
+        marks: q.difficulty === "easy" ? 2 : q.difficulty === "medium" ? 5 : 10,
+        options_for_mcq: q.mcq ? q.options : [],
+        expected_answer: q.mcq ? q.correct_answers : [q.correct_answers[0]],
+        explanation: q.explanation,
+        pattern_type: q.type,
+        difficulty: q.difficulty,
+      })) as FormattedQuestion[];
+
+      setQuestionAi(formattedQuestions);
+
+      dispatch({
+        type: "SET_QUESTIONS",
+        payload: formattedQuestions,
+      });
+    }
+  }, [aiGeneratedQuestions, dispatch]);
 
   const questions = state.questions || [];
   const totalMarks = questions.reduce(
@@ -101,7 +163,7 @@ export default function QuestionsList({ state, dispatch, category }: { state: an
     0,
   );
 
-  const handlePDFsChange = (newPDFs: any) => {
+  const handlePDFsChange = (newPDFs: PDF[]) => {
     setPDFs(newPDFs);
     dispatch({
       type: "SET_MATERIALS",
@@ -109,7 +171,7 @@ export default function QuestionsList({ state, dispatch, category }: { state: an
     });
   };
 
-  return (
+  return isGenerated ? (
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
@@ -125,38 +187,42 @@ export default function QuestionsList({ state, dispatch, category }: { state: an
             <Badge variant="outline" className="px-4 py-2">
               {questions.length} Questions
             </Badge>
+            <Badge variant="outline" className="px-4 py-2">
+              {aiGeneratedQuestions.length} Generated Questions
+            </Badge>
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <MaterialView
-          pdfs={pdfs}
-          onPDFsChange={handlePDFsChange}
-        />
+        <MaterialView pdfs={pdfs} onPDFsChange={handlePDFsChange} />
         <ScrollArea className="h-[600px] pr-4">
           <AnimatePresence>
-            {questions.map((question: Question, index: number) => (
+            {questionAi.map((question, index) => (
               <QuestionCard
-                key={question.question_id || index}
+                key={`ai-${index}`}
                 question={question}
                 index={index}
-                onUpdate={(index: number, field: string, value: any) =>
-                  dispatch({
-                    type: "UPDATE_QUESTION",
-                    payload: { index, field, value },
-                  })
-                }
-                onDelete={() =>
-                  dispatch({
-                    type: "DELETE_QUESTION",
-                    payload: index,
-                  })
-                }
+                onUpdate={() => {}}
+                onDelete={() => {}}
+              />
+            ))}
+
+            {questions.map((question, index) => (
+              <QuestionCard
+                key={question.question_id || `manual-${index}`}
+                question={question}
+                index={index}
+                onUpdate={() => {}}
+                onDelete={() => {}}
               />
             ))}
           </AnimatePresence>
         </ScrollArea>
       </CardContent>
     </Card>
+  ) : (
+    <div>
+      <p>No questions generated</p>
+    </div>
   );
 }

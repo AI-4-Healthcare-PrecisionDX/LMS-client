@@ -4,7 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { questionConfigAtom } from "@/store";
 import { AnimatePresence, motion } from "framer-motion";
+import { useAtom } from "jotai";
 import {
   AlertCircle,
   BookOpen,
@@ -16,7 +18,7 @@ import {
   Minus,
   Plus,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { toast } from "sonner";
 import { useGenerateAiQuestions } from "../hooks";
 
@@ -33,43 +35,64 @@ interface PatternCounts {
   [key: string]: {
     mcq: number;
     broad: number;
-  }
+  };
+}
+
+export interface QuestionConfigState {
+  patternCounts: PatternCounts;
+  expandedPattern: PatternKey | null;
+  isQuestionsGenerated: boolean;
 }
 
 const patterns = [
   { key: "questionBank" as PatternKey, label: "Question Bank", icon: BookOpen },
-  { key: "adaptiveLearning" as PatternKey, label: "Adaptive Learning", icon: GraduationCap },
-  { key: "applicationBased" as PatternKey, label: "Application-based", icon: CheckCircle2 },
-  { key: "writingAssignment" as PatternKey, label: "Writing Assignment", icon: Edit3 },
-  { key: "scenarioBased" as PatternKey, label: "Scenario-based", icon: AlertCircle },
+  {
+    key: "adaptiveLearning" as PatternKey,
+    label: "Adaptive Learning",
+    icon: GraduationCap,
+  },
+  {
+    key: "applicationBased" as PatternKey,
+    label: "Application-based",
+    icon: CheckCircle2,
+  },
+  {
+    key: "writingAssignment" as PatternKey,
+    label: "Writing Assignment",
+    icon: Edit3,
+  },
+  {
+    key: "scenarioBased" as PatternKey,
+    label: "Scenario-based",
+    icon: AlertCircle,
+  },
 ] as const;
 
 const questionTypes = [
-  { key: "mcq" as QuestionType, label: "Multiple Choice Questions", icon: CheckCircle2 },
+  {
+    key: "mcq" as QuestionType,
+    label: "Multiple Choice Questions",
+    icon: CheckCircle2,
+  },
   { key: "broad" as QuestionType, label: "Broad Questions", icon: Edit3 },
 ] as const;
 
-export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf: string }) {
-  // console.log("selectedPdf", selectedPdf);
-  const [state, setState] = useState<{
-    patternCounts: PatternCounts;
-    expandedPattern: PatternKey | null;
-    isQuestionsGenerated: boolean;
-  }>({
-    patternCounts: Object.fromEntries(
-      patterns.map((p) => [p.key, { mcq: 0, broad: 0 }])
-    ) as PatternCounts,
-    expandedPattern: null,
-    isQuestionsGenerated: false,
-  });
+export default function QuestionConfigurationCard({
+  selectedPdf,
+  setIsGenerated,
+}: {
+  selectedPdf: string;
+  setIsGenerated: (isGenerated: boolean) => void;
+}) {
+  const [state, setState] = useAtom(questionConfigAtom);
 
   const totalPatternQuestions = useMemo(
     () =>
       Object.values(state.patternCounts).reduce(
         (acc, counts) => acc + counts.mcq + counts.broad,
-        0
+        0,
       ),
-    [state.patternCounts]
+    [state.patternCounts],
   );
 
   const totalQuestionTypeCounts = Object.values(state.patternCounts).reduce(
@@ -113,7 +136,6 @@ export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf
     }));
   };
 
-
   const aiGenerateQuestionsFormatted = {
     pdf_file: selectedPdf,
     question_bank_mcq: state.patternCounts.questionBank.mcq,
@@ -127,10 +149,12 @@ export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf
     scenario_based_mcq: state.patternCounts.scenarioBased.mcq,
     scenario_based_broad: state.patternCounts.scenarioBased.broad,
     total_mcq_questions: totalQuestionTypeCounts.mcq,
-    total_broad_questions: totalQuestionTypeCounts.broad
+    total_broad_questions: totalQuestionTypeCounts.broad,
   };
 
-  const generateQuestionsMutation = useGenerateAiQuestions({ aiGenerateQuestionsFormatted });
+  const generateQuestionsMutation = useGenerateAiQuestions({
+    aiGenerateQuestionsFormatted,
+  });
 
   const handleGenerateQuestions = async () => {
     try {
@@ -144,16 +168,12 @@ export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf
         ...prev,
         isQuestionsGenerated: true,
       }));
+      setIsGenerated(true);
     } catch (error) {
       console.error("Failed to generate questions:", error);
       toast.error("Failed to generate questions. Please try again.");
     }
   };
-
-
-  // console.log("aiGenerateQuestionsFormatted", aiGenerateQuestionsFormatted);
-
-
 
   return (
     <Card className="shadow-lg">
@@ -176,10 +196,11 @@ export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf
               {patterns.map(({ key, label, icon: Icon }) => (
                 <motion.div
                   key={key}
-                  className={`p-3 rounded-lg border ${state.expandedPattern === key
-                    ? "border-primary bg-primary/5"
-                    : "border-gray-200"
-                    } cursor-pointer transition-all hover:border-primary`}
+                  className={`p-3 rounded-lg border ${
+                    state.expandedPattern === key
+                      ? "border-primary bg-primary/5"
+                      : "border-gray-200"
+                  } cursor-pointer transition-all hover:border-primary`}
                   onClick={() => handleTogglePattern(key)}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -297,9 +318,7 @@ export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf
             size="lg"
             onClick={handleGenerateQuestions}
             disabled={
-              state.isQuestionsGenerated ||
-              totalPatternQuestions === 0 ||
-              generateQuestionsMutation.isPending
+              totalPatternQuestions === 0 || generateQuestionsMutation.isPending
             }
           >
             {generateQuestionsMutation.isPending

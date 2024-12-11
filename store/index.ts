@@ -1,6 +1,8 @@
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 
+import { QuestionConfigState } from "@/components/brand/teacher/assessment/assessmentModal/QuestionConfigurationCard";
+import { AiGeneratedQuestion } from "@/components/brand/teacher/assessment/assessmentModal/QuestionsList";
 import { questions_essay, questions_mcq } from "@/data";
 import { Book, User } from "@/types";
 
@@ -50,7 +52,39 @@ export const isAuthenticatedAtom = atomWithStorage<boolean>(
 );
 export const isLoggedInAtom = atomWithStorage<boolean>("isLoggedIn", false);
 export const userRoleAtom = atomWithStorage<string | null>("userRole", null);
-export const aiGeneratedQuestionsAtom = atomWithStorage<any[]>(
+export const aiGeneratedQuestionsAtom = atomWithStorage<AiGeneratedQuestion[]>(
   "aiGeneratedQuestions",
-  [],
-);  
+  [
+    {
+      type: "question_bank",
+      mcq: true,
+      difficulty: "easy",
+      question: "",
+      options: [],
+      correct_answers: [],
+      explanation: "",
+    },
+  ],
+);
+
+export const selectedPdfAtom = atom<{
+  url: string | null;
+  name: string;
+  pdfBytes?: Uint8Array;
+}>({
+  url: null,
+  name: "",
+  pdfBytes: undefined,
+});
+
+export const questionConfigAtom = atom<QuestionConfigState>({
+  patternCounts: {
+    questionBank: { mcq: 0, broad: 0 },
+    adaptiveLearning: { mcq: 0, broad: 0 },
+    applicationBased: { mcq: 0, broad: 0 },
+    writingAssignment: { mcq: 0, broad: 0 },
+    scenarioBased: { mcq: 0, broad: 0 },
+  },
+  expandedPattern: null,
+  isQuestionsGenerated: false,
+});

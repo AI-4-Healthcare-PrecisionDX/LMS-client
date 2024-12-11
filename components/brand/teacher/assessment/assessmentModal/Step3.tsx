@@ -1,7 +1,5 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Edit3 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Assignment, Question } from "../types";
 import AssignmentHeader from "./AssignmentHeader";
 import AssignmentSetup from "./AssignmentSetup";
@@ -33,6 +31,7 @@ export default function Step3({
     (sum: number, q: Question) => sum + (Number(q.marks) || 0),
     0,
   );
+  const [isGenerated, setIsGenerated] = useState(false);
   // console.log("selectedPdf", state.newAssignment.selectedPdf);
   const selectedPdf = state.newAssignment.selectedPdf;
 
@@ -109,7 +108,7 @@ export default function Step3({
             isEditing={!!state.editingAssignment}
           />
 
-          <Tabs
+          {/* <Tabs
             defaultValue={state.activeTab}
             value={state.activeTab}
             onValueChange={(value) =>
@@ -135,23 +134,22 @@ export default function Step3({
             </TabsList>
 
             <TabsContent value="setup">
-              <AssignmentSetup
-                state={state}
-                dispatch={dispatch}
-                category={category}
-                selectedPdf={selectedPdf}
-              />
+             
             </TabsContent>
-
-            <TabsContent value="questions">
-              <QuestionsList
-                state={state}
-                dispatch={dispatch}
-                category={category}
-              />
-            </TabsContent>
-          </Tabs>
-
+          </Tabs> */}
+          <AssignmentSetup
+            state={state}
+            dispatch={dispatch}
+            category={category}
+            selectedPdf={selectedPdf}
+            setIsGenerated={setIsGenerated}
+          />
+          <QuestionsList
+            state={state}
+            dispatch={dispatch}
+            category={category}
+            isGenerated={isGenerated}
+          />
           <FooterButtons
             onBack={handleBack}
             onPublish={handlePublish}
