@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import api from "@/lib/axios-config";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import {
   ArrowRight,
   BookOpen,
@@ -139,8 +140,11 @@ export default function CoursesPage() {
       toast.success("Successfully joined the course");
       dispatch({ type: "RESET_COURSE_CODE" });
     },
-    onError: (error) => {
-      toast.error("Failed to join course: " + error.message);
+    onError: (error: AxiosError) => {
+      toast.error(
+        (error.response?.data as { detail: string })?.detail ||
+          "Failed to join course",
+      );
     },
   });
 
