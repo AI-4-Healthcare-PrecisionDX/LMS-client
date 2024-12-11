@@ -1,5 +1,7 @@
 import api from "@/lib/axios-config";
+import { aiGeneratedQuestionsAtom } from "@/store";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSetAtom } from "jotai";
 import { toast } from "sonner";
 import { Assignment } from "./types";
 
@@ -29,7 +31,7 @@ export const useCreateAssignment = () => {
                     })),
                 };
 
-                console.log("Formatted data being sent:", formattedData);
+                // console.log("Formatted data being sent:", formattedData);
 
                 const response = await api.post(
                     "/assignment/create-assignment",
@@ -97,5 +99,51 @@ export const useUpdateAssignment = () => {
         onError: (error) => {
             toast.error(error.message);
         },
+    });
+};
+
+export const useGenerateAiQuestions = ({ aiGenerateQuestionsFormatted }: { aiGenerateQuestionsFormatted: any }) => {
+    const setAiQuestions = useSetAtom(aiGeneratedQuestionsAtom);
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async (data: any) => {
+            try {
+                const formData = new FormData();
+                const pdfResponse = await fetch(aiGenerateQuestionsFormatted.pdf_file);
+                const pdfBlob = await pdfResponse.blob();
+                formData.append('pdf_file', pdfBlob);
+                formData.append('question_bank_mcq', aiGenerateQuestionsFormatted.question_bank_mcq.toString());
+                formData.append('question_bank_broad', aiGenerateQuestionsFormatted.question_bank_broad.toString());
+                formData.append('adaptive_learning_mcq', aiGenerateQuestionsFormatted.adaptive_learning_mcq.toString());
+                formData.append('adaptive_learning_broad', aiGenerateQuestionsFormatted.adaptive_learning_broad.toString());
+                formData.append('application_based_mcq', aiGenerateQuestionsFormatted.application_based_mcq.toString());
+                formData.append('application_based_broad', aiGenerateQuestionsFormatted.application_based_broad.toString());
+                formData.append('writing_assignment_mcq', aiGenerateQuestionsFormatted.writing_assignment_mcq.toString());
+                formData.append('writing_assignment_broad', aiGenerateQuestionsFormatted.writing_assignment_broad.toString());
+                formData.append('scenario_based_mcq', aiGenerateQuestionsFormatted.scenario_based_mcq.toString());
+                formData.append('scenario_based_broad', aiGenerateQuestionsFormatted.scenario_based_broad.toString());
+                formData.append('total_mcq_questions', aiGenerateQuestionsFormatted.total_mcq_questions.toString());
+                formData.append('total_broad_questions', aiGenerateQuestionsFormatted.total_broad_questions.toString());
+
+                const response = await api.post('/llm/assignment_questions', formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                setAiQuestions(response.data);
+                return response.data;
+
+            } catch (error: any) {
+                console.error("Generate questions error:", error.response?.data);
+                throw new Error(error.response?.data?.message || "Failed to generate questions");
+            }
+        },
+        onSuccess: () => {
+            toast.success("Questions generated successfully");
+        },
+        onError: (error: Error) => {
+            toast.error(error.message);
+        }
     });
 };

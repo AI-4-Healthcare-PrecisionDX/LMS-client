@@ -146,49 +146,84 @@ export default function Step2({
   const generatePdf = async () => {
     setIsLoadingPdf(true);
     try {
+      if (!filteredBooks || filteredBooks.length === 0) {
+        throw new Error("No books selected");
+      }
+
       const newPdfDoc = await PDFDocument.create();
-      const relevantBooks = filteredBooks?.filter(book => {
+      const relevantBooks = filteredBooks.filter(book => {
         const bookId = book.library_item.library_id || book.library_item.library_item.library_id;
         return currentBooks.includes(bookId);
       });
 
-      for (const book of relevantBooks || []) {
+      if (relevantBooks.length === 0) {
+        throw new Error("No relevant books found");
+      }
+
+      for (const book of relevantBooks) {
         const bookId = book.library_item.library_id || book.library_item.library_item.library_id;
         const content_meta_outline = contentMetaOutlines[bookId];
-        if (!content_meta_outline) continue;
 
-        const file_url = await getLibraryFileByLibraryID(bookId);
-        const response = await fetch(file_url);
-        const pdfBytes = await response.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(pdfBytes);
+        if (!content_meta_outline) {
+          console.warn(`No outline found for book ${bookId}`);
+          continue;
+        }
 
-        const selectedChapterIds = currentChapters[bookId] || [];
+        let file_url;
+        try {
+          file_url = await getLibraryFileByLibraryID(bookId);
+          if (!file_url) throw new Error("No file URL returned");
+        } catch (error) {
+          console.error(`Failed to get file URL for book ${bookId}:`, error);
+          continue;
+        }
 
-        for (const chapter of content_meta_outline.content_outline) {
-          const chapterSections = selectedSections[chapter.id] || [];
+        try {
+          const response = await fetch(file_url);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const pdfBytes = await response.arrayBuffer();
+          const pdfDoc = await PDFDocument.load(pdfBytes);
 
-          if (selectedChapterIds.includes(chapter.id) && chapterSections.length === 0) {
-            // If entire chapter is selected
-            const pageIndices = Array.from(
-              { length: chapter.pageRanges.end - chapter.pageRanges.start + 1 },
-              (_, i) => i + chapter.pageRanges.start - 1
-            );
-            const copiedPages = await newPdfDoc.copyPages(pdfDoc, pageIndices);
-            copiedPages.forEach(page => newPdfDoc.addPage(page));
-          } else if (chapterSections.length > 0) {
-            // If specific sections are selected
-            for (const section of chapter.sections) {
-              if (chapterSections.includes(section.id)) {
-                const pageIndices = Array.from(
-                  { length: section.pageRanges.end - section.pageRanges.start + 1 },
-                  (_, i) => i + section.pageRanges.start - 1
-                );
-                const copiedPages = await newPdfDoc.copyPages(pdfDoc, pageIndices);
-                copiedPages.forEach(page => newPdfDoc.addPage(page));
+          const selectedChapterIds = currentChapters[bookId] || [];
+
+          for (const chapter of content_meta_outline.content_outline) {
+            if (!chapter.pageRanges) {
+              console.warn(`No page ranges found for chapter ${chapter.id}`);
+              continue;
+            }
+
+            const chapterSections = selectedSections[chapter.id] || [];
+
+            if (selectedChapterIds.includes(chapter.id) && chapterSections.length === 0) {
+              // If entire chapter is selected
+              const pageIndices = Array.from(
+                { length: chapter.pageRanges.end - chapter.pageRanges.start + 1 },
+                (_, i) => i + chapter.pageRanges.start - 1
+              );
+              const copiedPages = await newPdfDoc.copyPages(pdfDoc, pageIndices);
+              copiedPages.forEach(page => newPdfDoc.addPage(page));
+            } else if (chapterSections.length > 0) {
+              // If specific sections are selected
+              for (const section of chapter.sections) {
+                if (chapterSections.includes(section.id) && section.pageRanges) {
+                  const pageIndices = Array.from(
+                    { length: section.pageRanges.end - section.pageRanges.start + 1 },
+                    (_, i) => i + section.pageRanges.start - 1
+                  );
+                  const copiedPages = await newPdfDoc.copyPages(pdfDoc, pageIndices);
+                  copiedPages.forEach(page => newPdfDoc.addPage(page));
+                }
               }
             }
           }
+        } catch (error) {
+          console.error(`Failed to process PDF for book ${bookId}:`, error);
+          continue;
         }
+      }
+
+      if (newPdfDoc.getPageCount() === 0) {
+        throw new Error("No pages were added to the PDF");
       }
 
       const mergedPdfBytes = await newPdfDoc.save();
@@ -198,7 +233,7 @@ export default function Step2({
       toast.success("PDF generated successfully");
     } catch (error) {
       console.error("PDF generation error:", error);
-      toast.error("Failed to generate PDF");
+      toast.error(error instanceof Error ? error.message : "Failed to generate PDF");
     } finally {
       setIsLoadingPdf(false);
     }

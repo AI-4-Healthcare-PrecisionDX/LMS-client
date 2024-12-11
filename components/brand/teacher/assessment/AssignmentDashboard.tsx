@@ -115,12 +115,13 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
   };
 
   const handleStep2Next = (details: any) => {
-    console.log("details", details);
+    // console.log("details", details);
     dispatch({
       type: ACTIONS.SET_NEW_ASSIGNMENT,
       payload: {
         bookIds: details.bookIds,
         chapterIds: details.chapterIds || {},
+        selectedPdf: details.selectedPdf, // Store PDF in state
       },
     });
     dispatch({ type: ACTIONS.SET_CURRENT_STEP, payload: 3 });
@@ -129,7 +130,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
   const { mutate: createAssignment } = useCreateAssignment();
 
   const handlePublish = (finalAssignment: Assignment) => {
-    console.log("finalAssignment", finalAssignment);
+    // console.log("finalAssignment", finalAssignment);
     if (state.editingAssignment) {
       handleUpdateAssignment(finalAssignment);
     } else {

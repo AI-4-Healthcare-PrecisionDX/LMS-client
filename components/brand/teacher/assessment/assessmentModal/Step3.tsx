@@ -29,32 +29,15 @@ export default function Step3({
     }
   }, []);
 
-  // const totalQuestions =
-  //   category === "ai-generated"
-  //     ? Object.values(state.patternCounts).reduce(
-  //         (a: number, b: number) => a + b,
-  //         0,
-  //       )
-  //     : state.questions.length;
-
   const totalMarks = state.questions.reduce(
     (sum: number, q: Question) => sum + (Number(q.marks) || 0),
     0,
   );
+  // console.log("selectedPdf", state.newAssignment.selectedPdf);
+  const selectedPdf = state.newAssignment.selectedPdf;
 
   const handlePublish = () => {
     const questions = Array.isArray(state.questions) ? state.questions : [];
-
-    // const assignment_materials = Array.isArray(state.materials)
-    //   ? state.materials.map((material: AssignmentMaterial) => ({
-    //     assignment_material_id: material.materialId || "",
-    //     library_item_id: material.library_id || "",
-    //     description: material.description || "",
-    //     name: material.name || "",
-    //     created_at: material.created_at || new Date().toISOString(),
-    //     updated_at: material.updated_at || new Date().toISOString(),
-    //   }))
-    //   : [];
 
     const assignment_materials = Array.isArray(state.materials)
       ? state.materials.map((material: any) => material.library_id)
@@ -156,6 +139,7 @@ export default function Step3({
                 state={state}
                 dispatch={dispatch}
                 category={category}
+                selectedPdf={selectedPdf}
               />
             </TabsContent>
 

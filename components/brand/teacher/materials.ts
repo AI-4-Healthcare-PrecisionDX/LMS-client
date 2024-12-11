@@ -39,7 +39,7 @@ export const useFilteredContents = ({
                 )
             );
 
-            console.log("uniqueContents", uniqueContents);
+            // console.log("uniqueContents", uniqueContents);
 
             return uniqueContents.filter((content) => {
                 const materialTitle = content.library_item?.material_title?.toLowerCase() || '';

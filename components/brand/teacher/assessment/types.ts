@@ -13,10 +13,14 @@ type Question = {
     question_id: string;
     question_type: string;
     question_text: string;
-    expected_answer: string[];
-    options_for_mcq: string[];
     marks: number;
+    options_for_mcq: string[];
+    expected_answer: string[];
     question_description: string;
+    // Add AI-specific fields
+    pattern_type?: string;
+    difficulty?: "easy" | "medium" | "hard";
+    explanation?: string;
 };
 
 // Type for Assignment

@@ -3,7 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import api from "@/lib/axios-config";
+import { aiGeneratedQuestionsAtom } from "@/store";
 import { AnimatePresence } from "framer-motion";
+import { useAtomValue } from "jotai";
 import { Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -12,17 +14,47 @@ import { MaterialView } from "./MaterialUpload";
 import QuestionCard from "./QuestionCard";
 import QuestionTypeButtons from "./QuestionTypeButtons";
 
+interface AiGeneratedQuestion {
+  type: string;
+  mcq: boolean;
+  difficulty: string;
+  question: string;
+  options: string[];
+  correct_answers: string[];
+  explanation: string;
+}
+
 export default function QuestionsList({ state, dispatch, category }: { state: any, dispatch: any, category: string }) {
   const [pdfs, setPDFs] = useState<any[]>([]);
+  const aiGeneratedQuestions = useAtomValue(aiGeneratedQuestionsAtom);
+  console.log("category", category);
+
+  // ... existing code ...
+  if (category === "ai-generated" && aiGeneratedQuestions?.length > 0) {
+    const formattedQuestions = aiGeneratedQuestions.map((q: AiGeneratedQuestion) => ({
+      question_type: q.mcq ? "mcq" : "broad",
+      question_text: q.question,
+      marks: q.difficulty === "easy" ? 2 : q.difficulty === "medium" ? 5 : 10,
+      options_for_mcq: q.mcq ? q.options : [],
+      expected_answer: q.mcq ? q.correct_answers : [q.correct_answers[0]],
+      explanation: q.explanation,
+      pattern_type: q.type,
+      difficulty: q.difficulty
+    }));
+
+    dispatch({
+      type: "SET_QUESTIONS",
+      payload: formattedQuestions
+    });
+  }
+  // ... existing code ...
   useEffect(() => {
-    // Load existing PDFs when editing
     const loadExistingPDFs = async () => {
       if (state.editingAssignment?.assignment_materials?.length > 0) {
         try {
           const existingPDFs = await Promise.all(
             state.editingAssignment.assignment_materials.map(
               async (material: any) => {
-                // Extract the library_item_id from the material object
                 const materialId = material.library_item_id;
 
                 try {
@@ -43,12 +75,10 @@ export default function QuestionsList({ state, dispatch, category }: { state: an
             ),
           );
 
-          // Filter out any failed fetches
           const validPDFs: any[] = existingPDFs.filter((pdf) => pdf !== null);
           console.log("existingPDFs", validPDFs);
 
           setPDFs(validPDFs);
-          // Also update the materials in the state
           dispatch({
             type: "SET_MATERIALS",
             payload: validPDFs,
@@ -73,12 +103,10 @@ export default function QuestionsList({ state, dispatch, category }: { state: an
 
   const handlePDFsChange = (newPDFs: any) => {
     setPDFs(newPDFs);
-    // Make sure this dispatch is being called with the correct payload
     dispatch({
       type: "SET_MATERIALS",
       payload: newPDFs,
     });
-    console.log("Updated PDFs:", newPDFs); // Debug log
   };
 
   return (

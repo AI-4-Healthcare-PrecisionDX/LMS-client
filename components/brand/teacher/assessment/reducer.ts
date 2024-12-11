@@ -8,7 +8,6 @@ export const initialState = {
   deadline: new Date(),
   assignment_materials: [],
   questions: [],
-  isQuestionsGenerated: false,
   marksPerQuestion: {},
   editingAssignment: null,
   currentStep: 1,
@@ -16,6 +15,9 @@ export const initialState = {
   activeTab: "setup",
   sortBy: "start_time",
   materials: [],
+  // ai-generated
+  // patternCounts: {},
+  // isQuestionsGenerated: false,
 };
 
 const updateQuestionField = (question: Question, field: string, value: any) => {
@@ -35,6 +37,13 @@ const updateQuestionField = (question: Question, field: string, value: any) => {
     }
 
     return updatedQuestion;
+  }
+  // Handle AI-specific fields
+  if (["pattern_type", "difficulty", "explanation"].includes(field)) {
+    return {
+      ...question,
+      [field]: value,
+    };
   }
 
   // Handle expected_answer update for MCQ
@@ -96,6 +105,9 @@ export const ACTIONS = {
   RESET_STATE: "RESET_STATE",
   SET_QUESTIONS: "SET_QUESTIONS",
   SET_MATERIALS: "SET_MATERIALS",
+  // ai-generated
+  // UPDATE_PATTERN_COUNT: "UPDATE_PATTERN_COUNT",
+  // SET_QUESTIONS_GENERATED: "SET_QUESTIONS_GENERATED",
 };
 
 export function reducer(state: any, action: any) {
@@ -209,6 +221,25 @@ export function reducer(state: any, action: any) {
         ...state,
         materials: action.payload,
       };
+    // ai-generated
+    // case ACTIONS.UPDATE_PATTERN_COUNT: {
+    //   const { pattern, type, value } = action.payload;
+    //   return {
+    //     ...state,
+    //     patternCounts: {
+    //       ...state.patternCounts,
+    //       [pattern]: {
+    //         ...state.patternCounts[pattern],
+    //         [type]: value,
+    //       },
+    //     },
+    //   };
+    // }
+    // case ACTIONS.SET_QUESTIONS_GENERATED:
+    //   return {
+    //     ...state,
+    //     isQuestionsGenerated: action.payload,
+    //   };
     default:
       return state;
   }

@@ -50,3 +50,7 @@ export const isAuthenticatedAtom = atomWithStorage<boolean>(
 );
 export const isLoggedInAtom = atomWithStorage<boolean>("isLoggedIn", false);
 export const userRoleAtom = atomWithStorage<string | null>("userRole", null);
+export const aiGeneratedQuestionsAtom = atomWithStorage<any[]>(
+  "aiGeneratedQuestions",
+  [],
+);  
