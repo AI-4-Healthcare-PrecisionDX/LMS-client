@@ -105,9 +105,6 @@
     "typescript": "^5"
   },
   "trustedDependencies": [
-    "core-js"
-  ],
-  "trustedDependencies": [
     "canvas",
     "core-js",
     "sharp"
