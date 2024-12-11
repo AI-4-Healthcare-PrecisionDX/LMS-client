@@ -15,6 +15,7 @@ export const initialState = {
   activeTab: "setup",
   sortBy: "start_time",
   materials: [],
+  isEditing: false,
   // ai-generated
   // patternCounts: {},
   // isQuestionsGenerated: false,
@@ -105,6 +106,7 @@ export const ACTIONS = {
   RESET_STATE: "RESET_STATE",
   SET_QUESTIONS: "SET_QUESTIONS",
   SET_MATERIALS: "SET_MATERIALS",
+  SET_IS_EDITING: "SET_IS_EDITING",
   // ai-generated
   // UPDATE_PATTERN_COUNT: "UPDATE_PATTERN_COUNT",
   // SET_QUESTIONS_GENERATED: "SET_QUESTIONS_GENERATED",
@@ -123,6 +125,8 @@ export function reducer(state: any, action: any) {
         ...state,
         newAssignment: { ...state.newAssignment, ...action.payload },
       };
+    case ACTIONS.SET_IS_EDITING:
+      return { ...state, isEditing: action.payload };
     case ACTIONS.SET_EDITING_ASSIGNMENT:
       return { ...state, editingAssignment: action.payload };
     case ACTIONS.ADD_ASSIGNMENT:
@@ -145,12 +149,12 @@ export function reducer(state: any, action: any) {
         marks: action.payload === "mcq" ? 5 : 10,
         ...(action.payload === "mcq"
           ? {
-            options_for_mcq: ["", "", "", ""],
-            expected_answer: [],
-          }
+              options_for_mcq: ["", "", "", ""],
+              expected_answer: [],
+            }
           : {
-            expected_answer: [""],
-          }),
+              expected_answer: [""],
+            }),
       };
       return {
         ...state,
@@ -163,8 +167,9 @@ export function reducer(state: any, action: any) {
         console.error("Invalid question index:", index);
         return state;
       }
-      const updatedQuestions = state.questions.map((question: Question, i: number) =>
-        i === index ? updateQuestionField(question, field, value) : question,
+      const updatedQuestions = state.questions.map(
+        (question: Question, i: number) =>
+          i === index ? updateQuestionField(question, field, value) : question,
       );
       return {
         ...state,
@@ -213,7 +218,10 @@ export function reducer(state: any, action: any) {
           ...state.editingAssignment,
           assignment_materials: (
             state.editingAssignment?.assignment_materials || []
-          ).filter((material: AssignmentMaterial) => material.assignment_material_id !== action.payload),
+          ).filter(
+            (material: AssignmentMaterial) =>
+              material.assignment_material_id !== action.payload,
+          ),
         },
       };
     case "SET_MATERIALS":
