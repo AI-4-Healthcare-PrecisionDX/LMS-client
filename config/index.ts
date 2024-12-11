@@ -164,13 +164,13 @@ export function getStudentMenuList(pathname: string): Group[] {
           icon: Book,
           submenus: [],
         },
-        {
-          href: "/student/announcements",
-          label: "Announcements",
-          active: pathname.startsWith("/student/announcements"),
-          icon: MessageSquare,
-          submenus: [],
-        },
+        // {
+        //   href: "/student/announcements",
+        //   label: "Announcements",
+        //   active: pathname.startsWith("/student/announcements"),
+        //   icon: MessageSquare,
+        //   submenus: [],
+        // },
         {
           href: "/student/resource-management",
           label: "Note Management",

@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import useFileUpload from "@/hooks/use-upload";
 import { Viewer } from "@react-pdf-viewer/core";
@@ -90,7 +89,7 @@ export default function AssignmentSection({
   );
 
   const renderPdfViewer = () => (
-    <div className="h-[600px]">
+    <div className="h-[90vh]">
       <Viewer fileUrl={pdfUrl || ""} plugins={[defaultLayoutPluginInstance]} />
     </div>
   );
@@ -240,30 +239,54 @@ export default function AssignmentSection({
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2 text-sm dark:text-gray-300">
-                <CalendarIcon className="h-4 w-4" />
-                <span>
-                  Start:{" "}
-                  {dialogState.assignment &&
-                    format(
-                      new Date(dialogState.assignment.start_time),
-                      "PPP pp",
-                    )}
-                </span>
+            <div className="flex flex-col md:flex-row justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border dark:border-gray-700">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/10 rounded-full">
+                  <CalendarIcon className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium">
+                    Start Date
+                  </span>
+                  <span className="text-sm font-medium dark:text-gray-200">
+                    {dialogState.assignment &&
+                      format(
+                        new Date(dialogState.assignment.start_time),
+                        "PPP",
+                      )}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {dialogState.assignment &&
+                      format(new Date(dialogState.assignment.start_time), "pp")}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm dark:text-gray-300">
-                <CalendarIcon className="h-4 w-4" />
-                <span>
-                  Due:{" "}
-                  {dialogState.assignment &&
-                    format(new Date(dialogState.assignment.deadline), "PPP pp")}
-                </span>
+
+              <div className="mt-4 md:mt-0 flex items-center gap-3">
+                <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-full">
+                  <CalendarIcon className="h-5 w-5 text-red-500 dark:text-red-400" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium">
+                    Due Date
+                  </span>
+                  <span className="text-sm font-medium dark:text-gray-200">
+                    {dialogState.assignment &&
+                      format(new Date(dialogState.assignment.deadline), "PPP")}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {dialogState.assignment &&
+                      format(new Date(dialogState.assignment.deadline), "pp")}
+                  </span>
+                </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <h3 className="font-medium dark:text-gray-100">Instructions</h3>
+              <h3 className="font-medium dark:text-gray-100">
+                {dialogState.assignment?.assignment_description &&
+                  "Description"}
+              </h3>
               <p className="text-muted-foreground dark:text-gray-400 leading-relaxed">
                 {dialogState.assignment?.assignment_description}
               </p>
@@ -290,27 +313,44 @@ export default function AssignmentSection({
                       )}
                     </div>
 
-                    {question.question_type === "mcq" ? (
-                      <RadioGroup
-                        disabled={dialogState.submitted}
-                        value={
-                          dialogState.answers[question.assignment_question_id]
-                        }
-                        onValueChange={(value) =>
-                          handleAnswerChange(
-                            question.assignment_question_id,
-                            value,
-                          )
-                        }
-                      >
+                    {question.options_for_mcq.length > 0 ? (
+                      <div className="space-y-2">
                         {question.options_for_mcq.map((option, optionIndex) => (
                           <div
                             key={optionIndex}
                             className="flex items-center space-x-2"
                           >
-                            <RadioGroupItem
-                              value={option}
+                            <input
+                              type="checkbox"
+                              disabled={dialogState.submitted}
                               id={`${question.assignment_question_id}-${optionIndex}`}
+                              value={option}
+                              checked={dialogState.answers[
+                                question.assignment_question_id
+                              ]?.includes(option)}
+                              onChange={(e) => {
+                                const currentAnswers = dialogState.answers[
+                                  question.assignment_question_id
+                                ]
+                                  ? dialogState.answers[
+                                      question.assignment_question_id
+                                    ].split(",")
+                                  : [];
+
+                                let newAnswers;
+                                if (e.target.checked) {
+                                  newAnswers = [...currentAnswers, option];
+                                } else {
+                                  newAnswers = currentAnswers.filter(
+                                    (ans) => ans !== option,
+                                  );
+                                }
+
+                                handleAnswerChange(
+                                  question.assignment_question_id,
+                                  newAnswers.join(","),
+                                );
+                              }}
                               className="dark:border-gray-600"
                             />
                             <Label
@@ -321,7 +361,7 @@ export default function AssignmentSection({
                             </Label>
                           </div>
                         ))}
-                      </RadioGroup>
+                      </div>
                     ) : (
                       <Textarea
                         disabled={dialogState.submitted}

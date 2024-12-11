@@ -2,6 +2,8 @@
 
 export const runtime = "edge";
 
+import ErrorMessage from "@/components/brand/shared/error";
+import CaseLoadingSkeleton from "@/components/brand/shared/loading";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,7 +21,14 @@ import {
 } from "@/components/ui/dialog";
 import api from "@/lib/axios-config";
 import { useQuery } from "@tanstack/react-query";
-import { Brain, CheckCircle2, Clock, Info } from "lucide-react";
+import {
+  ArrowLeft,
+  Brain,
+  CheckCircle2,
+  Clock,
+  FileX,
+  Info,
+} from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useReducer } from "react";
@@ -101,30 +110,11 @@ export default function DepartmentScenarios() {
   };
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-        <div className="text-red-500 text-xl font-semibold mb-4">
-          Error loading scenarios
-        </div>
-        <p className="text-gray-600 dark:text-gray-400 text-center mb-4">
-          {error instanceof Error ? error.message : "Please try again later"}
-        </p>
-        <Button onClick={() => window.location.reload()} variant="outline">
-          Retry
-        </Button>
-      </div>
-    );
+    return <ErrorMessage error={error} title="Error loading scenarios" />;
   }
 
   if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-gray-600 dark:text-gray-400">
-          Loading scenarios...
-        </p>
-      </div>
-    );
+    return <CaseLoadingSkeleton />;
   }
 
   if (
@@ -135,16 +125,25 @@ export default function DepartmentScenarios() {
   ) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-        <div className="text-xl font-semibold mb-4 dark:text-white">
-          No Scenarios Available
+        <FileX className="w-16 h-16 text-gray-400 mb-4" />
+        <div className="text-2xl font-semibold mb-4 dark:text-white">
+          No Clinical Scenarios Found
         </div>
-        <p className="text-gray-600 dark:text-gray-400 text-center mb-4">
-          There are currently no clinical scenarios available for this
-          department.
-        </p>
-        <Button onClick={() => window.location.reload()} variant="outline">
-          Refresh
-        </Button>
+        <div className="max-w-md">
+          <p className="text-gray-600 dark:text-gray-400 text-center mb-2">
+            There are currently no clinical scenarios available for this
+            department.
+          </p>
+          <p className="text-gray-500 dark:text-gray-500 text-sm text-center mb-6">
+            Please check back later or try a different department.
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <Link href="/student/practice" className="flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Go Back
+          </Link>
+        </div>
       </div>
     );
   }
