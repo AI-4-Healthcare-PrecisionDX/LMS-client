@@ -86,7 +86,15 @@ const createStudent = async ({
 }: {
   data: AdminFormData;
 }): Promise<Admin> => {
-  const response = await api.post(`/admin/create-student`, data);
+  const response = await api.post(`/admin/create-student`, {
+    first_name: data.first_name,
+    last_name: data.last_name,
+    email: data.email,
+    gender: data.gender,
+    phone_number: data.phone_number,
+    password: data.password,
+    matric_id: data.matric_id,
+  });
   return response.data;
 };
 
