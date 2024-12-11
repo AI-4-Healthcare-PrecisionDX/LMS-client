@@ -98,7 +98,7 @@ export default function CourseDetailsPage() {
           </TabsList>
 
           <TabsContent value="stream" className="space-y-4">
-            <AnnouncementSection announcements={section.announcements} />
+            <AnnouncementSection announcements={section?.announcements} />
           </TabsContent>
 
           <TabsContent value="assignments" className="space-y-4">
