@@ -194,6 +194,7 @@ export default function AdminManagement() {
       email: admin.email,
       gender: admin.gender,
       phone_number: admin.phone_number,
+      matric_id: "",
       password: "", // Don't set the password when editing
     });
   };
@@ -338,7 +339,15 @@ export default function AdminManagement() {
                 variant="outline"
                 onClick={() => {
                   setEditingAdmin(null);
-                  form.reset();
+                  form.reset({
+                    first_name: "",
+                    last_name: "",
+                    email: "",
+                    gender: "",
+                    phone_number: "",
+                    password: "",
+                    matric_id: "",
+                  });
                 }}
                 className="ml-2"
               >
