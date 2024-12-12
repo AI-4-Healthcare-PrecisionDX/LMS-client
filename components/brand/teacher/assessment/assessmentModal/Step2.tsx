@@ -1,55 +1,20 @@
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import useFileUpload from "@/hooks/use-upload";
-import { selectedPdfAtom } from "@/store";
 import { Viewer } from "@react-pdf-viewer/core";
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
-import { useAtom } from "jotai";
 import { Loader2 } from "lucide-react";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument } from 'pdf-lib';
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useFilteredContents } from "../../materials";
-import {
-  Chapter,
-  ContentOutline,
-  Section,
-  SectionExclusiveContent,
-  TemplateCourse,
-} from "../../materials/types";
-
-// Define types
-interface StepDetails {
-  bookIds: string[];
-  chapterIds: Record<string, string[]>;
-  selectedSections: Record<string, string[]>;
-  selectedPdf: string | null;
-}
-
-interface Step2Props {
-  onNext: (details: StepDetails) => void;
-  onBack: () => void;
-  selectedBooks: string[];
-  selectedChapters: Record<string, string[]>;
-  section_exclusive_contents: SectionExclusiveContent[];
-  template_course: TemplateCourse;
-}
+import { ContentOutline, SectionExclusiveContent, TemplateCourse } from "../../materials/types";
 
 export default function Step2({
   onNext,
@@ -58,22 +23,27 @@ export default function Step2({
   selectedChapters = {},
   section_exclusive_contents,
   template_course,
-}: Step2Props) {
+}: {
+  onNext: (details: any) => void;
+  onBack: (details: any) => void;
+  selectedBooks: string[];
+  selectedChapters: Record<string, string[]>;
+  section_exclusive_contents: SectionExclusiveContent[];
+  template_course: TemplateCourse;
+}) {
   const [currentBooks, setCurrentBooks] = useState(selectedBooks || []);
   const [currentChapters, setCurrentChapters] = useState(selectedChapters);
-  const [selectedSections, setSelectedSections] = useState<
-    Record<string, string[]>
-  >({});
+  const [selectedSections, setSelectedSections] = useState<Record<string, string[]>>({});
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedPdf, setSelectedPdf] = useState<string | null>(null);
+  const [selectedPdfName, setSelectedPdfName] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [expandedChapters, setExpandedChapters] = useState<string[]>([]);
-  const [contentMetaOutlines, setContentMetaOutlines] = useState<
-    Record<string, ContentOutline>
-  >({});
+  const [contentMetaOutlines, setContentMetaOutlines] = useState<Record<string, ContentOutline>>({});
   const [loadingBookId, setLoadingBookId] = useState<string | null>(null);
+  const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
   const [hasSelectedContent, setHasSelectedContent] = useState(false);
-  const [selectedPdfState, setSelectedPdfState] = useAtom(selectedPdfAtom);
 
   const { getLibraryById, getLibraryFileByLibraryID } = useFileUpload();
   const defaultLayoutPluginInstance = defaultLayoutPlugin();
@@ -88,12 +58,8 @@ export default function Step2({
 
   useEffect(() => {
     // Update hasSelectedContent whenever selections change
-    const hasChapters = Object.values(currentChapters).some(
-      (chapters) => chapters.length > 0,
-    );
-    const hasSections = Object.values(selectedSections).some(
-      (sections) => sections.length > 0,
-    );
+    const hasChapters = Object.values(currentChapters).some(chapters => chapters.length > 0);
+    const hasSections = Object.values(selectedSections).some(sections => sections.length > 0);
     setHasSelectedContent(hasChapters || hasSections);
   }, [currentChapters, selectedSections]);
 
@@ -102,12 +68,13 @@ export default function Step2({
       setLoadingBookId(bookId);
       try {
         const outline = await getLibraryById(bookId);
-        setContentMetaOutlines((prev) => ({
+        setContentMetaOutlines(prev => ({
           ...prev,
-          [bookId]: outline,
+          [bookId]: outline
         }));
+        // Automatically add book to currentBooks when expanding
         if (!currentBooks.includes(bookId)) {
-          setCurrentBooks((prev) => [...prev, bookId]);
+          setCurrentBooks(prev => [...prev, bookId]);
         }
       } catch (error) {
         console.error(`Failed to load outline for book ${bookId}:`, error);
@@ -118,13 +85,10 @@ export default function Step2({
     }
   };
 
-  const handleChapterToggle = (
-    bookId: string,
-    chapterId: string,
-    sections: Section[],
-  ) => {
+  const handleChapterToggle = (bookId: string, chapterId: string, sections: any[]) => {
+    // Ensure book is in currentBooks
     if (!currentBooks.includes(bookId)) {
-      setCurrentBooks((prev) => [...prev, bookId]);
+      setCurrentBooks(prev => [...prev, bookId]);
     }
 
     setCurrentChapters((prev) => {
@@ -137,9 +101,9 @@ export default function Step2({
       };
 
       if (!isCurrentlySelected) {
-        setSelectedSections((prev) => ({
+        setSelectedSections(prev => ({
           ...prev,
-          [chapterId]: sections.map((section) => section.id),
+          [chapterId]: sections.map(section => section.id)
         }));
       } else {
         const { [chapterId]: removed, ...rest } = selectedSections;
@@ -150,25 +114,23 @@ export default function Step2({
     });
   };
 
-  const handleSectionToggle = (
-    bookId: string,
-    chapterId: string,
-    sectionId: string,
-  ) => {
+  const handleSectionToggle = (bookId: string, chapterId: string, sectionId: string) => {
+    // Ensure book is in currentBooks
     if (!currentBooks.includes(bookId)) {
-      setCurrentBooks((prev) => [...prev, bookId]);
+      setCurrentBooks(prev => [...prev, bookId]);
     }
 
-    setSelectedSections((prev) => {
+    setSelectedSections(prev => {
       const currentSections = prev[chapterId] || [];
       const newSections = currentSections.includes(sectionId)
-        ? currentSections.filter((id) => id !== sectionId)
+        ? currentSections.filter(id => id !== sectionId)
         : [...currentSections, sectionId];
 
+      // If no sections are selected, remove the chapter from currentChapters
       if (newSections.length === 0) {
-        setCurrentChapters((prev) => ({
+        setCurrentChapters(prev => ({
           ...prev,
-          [bookId]: prev[bookId]?.filter((id) => id !== chapterId) || [],
+          [bookId]: prev[bookId]?.filter(id => id !== chapterId) || []
         }));
         const { [chapterId]: removed, ...rest } = prev;
         return rest;
@@ -176,7 +138,7 @@ export default function Step2({
 
       return {
         ...prev,
-        [chapterId]: newSections,
+        [chapterId]: newSections
       };
     });
   };
@@ -189,10 +151,8 @@ export default function Step2({
       }
 
       const newPdfDoc = await PDFDocument.create();
-      const relevantBooks = filteredBooks.filter((book) => {
-        const bookId =
-          book.library_item.library_id ||
-          book.library_item.library_item.library_id;
+      const relevantBooks = filteredBooks.filter(book => {
+        const bookId = book.library_item.library_id || book.library_item.library_item.library_id;
         return currentBooks.includes(bookId);
       });
 
@@ -201,9 +161,7 @@ export default function Step2({
       }
 
       for (const book of relevantBooks) {
-        const bookId =
-          book.library_item.library_id ||
-          book.library_item.library_item.library_id;
+        const bookId = book.library_item.library_id || book.library_item.library_item.library_id;
         const content_meta_outline = contentMetaOutlines[bookId];
 
         if (!content_meta_outline) {
@@ -222,8 +180,7 @@ export default function Step2({
 
         try {
           const response = await fetch(file_url);
-          if (!response.ok)
-            throw new Error(`HTTP error! status: ${response.status}`);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
           const pdfBytes = await response.arrayBuffer();
           const pdfDoc = await PDFDocument.load(pdfBytes);
 
@@ -237,39 +194,24 @@ export default function Step2({
 
             const chapterSections = selectedSections[chapter.id] || [];
 
-            if (
-              selectedChapterIds.includes(chapter.id) &&
-              chapterSections.length === 0
-            ) {
+            if (selectedChapterIds.includes(chapter.id) && chapterSections.length === 0) {
+              // If entire chapter is selected
               const pageIndices = Array.from(
-                {
-                  length: chapter.pageRanges.end - chapter.pageRanges.start + 1,
-                },
-                (_, i) => i + chapter.pageRanges.start - 1,
+                { length: chapter.pageRanges.end - chapter.pageRanges.start + 1 },
+                (_, i) => i + chapter.pageRanges.start - 1
               );
-              const copiedPages = await newPdfDoc.copyPages(
-                pdfDoc,
-                pageIndices,
-              );
-              copiedPages.forEach((page) => newPdfDoc.addPage(page));
+              const copiedPages = await newPdfDoc.copyPages(pdfDoc, pageIndices);
+              copiedPages.forEach(page => newPdfDoc.addPage(page));
             } else if (chapterSections.length > 0) {
+              // If specific sections are selected
               for (const section of chapter.sections) {
-                if (
-                  chapterSections.includes(section.id) &&
-                  section.pageRanges
-                ) {
+                if (chapterSections.includes(section.id) && section.pageRanges) {
                   const pageIndices = Array.from(
-                    {
-                      length:
-                        section.pageRanges.end - section.pageRanges.start + 1,
-                    },
-                    (_, i) => i + section.pageRanges.start - 1,
+                    { length: section.pageRanges.end - section.pageRanges.start + 1 },
+                    (_, i) => i + section.pageRanges.start - 1
                   );
-                  const copiedPages = await newPdfDoc.copyPages(
-                    pdfDoc,
-                    pageIndices,
-                  );
-                  copiedPages.forEach((page) => newPdfDoc.addPage(page));
+                  const copiedPages = await newPdfDoc.copyPages(pdfDoc, pageIndices);
+                  copiedPages.forEach(page => newPdfDoc.addPage(page));
                 }
               }
             }
@@ -287,30 +229,27 @@ export default function Step2({
       const mergedPdfBytes = await newPdfDoc.save();
       const blob = new Blob([mergedPdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-      setSelectedPdfState({
-        url,
-        name: "Selected Chapters Preview",
-        pdfBytes: mergedPdfBytes,
-      });
+      setGeneratedPdfUrl(url);
       toast.success("PDF generated successfully");
     } catch (error) {
       console.error("PDF generation error:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to generate PDF",
-      );
+      toast.error(error instanceof Error ? error.message : "Failed to generate PDF");
     } finally {
       setIsLoadingPdf(false);
     }
   };
 
   const handlePreviewPdf = () => {
-    if (!selectedPdfState?.url) {
+    if (!generatedPdfUrl) {
       toast.error("Please generate PDF first");
       return;
     }
+    setSelectedPdf(generatedPdfUrl);
+    setSelectedPdfName("Selected Chapters Preview");
     setIsDialogOpen(true);
   };
 
+  // Rest of the component remains the same, but update the button's disabled prop
   return (
     <div className="">
       <h2 className="text-3xl font-bold text-center mb-6">
@@ -330,29 +269,20 @@ export default function Step2({
             />
             <Label className="text-lg font-semibold">Select Books</Label>
             <ScrollArea className="h-[300px] w-full rounded-md border p-4">
-              <Accordion
-                type="single"
-                collapsible
-                className="w-full"
-                onValueChange={(value) => {
-                  if (value) {
-                    const bookId = value.replace("book-", "");
-                    loadBookChapters(bookId);
-                  }
-                }}
-              >
+              <Accordion type="single" collapsible className="w-full" onValueChange={(value) => {
+                if (value) {
+                  const bookId = value.replace('book-', '');
+                  loadBookChapters(bookId);
+                }
+              }}>
                 {filteredBooks?.map((book) => {
-                  const bookId =
-                    book.library_item.library_id ||
-                    book.library_item.library_item.library_id;
+                  const bookId = book.library_item.library_id || book.library_item.library_item.library_id;
                   const outline = contentMetaOutlines[bookId];
                   const isLoading = loadingBookId === bookId;
 
                   return (
                     <AccordionItem value={`book-${bookId}`} key={bookId}>
-                      <AccordionTrigger>
-                        {book.library_item.material_title}
-                      </AccordionTrigger>
+                      <AccordionTrigger>{book.library_item.material_title}</AccordionTrigger>
                       <AccordionContent>
                         {isLoading ? (
                           <div className="flex items-center justify-center py-4">
@@ -361,68 +291,41 @@ export default function Step2({
                           </div>
                         ) : (
                           <div className="space-y-4">
-                            {outline?.content_outline?.map(
-                              (chapter: Chapter) => (
-                                <div key={chapter.id} className="space-y-2">
-                                  <div className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`book-${bookId}-chapter-${chapter.id}`}
-                                      checked={
-                                        currentChapters[bookId]?.includes(
-                                          chapter.id,
-                                        ) || false
-                                      }
-                                      onCheckedChange={() =>
-                                        handleChapterToggle(
-                                          bookId,
-                                          chapter.id,
-                                          chapter.sections,
-                                        )
-                                      }
-                                    />
-                                    <Label
-                                      htmlFor={`book-${bookId}-chapter-${chapter.id}`}
-                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                    >
-                                      {chapter.title}
-                                    </Label>
-                                  </div>
-
-                                  <div className="ml-6 space-y-1">
-                                    {chapter.sections.map(
-                                      (section: Section) => (
-                                        <div
-                                          key={section.id}
-                                          className="flex items-center space-x-2"
-                                        >
-                                          <Checkbox
-                                            id={`section-${section.id}`}
-                                            checked={
-                                              selectedSections[
-                                                chapter.id
-                                              ]?.includes(section.id) || false
-                                            }
-                                            onCheckedChange={() =>
-                                              handleSectionToggle(
-                                                bookId,
-                                                chapter.id,
-                                                section.id,
-                                              )
-                                            }
-                                          />
-                                          <Label
-                                            htmlFor={`section-${section.id}`}
-                                            className="text-sm text-muted-foreground"
-                                          >
-                                            {section.title}
-                                          </Label>
-                                        </div>
-                                      ),
-                                    )}
-                                  </div>
+                            {outline?.content_outline?.map((chapter: any) => (
+                              <div key={chapter.id} className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                  <Checkbox
+                                    id={`book-${bookId}-chapter-${chapter.id}`}
+                                    checked={currentChapters[bookId]?.includes(chapter.id) || false}
+                                    onCheckedChange={() => handleChapterToggle(bookId, chapter.id, chapter.sections)}
+                                  />
+                                  <Label
+                                    htmlFor={`book-${bookId}-chapter-${chapter.id}`}
+                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                  >
+                                    {chapter.title}
+                                  </Label>
                                 </div>
-                              ),
-                            )}
+
+                                <div className="ml-6 space-y-1">
+                                  {chapter.sections.map((section: any) => (
+                                    <div key={section.id} className="flex items-center space-x-2">
+                                      <Checkbox
+                                        id={`section-${section.id}`}
+                                        checked={selectedSections[chapter.id]?.includes(section.id) || false}
+                                        onCheckedChange={() => handleSectionToggle(bookId, chapter.id, section.id)}
+                                      />
+                                      <Label
+                                        htmlFor={`section-${section.id}`}
+                                        className="text-sm text-muted-foreground"
+                                      >
+                                        {section.title}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </AccordionContent>
@@ -443,18 +346,18 @@ export default function Step2({
             </Button>
             <Button
               onClick={handlePreviewPdf}
-              disabled={!selectedPdfState?.url || isLoadingPdf}
+              disabled={!generatedPdfUrl || isLoadingPdf}
               className="w-full md:w-auto"
             >
               Preview PDF
             </Button>
           </div>
 
-          {isDialogOpen && selectedPdfState?.url && (
+          {isDialogOpen && selectedPdf && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogContent className="w-3/4 h-screen max-w-none m-0 p-6">
                 <DialogHeader>
-                  <DialogTitle>{selectedPdfState.name}</DialogTitle>
+                  <DialogTitle>{selectedPdfName}</DialogTitle>
                 </DialogHeader>
                 {isLoadingPdf ? (
                   <div className="flex-1 flex items-center justify-center">
@@ -464,7 +367,7 @@ export default function Step2({
                 ) : (
                   <div className="w-full h-4/6 mt-10 mb-5">
                     <Viewer
-                      fileUrl={selectedPdfState.url}
+                      fileUrl={selectedPdf}
                       plugins={[defaultLayoutPluginInstance]}
                     />
                   </div>
@@ -490,10 +393,10 @@ export default function Step2({
               bookIds: currentBooks,
               chapterIds: currentChapters,
               selectedSections,
-              selectedPdf: selectedPdfState?.url || null,
+              selectedPdf: generatedPdfUrl
             })
           }
-          disabled={!hasSelectedContent || !selectedPdfState?.pdfBytes}
+          disabled={!hasSelectedContent || !generatedPdfUrl}
           size="lg"
           className="text-lg"
         >

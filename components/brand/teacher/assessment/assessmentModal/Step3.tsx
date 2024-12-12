@@ -1,5 +1,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BookOpen, Edit3 } from "lucide-react";
+import { useEffect } from "react";
 import { Assignment, Question } from "../types";
 import AssignmentHeader from "./AssignmentHeader";
 import AssignmentSetup from "./AssignmentSetup";
@@ -31,12 +33,11 @@ export default function Step3({
     (sum: number, q: Question) => sum + (Number(q.marks) || 0),
     0,
   );
-  const [isGenerated, setIsGenerated] = useState(false);
-  // console.log("selectedPdf", state.newAssignment.selectedPdf);
   const selectedPdf = state.newAssignment.selectedPdf;
 
   const handlePublish = () => {
     const questions = Array.isArray(state.questions) ? state.questions : [];
+    console.log("questions inside handlePublish", questions);
 
     const assignment_materials = Array.isArray(state.materials)
       ? state.materials.map((material: any) => material.library_id)
@@ -63,10 +64,6 @@ export default function Step3({
           expected_answer: Array.isArray(q.expected_answer)
             ? q.expected_answer.map((ans: string) => String(ans || ""))
             : [],
-          explanation: q.explanation, // Preserve AI explanation
-          pattern_type: q.pattern_type, // Preserve AI pattern type
-          difficulty: q.difficulty, // Preserve AI difficulty
-          isAIGenerated: q.isAIGenerated // Preserve AI generation flag
         })),
         assignment_materials,
       };
@@ -95,10 +92,6 @@ export default function Step3({
           expected_answer: Array.isArray(q.expected_answer)
             ? q.expected_answer.map((ans: string) => String(ans || ""))
             : [],
-          explanation: q.explanation,
-          pattern_type: q.pattern_type,
-          difficulty: q.difficulty,
-          isAIGenerated: q.isAIGenerated
         })),
       };
 
@@ -123,7 +116,7 @@ export default function Step3({
             isEditing={!!state.editingAssignment}
           />
 
-          {/* <Tabs
+          <Tabs
             defaultValue={state.activeTab}
             value={state.activeTab}
             onValueChange={(value) =>
@@ -150,22 +143,23 @@ export default function Step3({
             </TabsList>
 
             <TabsContent value="setup">
-             
+              <AssignmentSetup
+                state={state}
+                dispatch={dispatch}
+                category={category}
+                selectedPdf={selectedPdf}
+              />
             </TabsContent>
-          </Tabs> */}
-          <AssignmentSetup
-            state={state}
-            dispatch={dispatch}
-            category={category}
-            selectedPdf={selectedPdf}
-            setIsGenerated={setIsGenerated}
-          />
-          <QuestionsList
-            state={state}
-            dispatch={dispatch}
-            category={category}
-            isGenerated={isGenerated}
-          />
+
+            <TabsContent value="questions">
+              <QuestionsList
+                state={state}
+                dispatch={dispatch}
+                category={category}
+              />
+            </TabsContent>
+          </Tabs>
+
           <FooterButtons
             onBack={handleBack}
             onPublish={handlePublish}
