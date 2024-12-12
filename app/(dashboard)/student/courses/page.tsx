@@ -1,13 +1,9 @@
 "use client";
+import ErrorMessage from "@/components/brand/shared/error";
+import CaseLoadingSkeleton from "@/components/brand/shared/loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -20,7 +16,15 @@ import {
 import { Input } from "@/components/ui/input";
 import api from "@/lib/axios-config";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, BookOpen, Microscope, Search } from "lucide-react";
+import { AxiosError } from "axios";
+import {
+  ArrowRight,
+  BookOpen,
+  CalendarIcon,
+  FileText,
+  Microscope,
+  Search,
+} from "lucide-react";
 import Link from "next/link";
 import { useReducer } from "react";
 import { toast } from "sonner";
@@ -137,8 +141,11 @@ export default function CoursesPage() {
       toast.success("Successfully joined the course");
       dispatch({ type: "RESET_COURSE_CODE" });
     },
-    onError: (error) => {
-      toast.error("Failed to join course: " + error.message);
+    onError: (error: AxiosError) => {
+      toast.error(
+        (error.response?.data as { detail: string })?.detail ||
+          "Failed to join course",
+      );
     },
   });
 
@@ -159,102 +166,35 @@ export default function CoursesPage() {
   );
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <CaseLoadingSkeleton />;
   }
 
   if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-500">
-          Error loading courses: {error.message}
-        </div>
-      </div>
-    );
-  }
-
-  if (!sections || sections.length === 0) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg p-8 mb-8">
-          <h1 className="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
-            My Courses
-          </h1>
-        </div>
-
-        <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <Input
-              placeholder="Search courses..."
-              className="pl-10"
-              value={state.searchTerm}
-              onChange={(e) =>
-                dispatch({ type: "SET_SEARCH_TERM", payload: e.target.value })
-              }
-            />
-          </div>
-
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">
-                Join New Course
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Join a Course</DialogTitle>
-                <DialogDescription>
-                  Enter the course section code provided by your instructor
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <Input
-                  placeholder="Enter course code"
-                  value={state.courseCode}
-                  onChange={(e) =>
-                    dispatch({
-                      type: "SET_COURSE_CODE",
-                      payload: e.target.value,
-                    })
-                  }
-                  required
-                />
-                {joinSectionMutation.isError && (
-                  <p className="text-red-500">
-                    {joinSectionMutation.error.message}
-                  </p>
-                )}
-              </div>
-              <DialogFooter>
-                <Button onClick={handleJoinCourse}>Join Course</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        <div className="text-center text-gray-500">
-          <p>You haven't joined any courses yet.</p>
-          <p>Use the "Join New Course" button to enroll in a course.</p>
-        </div>
-      </div>
-    );
+    return <ErrorMessage error={error} title="Error loading courses" />;
   }
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 rounded-lg p-8 mb-8">
-        <h1 className="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
-          My Courses
-        </h1>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 mb-8">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-2">
+              My Courses
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              Access your enrolled clinical courses and learning materials. View
+              course content, assignments and track your progress.
+            </p>
+          </div>
+          <div className="hidden md:flex items-center justify-center w-16 h-16 rounded-full bg-primary/10">
+            <FileText className="w-8 h-8 text-primary" />
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row justify-between gap-4 mb-8">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <Input
             placeholder="Search courses..."
             className="pl-10"
@@ -294,102 +234,108 @@ export default function CoursesPage() {
         </Dialog>
       </div>
 
+      {filteredSections?.length === 0 && (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-gray-500 dark:text-gray-400">
+            No courses found
+          </div>
+          <div className="text-gray-500 dark:text-gray-400">
+            You are not enrolled in any courses yet. Please contact your
+            instructor to get enrolled. If you have a course code, you can join
+            a course by clicking the button above.
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredSections?.map((section) => (
           <Card
             key={section.section_id}
-            className="hover:shadow-lg transition-shadow overflow-hidden"
+            className="hover:shadow-lg transition-shadow overflow-hidden group relative dark:border-gray-800"
           >
-            <CardHeader className="border-b bg-secondary/10">
-              <CardTitle className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  <span className="font-mono">{section.section_code}</span>
+            <div className="h-32 bg-gradient-to-r from-primary/30 to-primary/10 dark:from-primary/20 dark:to-primary/5 relative">
+              <div className="absolute bottom-4 left-4">
+                <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+                  {section.template_course.template_name}
+                </h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-sm text-gray-600 dark:text-gray-300">
+                    {section.teacher.user.first_name}{" "}
+                    {section.teacher.user.last_name}
+                  </span>
+                  <span className="w-1 h-1 bg-gray-400 dark:bg-gray-500 rounded-full" />
+                  <span className="text-sm font-mono text-gray-600 dark:text-gray-300">
+                    {section.section_code}
+                  </span>
                 </div>
-                <Badge variant="outline" className="text-xs">
+              </div>
+              <div className="absolute top-4 right-4">
+                <Badge
+                  variant="outline"
+                  className="bg-white/80 dark:bg-black/50 backdrop-blur-sm"
+                >
                   {new Date() < new Date(section.start_date)
                     ? "Upcoming"
                     : new Date() > new Date(section.end_date)
                       ? "Completed"
                       : "Active"}
                 </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <h3 className="font-semibold text-xl mb-4 text-primary">
-                {section.template_course.template_name}
-              </h3>
+              </div>
+            </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-secondary/20 rounded-full">
-                    <Microscope className="h-4 w-4 text-primary" />
-                  </div>
-                  <p className="text-sm">
-                    <span className="font-medium">Department:</span>{" "}
+            <CardContent className="pt-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                  <Microscope className="h-4 w-4" />
+                  <span className="text-sm">
                     {section.template_course.department.department_name}
-                  </p>
+                  </span>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-secondary/20 rounded-full">
-                    <Microscope className="h-4 w-4 text-primary" />
+                <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                  <div className="flex items-center gap-1">
+                    <BookOpen className="h-4 w-4" />
+                    <span>
+                      {section.template_course.course_materials.length}{" "}
+                      Materials
+                    </span>
                   </div>
-                  <p className="text-sm">
-                    <span className="font-medium">Instructor:</span>{" "}
-                    {section.teacher.user.first_name}{" "}
-                    {section.teacher.user.last_name}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 bg-secondary/10 p-4 rounded-lg">
+                  <div>•</div>
                   <div>
-                    <p className="text-sm font-medium mb-1">Course Materials</p>
-                    <p className="text-2xl font-bold text-primary">
-                      {section.template_course.course_materials.length}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium mb-1">
-                      Exclusive Content
-                    </p>
-                    <p className="text-2xl font-bold text-primary">
-                      {section.section_exclusive_contents.length}
-                    </p>
+                    {section.section_exclusive_contents.length} Exclusive
+                    Content
                   </div>
                 </div>
 
-                <div className="flex justify-between text-sm p-3 bg-secondary/10 rounded-lg">
-                  <div>
-                    <p className="font-medium">Start Date</p>
-                    <p>
-                      {new Date(section.start_date).toLocaleDateString(
-                        "en-US",
-                        {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        },
-                      )}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium">End Date</p>
-                    <p>
-                      {new Date(section.end_date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                  <CalendarIcon className="h-4 w-4" />
+                  <span>
+                    {new Date(section.start_date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                    {" - "}
+                    {new Date(section.end_date).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
                 </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-end items-center bg-secondary/5 mt-4">
-              <Link href={`/student/courses/${section.section_id}`}>
-                <Button className="gap-2 bg-primary hover:bg-primary/90">
-                  View Course <ArrowRight className="h-4 w-4" />
+
+            <CardFooter className="pt-0">
+              <Link
+                href={`/student/courses/${section.section_id}`}
+                className="w-full"
+              >
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between hover:bg-primary/5 dark:hover:bg-primary/10"
+                >
+                  Open Course
+                  <ArrowRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </Button>
               </Link>
             </CardFooter>

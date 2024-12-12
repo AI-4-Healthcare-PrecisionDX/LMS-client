@@ -10,6 +10,7 @@ export type Section = {
     teacher_id: string;
   };
   student_count: number;
+  section_code: string;
 };
 
 export type Teacher = {

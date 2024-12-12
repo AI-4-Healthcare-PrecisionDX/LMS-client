@@ -44,4 +44,3 @@ type Assignments = Assignment[];
 
 
 export type { Assignment, AssignmentMaterial, Assignments };
-

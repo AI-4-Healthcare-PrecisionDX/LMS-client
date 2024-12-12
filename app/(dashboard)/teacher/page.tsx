@@ -245,7 +245,6 @@ const SectionCard = ({
   section: Section;
   viewMode: "grid" | "list";
 }) => {
-
   if (viewMode === "list") {
     return (
       <>
@@ -300,9 +299,9 @@ const SectionCard = ({
               {section.section_code}
             </code>
           </div>
-          <div className="text-sm text-muted-foreground">
+          {/* <div className="text-sm text-muted-foreground">
             <small>{section.student_count || 0} Students</small>
-          </div>
+          </div> */}
         </CardContent>
         <CardFooter className="bg-muted/50">
           <Button variant="ghost" className="w-full" asChild>

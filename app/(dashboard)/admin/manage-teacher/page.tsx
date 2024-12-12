@@ -1,5 +1,18 @@
 "use client";
 
+import ErrorMessage from "@/components/brand/shared/error";
+import CaseLoadingSkeleton from "@/components/brand/shared/loading";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -28,7 +41,8 @@ import {
 import api from "@/lib/axios-config";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AxiosError } from "axios";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -48,6 +62,9 @@ type Admin = {
   is_active: boolean;
   is_superuser: boolean;
   updated_at: string;
+  teacher: {
+    teacher_id: string;
+  };
 };
 
 // Zod schema
@@ -114,44 +131,53 @@ export default function AdminManagement() {
     isLoading,
     isError,
     error,
-  } = useQuery<Admin[], Error>({
-    queryKey: ["admins"],
+  } = useQuery<Admin[], AxiosError>({
+    queryKey: ["manage-teachers"],
     queryFn: fetchAdmins,
   });
 
   const createMutation = useMutation({
     mutationFn: (data: AdminFormData) => createAdmin({ data }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admins"] });
-      toast.success("Admin created successfully");
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
+      toast.success("Teacher created successfully");
       form.reset();
     },
-    onError: (error: Error) => {
-      toast.error(`Error creating admin: ${error.message}`);
+    onError: (error: AxiosError) => {
+      toast.error(
+        `Failed to create teacher: ${(error.response?.data as { detail: string })?.detail}`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: updateAdmin,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admins"] });
-      toast.success("Admin updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
+      toast.success("Teacher updated successfully");
       setEditingAdmin(null);
       form.reset();
     },
-    onError: (error: Error) => {
-      toast.error(`Error updating admin: ${error.message}`);
+    onError: (error: AxiosError) => {
+      toast.error(
+        `Failed to update teacher: ${(error.response?.data as { detail: string })?.detail}`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: deleteAdmin,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["admins"] });
-      toast.success("Admin deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
+      toast.success("Teacher deleted successfully");
     },
-    onError: (error: Error) => {
-      toast.error(`Error deleting admin: ${error.message}`);
+    onError: (error: AxiosError) => {
+      toast.error(
+        `Failed to delete teacher: ${(error.response?.data as { detail: string })?.detail}`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["manage-teachers"] });
     },
   });
 
@@ -175,60 +201,12 @@ export default function AdminManagement() {
     });
   };
 
-  const handleDelete = (userId: string) => {
-    if (window.confirm("Are you sure you want to delete this teacher?")) {
-      deleteMutation.mutate(userId);
-    }
-  };
-
   if (isLoading) {
-    return (
-      <div className="container p-6 space-y-8">
-        <div className="h-8 w-48 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-2">
-              <div className="h-4 w-24 bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-              <div className="h-10 w-full bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-            </div>
-          ))}
-        </div>
-        <div className="mt-8">
-          <div className="h-12 w-full bg-gray-200 dark:bg-gray-800 rounded animate-pulse" />
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="mt-4 h-16 w-full bg-gray-200 dark:bg-gray-800 rounded animate-pulse"
-            />
-          ))}
-        </div>
-      </div>
-    );
+    return <CaseLoadingSkeleton />;
   }
 
   if (isError) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
-        <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full">
-          <AlertCircle className="w-8 h-8 text-red-600" />
-        </div>
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-          Error Loading Teachers
-        </h2>
-        <p className="text-gray-500 dark:text-gray-400">
-          {error?.message ||
-            "An unexpected error occurred while loading the teacher list"}
-        </p>
-        <Button
-          variant="outline"
-          onClick={() =>
-            queryClient.invalidateQueries({ queryKey: ["admins"] })
-          }
-        >
-          Try Again
-        </Button>
-      </div>
-    );
+    return <ErrorMessage error={error} title="Error Loading Teachers" />;
   }
   return (
     <div className="container mx-auto p-4">
@@ -370,49 +348,94 @@ export default function AdminManagement() {
         />
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Gender</TableHead>
-            <TableHead>Phone</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {admins
-            ?.filter((admin) =>
-              `${admin.first_name} ${admin.last_name}`
-                .toLowerCase()
-                .includes(searchQuery.toLowerCase()),
-            )
-            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-            .map((admin) => (
-              <TableRow key={admin.user_id}>
-                <TableCell>{`${admin.first_name} ${admin.last_name}`}</TableCell>
-                <TableCell>{admin.email}</TableCell>
-                <TableCell>{admin.gender}</TableCell>
-                <TableCell>{admin.phone_number}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="outline"
-                    className="mr-2"
-                    onClick={() => handleEdit(admin)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    onClick={() => handleDelete(admin.user_id)}
-                  >
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-        </TableBody>
-      </Table>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="whitespace-nowrap">Name</TableHead>
+              <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead className="hidden lg:table-cell">Gender</TableHead>
+              <TableHead className="hidden md:table-cell">Phone</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {admins
+              ?.filter((admin) =>
+                `${admin.first_name} ${admin.last_name}`
+                  .toLowerCase()
+                  .includes(searchQuery.toLowerCase()),
+              )
+              .slice(
+                (currentPage - 1) * itemsPerPage,
+                currentPage * itemsPerPage,
+              )
+              .map((admin) => (
+                <TableRow key={admin.user_id}>
+                  <TableCell className="font-medium">
+                    {`${admin.first_name} ${admin.last_name}`}
+                    <div className="md:hidden mt-1 text-sm text-gray-500">
+                      {admin.email}
+                    </div>
+                    <div className="md:hidden mt-1 text-sm text-gray-500">
+                      {admin.phone_number}
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {admin.email}
+                  </TableCell>
+                  <TableCell className="hidden lg:table-cell">
+                    {admin.gender}
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">
+                    {admin.phone_number}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(admin)}
+                      >
+                        Edit
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            className="bg-red-100 text-red-500 hover:bg-red-200"
+                            size="sm"
+                          >
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Teacher</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this teacher? This
+                              action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() =>
+                                deleteMutation.mutate(admin.teacher.teacher_id)
+                              }
+                              className="bg-red-100 text-red-500 hover:bg-red-200"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+      </div>
 
       <div className="flex justify-between items-center mt-4">
         <Button
