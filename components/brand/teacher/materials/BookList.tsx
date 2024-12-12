@@ -45,7 +45,7 @@ import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import { toast } from "sonner";
 import { useFilteredContents } from "../materials";
 import TOC from "./TOC";
-import { LibraryItem, SectionExclusiveContent, Step, TemplateCourse } from "./types";
+import { SectionExclusiveContent, Step, TemplateCourse } from "./types";
 
 // Set up the worker for react-pdf
 // pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -128,7 +128,7 @@ function BookList({
     },
   });
 
-  const getPdfUrl = async (library_item: LibraryItem) => {
+  const getPdfUrl = async (library_item: any) => {
     setIsDialogOpen(true);
     setIsLoadingPdf(true);
     try {
