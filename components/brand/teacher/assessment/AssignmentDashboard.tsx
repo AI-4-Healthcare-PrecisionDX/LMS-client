@@ -188,6 +188,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
           });
           dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
           toast.success("Assignment created successfully");
+          window.location.reload();
         },
         onError: (error: any) => {
           console.error(
@@ -208,7 +209,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
   };
 
   const { data: Assignments, isLoading } = useQuery({
-    queryKey: queryClient.invalidateQueries(["assignments", sectionId]), // renders the component when the query is invalidated
+    queryKey: ["assignments", sectionId], // renders the component when the query is invalidated
     queryFn: () => fetchAssignments(sectionId),
     enabled: !!sectionId && isAuthenticated,
     // staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
