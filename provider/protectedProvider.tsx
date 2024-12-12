@@ -1,9 +1,9 @@
 "use client";
 
-import { ReactNode } from "react";
-import { redirect } from "next/navigation";
-import { useAuth } from "@/hooks/use-auth";
 import Loading from "@/app/(dashboard)/loading";
+import { useAuth } from "@/hooks/use-auth";
+import { redirect } from "next/navigation";
+import { ReactNode } from "react";
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { isInitializing, isAuthenticated } = useAuth();
@@ -12,7 +12,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
     return Loading();
   }
   if (!isAuthenticated) {
-    redirect('/')
+    redirect("/");
   }
 
   return <>{children}</>;

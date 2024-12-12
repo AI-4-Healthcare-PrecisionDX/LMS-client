@@ -14,9 +14,10 @@ import { useMutation } from "@tanstack/react-query";
 import { CirclePlay, Mic, Send, Square } from "lucide-react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { toast } from "sonner";
 
+// Components
 const SpeechBubble = ({ message }: { message: string }) => {
   const bubbleRef = useRef<HTMLDivElement>(null);
 
@@ -29,46 +30,223 @@ const SpeechBubble = ({ message }: { message: string }) => {
   return (
     <div
       ref={bubbleRef}
-      className={`bg-white max-w-[200px] max-h-[100px] overflow-y-auto p-2 rounded-lg shadow-md text-md dark:bg-gray-600 dark:text-white`}
+      className={`bg-white max-w-[300px] max-h-[150px] overflow-y-auto p-4 rounded-2xl shadow-lg text-md dark:bg-gray-800 dark:text-white relative ${
+        message.startsWith("Doctor:") ? "" : "animate-typing"
+      }`}
+      style={{
+        borderTopLeftRadius: "0",
+      }}
     >
-      {message}
+      <div className="absolute -left-2 -top-2 w-4 h-4 bg-white dark:bg-gray-800 transform rotate-45" />
+      <p className="whitespace-pre-wrap break-words leading-relaxed">
+        {message}
+      </p>
+      <style>{`
+        @keyframes typing {
+          0% {
+            width: 0;
+            opacity: 0;
+          }
+          100% {
+            width: 100%;
+            opacity: 1;
+          }
+        }
+        .animate-typing {
+          animation: typing 1s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 };
 
-function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
-  const params = useParams();
-  const textareaRef = useRef(null);
-  const [start, setStart] = useState(false);
-  const [aiResponse, setAiResponse] = useState("");
-  const [doctorMessage, setDoctorMessage] = useState("");
-  const [doctorInput, setDoctorInput] = useState("");
-  const [diagnosis, setDiagnosis] = useState("");
-  const [responseIndex, setResponseIndex] = useState(0);
-  const [showDoctorInput, setShowDoctorInput] = useState(false);
-  const [audioPlaying, setAudioPlaying] = useState(false);
-  const [speechSynthesis, setSpeechSynthesis] = useState(null);
-  const [isRecording, setIsRecording] = useState(false);
-  const [transcript, setTranscript] = useState("");
+// Types
+interface SpeechRecognitionEvent {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+  };
+  error?: string;
+}
 
-  const [audioData, setAudioData] = useState([]);
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  start: () => void;
+  stop: () => void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: { error: string }) => void;
+}
+
+interface State {
+  start: boolean;
+  aiResponse: string;
+  doctorMessage: string;
+  doctorInput: string;
+  showDoctorInput: boolean;
+  speechSynthesis: any;
+  isRecording: boolean;
+  transcript: string;
+  audioData: any[];
+  patientExpression: string;
+  isStreaming: boolean;
+}
+
+type Action =
+  | { type: "SET_START"; payload: boolean }
+  | { type: "SET_AI_RESPONSE"; payload: string }
+  | { type: "SET_DOCTOR_MESSAGE"; payload: string }
+  | { type: "SET_DOCTOR_INPUT"; payload: string }
+  | { type: "SET_SHOW_DOCTOR_INPUT"; payload: boolean }
+  | { type: "SET_SPEECH_SYNTHESIS"; payload: any }
+  | { type: "SET_IS_RECORDING"; payload: boolean }
+  | { type: "SET_TRANSCRIPT"; payload: string }
+  | { type: "SET_AUDIO_DATA"; payload: any[] }
+  | { type: "SET_PATIENT_EXPRESSION"; payload: string }
+  | { type: "SET_IS_STREAMING"; payload: boolean }
+  | { type: "RESET_DOCTOR_INPUT" }
+  | { type: "RESET_CONVERSATION" };
+
+const initialState: State = {
+  start: false,
+  aiResponse: "",
+  doctorMessage: "",
+  doctorInput: "",
+  showDoctorInput: false,
+  speechSynthesis: null,
+  isRecording: false,
+  transcript: "",
+  audioData: [],
+  patientExpression: "sick",
+  isStreaming: false,
+};
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "SET_START":
+      return { ...state, start: action.payload };
+    case "SET_AI_RESPONSE":
+      return { ...state, aiResponse: action.payload };
+    case "SET_DOCTOR_MESSAGE":
+      return { ...state, doctorMessage: action.payload };
+    case "SET_DOCTOR_INPUT":
+      return { ...state, doctorInput: action.payload };
+    case "SET_SHOW_DOCTOR_INPUT":
+      return { ...state, showDoctorInput: action.payload };
+    case "SET_SPEECH_SYNTHESIS":
+      return { ...state, speechSynthesis: action.payload };
+    case "SET_IS_RECORDING":
+      return { ...state, isRecording: action.payload };
+    case "SET_TRANSCRIPT":
+      return { ...state, transcript: action.payload };
+    case "SET_AUDIO_DATA":
+      return { ...state, audioData: action.payload };
+    case "SET_PATIENT_EXPRESSION":
+      return { ...state, patientExpression: action.payload };
+    case "SET_IS_STREAMING":
+      return { ...state, isStreaming: action.payload };
+    case "RESET_DOCTOR_INPUT":
+      return {
+        ...state,
+        doctorInput: "",
+        showDoctorInput: false,
+        isRecording: false,
+      };
+    case "RESET_CONVERSATION":
+      return {
+        ...state,
+        doctorInput: "",
+        showDoctorInput: false,
+        aiResponse: "",
+        doctorMessage: "",
+        patientExpression: "sick",
+      };
+    default:
+      return state;
+  }
+}
+
+// Main Component
+function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
+
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  // Refs
+  const textareaRef = useRef(null);
   const recognitionRef = useRef(null);
   const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
   const animationRef = useRef(null);
   const streamRef = useRef(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  const [patientExpression, setPatientExpression] = useState("sick");
-  const [isStreaming, setIsStreaming] = useState(false);
+  // Hooks
   const { setIsOpen } = useTour();
-  if (typeof window !== "undefined") {
-    if (localStorage.getItem("virtualRoomTour") === null) {
+
+  // Tour initialization
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      localStorage.getItem("virtualRoomTour") === null
+    ) {
       localStorage.setItem("virtualRoomTour", "true");
       setIsOpen(true);
     }
-  }
+  }, [setIsOpen]);
 
+  // Speech recognition setup
+  useEffect(() => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      const recognition =
+        recognitionRef.current as unknown as SpeechRecognitionInstance;
+
+      if (recognition) {
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          const currentTranscript = Array.from(Object.values(event.results))
+            .map((result) => result[0].transcript)
+            .join("");
+          dispatch({ type: "SET_TRANSCRIPT", payload: currentTranscript });
+          dispatch({ type: "SET_DOCTOR_INPUT", payload: currentTranscript });
+        };
+
+        recognition.onerror = (_event: { error: string }) => {
+          
+          stopRecording();
+        };
+      }
+    }
+
+    return () => {
+      if (animationRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        cancelAnimationFrame(animationRef.current);
+      }
+      stopRecording();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const startRecording = () => {
+    if (!state.isRecording && recognitionRef.current) {
+      dispatch({ type: "SET_IS_RECORDING", payload: true });
+      dispatch({ type: "SET_TRANSCRIPT", payload: "" });
+      dispatch({ type: "SET_DOCTOR_INPUT", payload: "" });
+      (recognitionRef.current as unknown as SpeechRecognitionInstance).start();
+    }
+  };
+
+  // Message posting mutation
   const { mutate: postMessage } = useMutation({
     mutationFn: async (content: string) => {
       const response = await fetch(
@@ -83,21 +261,19 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
         },
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch response");
-      }
+      if (!response.ok) throw new Error("Failed to fetch response");
 
       const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("No reader available");
-      }
+      if (!reader) throw new Error("No reader available");
 
-      setDoctorInput("");
-      setShowDoctorInput(false);
-      setAiResponse("");
+      dispatch({ type: "RESET_CONVERSATION" });
 
       let fullResponse = "";
-      let currentUtterance = null;
+
+      // Cancel any existing speech
+      if (utteranceRef.current) {
+        window.speechSynthesis.cancel();
+      }
 
       while (true) {
         const { done, value } = await reader.read();
@@ -110,22 +286,12 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
           if (line.startsWith("data: ")) {
             const data = line.slice(6);
             if (data === "[DONE]") {
-              setIsStreaming(false);
-              setShowDoctorInput(true);
-              setDoctorMessage("");
-              setPatientExpression("sick");
+              dispatch({ type: "SET_IS_STREAMING", payload: false });
+              dispatch({ type: "SET_SHOW_DOCTOR_INPUT", payload: true });
+              dispatch({ type: "SET_DOCTOR_MESSAGE", payload: "" });
+              dispatch({ type: "SET_PATIENT_EXPRESSION", payload: "sick" });
               return;
             }
-
-            // Cancel previous utterance if still speaking
-            if (currentUtterance) {
-              window.speechSynthesis.cancel();
-            }
-
-            // Create new utterance for this chunk
-            currentUtterance = new SpeechSynthesisUtterance(data);
-            currentUtterance.rate = 0.9;
-            window.speechSynthesis.speak(currentUtterance);
 
             fullResponse += data;
             streamAIResponse(fullResponse);
@@ -134,131 +300,64 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
       }
     },
     onError: (error) => {
-      console.error("Error sending message:", error);
-      toast.error("Failed to send message. Please try again.");
+      toast.error(
+        error instanceof Error ? error.message : "Please try again later",
+      );
     },
   });
 
-  const sendDoctorMessage = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (isRecording) return;
-      if (doctorInput.trim() === "") return;
-      setDoctorInput((prevInput) => prevInput + " " + transcript);
-      setDoctorMessage(doctorInput);
-      setDoctorInput("");
-      setShowDoctorInput(false);
-      setIsRecording(false);
-      stopRecording();
-
-      postMessage(doctorInput);
-    }
-  };
-
+  // Helper functions
   const streamAIResponse = (response: string) => {
-    setIsStreaming(true);
+    dispatch({ type: "SET_IS_STREAMING", payload: true });
     let currentIndex = 0;
 
-    // Create a new SpeechSynthesisUtterance instance
-    const utterance = new SpeechSynthesisUtterance(response);
-    utterance.rate = 0.9; // Slightly slow down the speech rate
-    setSpeechSynthesis(null); // Reset previous utterance first
-    setSpeechSynthesis(utterance as unknown as null); // Type cast to match state type
+    // Cancel any existing speech
+    if (utteranceRef.current) {
+      window.speechSynthesis.cancel();
+    }
 
-    // Text streaming with consistent speed
+    // Create new utterance
+    utteranceRef.current = new SpeechSynthesisUtterance(response);
+    utteranceRef.current.rate = 0.9;
+    dispatch({ type: "SET_SPEECH_SYNTHESIS", payload: utteranceRef.current });
+
     const streamInterval = setInterval(() => {
       if (currentIndex < response.length) {
-        setAiResponse(response.substring(0, currentIndex + 1));
+        dispatch({
+          type: "SET_AI_RESPONSE",
+          payload: response.substring(0, currentIndex + 1),
+        });
         currentIndex++;
       } else {
         clearInterval(streamInterval);
       }
-    }, 30); // Adjust timing for smooth animation
+    }, 30);
 
-    // Expression changing
     const expressionInterval = setInterval(() => {
-      setPatientExpression((prev) => (prev === "sick" ? "shut" : "sick"));
+      dispatch({
+        type: "SET_PATIENT_EXPRESSION",
+        payload: state.patientExpression === "sick" ? "shut" : "sick",
+      });
     }, 150);
 
-    // Start speaking
-    window.speechSynthesis.speak(utterance);
+    // Speak the current response
+    window.speechSynthesis.speak(utteranceRef.current);
 
-    // Handle speech end
-    utterance.onend = () => {
-      setSpeechSynthesis(null);
+    utteranceRef.current.onend = () => {
+      dispatch({ type: "SET_SPEECH_SYNTHESIS", payload: null });
       clearInterval(expressionInterval);
       clearInterval(streamInterval);
-      setAiResponse(response); // Ensure full text is displayed
+      dispatch({ type: "SET_AI_RESPONSE", payload: response });
+      utteranceRef.current = null;
     };
   };
 
-  const pauseResumeSpeech = () => {
-    if (window.speechSynthesis.speaking) {
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      } else {
-        window.speechSynthesis.pause();
-      }
-    }
-  };
-
-  const stopSpeech = () => {
-    window.speechSynthesis.cancel();
-    setSpeechSynthesis(null);
-  };
-
-  const handleDoctorClick = () => {
-    if (showDoctorInput) {
-      setShowDoctorInput(false);
-      return;
-    }
-    setStart(true);
-    setShowDoctorInput(true);
-    setDoctorMessage("");
-  };
-
-  const sendDoctorInput = () => {
-    if (isRecording) return;
-    if (doctorInput.trim() === "") return;
-    setDoctorMessage(doctorInput);
-    setDoctorInput("");
-    setShowDoctorInput(false);
-    setIsRecording(false);
-    stopRecording();
-
-    postMessage(doctorInput);
-  };
-
-  // const startRecording = async () => {
-  //   try {
-  //     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  //     streamRef.current = stream;
-  //     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-  //     audioContextRef.current = new AudioContextClass();
-  //     if (audioContextRef.current) {
-  //       const analyser = audioContextRef.current.createAnalyser();
-  //       analyserRef.current = analyser as AnalyserNode
-  //       const source = (audioContextRef.current as AudioContext).createMediaStreamSource(stream);
-  //       source.connect(analyser);
-  //     }
-  //     if (recognitionRef.current && 'start' in recognitionRef.current) {
-  //       (recognitionRef.current as { start: () => void }).start();
-  //     }
-
-  //     setIsRecording(true);
-  //     // drawWaveform();
-  //   } catch (error) {
-  //     console.error("Error accessing microphone:", error);
-  //   }
-  // };
-
   const stopRecording = () => {
-    if (isRecording) {
-      setDoctorInput((prev) => prev + " " + transcript);
+    if (state.isRecording) {
       if (recognitionRef.current && "stop" in recognitionRef.current) {
         (recognitionRef.current as { stop: () => void }).stop();
       }
-      setIsRecording(false);
+      dispatch({ type: "SET_IS_RECORDING", payload: false });
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
@@ -266,109 +365,67 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
         (audioContextRef.current as AudioContext).close();
       }
 
-      // Stop all tracks on the stream
       if (streamRef.current) {
         (streamRef.current as MediaStream)
           .getTracks()
-          .forEach((track: MediaStreamTrack) => {
-            track.stop();
-          });
+          .forEach((track: MediaStreamTrack) => track.stop());
         streamRef.current = null;
       }
     }
   };
 
-  // const drawWaveform = () => {
-  //   if (!analyserRef.current) return;
+  const handleDoctorClick = () => {
+    if (state.isStreaming) return;
 
-  //   const analyser = analyserRef.current as AnalyserNode;
-  //   analyser.fftSize = 256;
-  //   const bufferLength = analyser.frequencyBinCount;
-  //   const dataArray = new Uint8Array(bufferLength);
+    if (state.showDoctorInput) {
+      dispatch({ type: "SET_SHOW_DOCTOR_INPUT", payload: false });
+      return;
+    }
+    dispatch({ type: "SET_START", payload: true });
+    dispatch({ type: "SET_SHOW_DOCTOR_INPUT", payload: true });
+    dispatch({ type: "SET_DOCTOR_MESSAGE", payload: "" });
+  };
 
-  //   const draw = () => {
-  //     if (!analyserRef.current) return;
-  //     const analyser = analyserRef.current as AnalyserNode;
-  //     analyser.getByteTimeDomainData(dataArray);
-  //     setAudioData(Array.from(dataArray));
-  //     animationRef.current = requestAnimationFrame(draw);
-  //   };
+  const sendDoctorInput = () => {
+    if (
+      state.isRecording ||
+      state.doctorInput.trim() === "" ||
+      state.isStreaming
+    )
+      return;
+    dispatch({ type: "SET_DOCTOR_MESSAGE", payload: state.doctorInput });
+    dispatch({ type: "RESET_DOCTOR_INPUT" });
+    stopRecording();
+    postMessage(state.doctorInput);
+  };
 
-  //   draw();
-  // };
+  const sendDoctorMessage = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (state.isStreaming) return;
+      sendDoctorInput();
+    }
+  };
 
+  // Cleanup
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel();
       if (eventSourceRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         eventSourceRef.current.close();
       }
+      if (utteranceRef.current) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, []);
 
   useEffect(() => {
-    interface SpeechRecognitionEvent {
-      results: {
-        [index: number]: {
-          [index: number]: {
-            transcript: string;
-          };
-        };
-      };
-      error?: string;
-    }
-
-    interface SpeechRecognitionInstance {
-      continuous: boolean;
-      interimResults: boolean;
-      start: () => void;
-      stop: () => void;
-      onresult: (event: SpeechRecognitionEvent) => void;
-      onerror: (event: { error: string }) => void;
-    }
-
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      ((window as any).webkitSpeechRecognition as {
-        new (): SpeechRecognitionInstance;
-      });
-
-    if (SpeechRecognition) {
-      recognitionRef.current = new SpeechRecognition();
-      const recognition =
-        recognitionRef.current as unknown as SpeechRecognitionInstance;
-      if (recognition) {
-        recognition.continuous = true;
-        recognition.interimResults = true;
-      }
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const currentTranscript = Array.from(Object.values(event.results))
-          .map((result) => result[0].transcript)
-          .join("");
-        setTranscript(currentTranscript);
-      };
-
-      recognition.onerror = (event: { error: string }) => {
-        console.error("Speech recognition error", event.error);
-        stopRecording();
-      };
-    }
-
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-      stopRecording();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (showDoctorInput && textareaRef.current) {
+    if (state.showDoctorInput && textareaRef.current) {
       (textareaRef.current as HTMLTextAreaElement).focus();
     }
-  }, [showDoctorInput]);
+  }, [state.showDoctorInput]);
 
   return (
     <div className="px-4 py-2">
@@ -398,11 +455,13 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
           >
             <CardContent className="h-[65vh] flex items-end justify-center p-2">
               <div className="flex flex-col items-center justify-between">
-                {aiResponse && <SpeechBubble message={aiResponse} />}
+                {state.aiResponse && (
+                  <SpeechBubble message={state.aiResponse} />
+                )}
                 <Image
                   src={
-                    isStreaming
-                      ? `/assets/patient_${patientExpression}.png`
+                    state.isStreaming
+                      ? `/assets/patient_${state.patientExpression}.png`
                       : "/assets/patient_sick.png"
                   }
                   width={200}
@@ -419,21 +478,29 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
                 />
               </div>
               <div className="flex flex-col items-center justify-between">
-                {doctorMessage && <SpeechBubble message={doctorMessage} />}
-                {showDoctorInput && !isStreaming && start && (
+                {state.doctorMessage && (
+                  <SpeechBubble message={state.doctorMessage} />
+                )}
+                {state.showDoctorInput && state.start && (
                   <div className="flex flex-col items-center w-full gap-1 mb-2">
                     <Textarea
                       ref={textareaRef}
                       className="max-w-[200px] flex-grow p-2 rounded border bg-white text-gray-950 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      value={doctorInput}
-                      onChange={(e) => setDoctorInput(e.target.value)}
+                      value={state.doctorInput}
+                      onChange={(e) =>
+                        dispatch({
+                          type: "SET_DOCTOR_INPUT",
+                          payload: e.target.value,
+                        })
+                      }
                       onKeyPress={sendDoctorMessage}
                       placeholder="Type your message and press Enter..."
                       rows={3}
                       style={{ resize: "none" }}
+                      disabled={state.isStreaming}
                     />
                     <div className="max-w-[200px] flex items-center gap-1">
-                      {isRecording ? (
+                      {state.isRecording ? (
                         <Square
                           size={30}
                           className="text-red-500 cursor-pointer"
@@ -442,16 +509,18 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
                       ) : (
                         <Mic
                           size={30}
-                          className="text-blue-500 cursor-pointer mic-input"
-                          onClick={() => {}} // Removed startRecording since it's not defined
+                          className={`text-blue-500 ${state.isStreaming ? "opacity-50 cursor-not-allowed" : "cursor-pointer mic-input"}`}
+                          onClick={
+                            state.isStreaming ? undefined : startRecording
+                          }
                         />
                       )}
 
                       <svg viewBox="0 0 256 64" className="w-full space-x-1">
                         <path
                           d={`M 0 32 ${
-                            audioData && audioData.length > 0
-                              ? audioData
+                            state.audioData && state.audioData.length > 0
+                              ? state.audioData
                                   .map(
                                     (value, index) =>
                                       `L ${index * 2} ${32 - (value - 128) / 4}`,
@@ -468,7 +537,7 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
                       <Send
                         size={30}
                         className={
-                          doctorInput.trim() === ""
+                          state.doctorInput.trim() === "" || state.isStreaming
                             ? "disabled text-green-300 send-button"
                             : "text-green-500 cursor-pointer send-button"
                         }
@@ -482,18 +551,18 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
                   width={200}
                   height={200}
                   alt="Doctor"
-                  className={`scale-x-[-1] doctor-input ${isStreaming ? "" : "cursor-pointer"}`}
-                  onClick={isStreaming ? undefined : handleDoctorClick}
+                  className={`scale-x-[-1] doctor-input ${state.isStreaming ? "" : "cursor-pointer"}`}
+                  onClick={state.isStreaming ? undefined : handleDoctorClick}
                 />
               </div>
             </CardContent>
             <CardFooter>
               <Button
-                className={`mx-auto dark:text-white ${isStreaming ? "disabled:opacity-50 animate-pulse" : ""}`}
-                onClick={isStreaming ? undefined : handleDoctorClick}
-                disabled={isStreaming}
+                className={`mx-auto dark:text-white ${state.isStreaming ? "disabled:opacity-50 animate-pulse" : ""}`}
+                onClick={state.isStreaming ? undefined : handleDoctorClick}
+                disabled={state.isStreaming}
               >
-                {start ? "Continue Conversation" : "Start Conversation"}
+                {state.start ? "Continue Conversation" : "Start Conversation"}
               </Button>
             </CardFooter>
           </Card>
@@ -508,13 +577,9 @@ function MedicalConsultation({ virtualRoom }: { virtualRoom: string }) {
   );
 }
 
-export default function MedicalConsultationTour({
-  params,
-}: {
-  params: { virtualRoom: string };
-}) {
-  const { virtualRoom } = params;
-
+export default function MedicalConsultationTour() {
+  const params = useParams();
+  const virtualRoom = params.virtualRoom as string;
   return (
     <Tour>
       <MedicalConsultation virtualRoom={virtualRoom} />

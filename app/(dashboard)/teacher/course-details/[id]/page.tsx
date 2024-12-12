@@ -2,11 +2,13 @@
 "use client";
 export const runtime = "edge";
 
+import CaseLoadingSkeleton from "@/components/brand/shared/loading";
 import CourseDetails from "@/components/brand/teacher/CourseDetails";
 import { SectionExclusiveContent } from "@/components/brand/teacher/materials/types";
 import { useAuth } from "@/hooks/use-auth";
 import api from "@/lib/axios-config";
 import { useQuery } from "@tanstack/react-query";
+import { useParams } from "next/navigation";
 interface Section {
   section_name: string;
   start_date: string;
@@ -50,18 +52,14 @@ interface TemplateCourse {
   department: any;
 }
 
-interface PageProps {
-  params: {
-    id: string;
-  };
-}
-
 const fetchSection = async (sectionId: string): Promise<Section> => {
   const { data } = await api.get<Section>(`/section/${sectionId}`);
   return data;
 };
 
-const CoursePage = ({ params }: PageProps) => {
+const CoursePage = () => {
+  const params = useParams();
+  const id = params.id as string;
   const { user, isAuthenticated } = useAuth();
 
   const {
@@ -69,15 +67,15 @@ const CoursePage = ({ params }: PageProps) => {
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["section", params.id],
-    queryFn: () => fetchSection(params.id),
-    enabled: !!params.id && isAuthenticated, // Only fetch if we have an ID and user is authenticated
+    queryKey: ["section", id],
+    queryFn: () => fetchSection(id),
+    enabled: !!id && isAuthenticated, // Only fetch if we have an ID and user is authenticated
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     retry: 2, // Retry twice before failing
   });
 
   if (isLoading) {
-    return <LoadingSection />;
+    return <CaseLoadingSkeleton />;
   }
 
   if (isError) {

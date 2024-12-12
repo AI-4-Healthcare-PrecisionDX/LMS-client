@@ -48,6 +48,8 @@ import { TourProvider, useTour } from "@reactour/tour";
 import { useQuery } from "@tanstack/react-query";
 
 import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
+import ErrorMessage from "../../shared/error";
+import CaseLoadingSkeleton from "../../shared/loading";
 import { BookMaterial } from "./types";
 import UploadContent from "./UploadPdf";
 
@@ -119,9 +121,6 @@ const reducer = (state: State, action: Action): State => {
   }
 };
 
-const categories = ["all", "fiction", "non-fiction", "science", "history"];
-const courses = ["all", "course1", "course2", "course3"];
-
 // BookList component
 const BookList = () => {
   const { getLibraries } = useFileUpload();
@@ -137,39 +136,20 @@ const BookList = () => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { setIsOpen } = useTour();
 
-  // Update filtered books whenever books data, search term, or filters change
+  // Filter books based on search term
   useEffect(() => {
-    if (!books) return;
-
-    let filtered = [...books];
-
-    // Apply search filter
-    if (state.searchTerm) {
-      const searchLower = state.searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (book) =>
-          book.material_title.toLowerCase().includes(searchLower) ||
-          book.author.toLowerCase().includes(searchLower),
-      );
+    if (books) {
+      const filtered = books.filter((book: BookMaterial) => {
+        const searchLower = state.searchTerm.toLowerCase();
+        return book.material_title.toLowerCase().includes(searchLower);
+      });
+      dispatch({ type: "SET_FILTERED_BOOKS", payload: filtered });
     }
+  }, [state.searchTerm, books]);
 
-    // Apply category filter
-    if (state.categoryFilter !== "all") {
-      filtered = filtered.filter(
-        (book) => book.material_type.toLowerCase() === state.categoryFilter,
-      );
-    }
-
-    // Apply course filter
-    if (state.courseFilter !== "all") {
-      filtered = filtered.filter((book) => book.course === state.courseFilter);
-    }
-
-    dispatch({ type: "SET_FILTERED_BOOKS", payload: filtered });
-  }, [books, state.searchTerm, state.categoryFilter, state.courseFilter]);
-
-  if (isLoading) return <div>Loading...</div>;
-  if (error) return <div>Error fetching books: {(error as Error).message}</div>;
+  if (isLoading) return <CaseLoadingSkeleton />;
+  if (error)
+    return <ErrorMessage error={error as Error} title="Error fetching books" />;
 
   return (
     <div className="container mx-auto px-4 pb-8 dark:text-gray-100">
@@ -193,28 +173,12 @@ const BookList = () => {
         </h1>
         <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
           <SearchInput searchTerm={state.searchTerm} dispatch={dispatch} />
-          <FilterSelect
-            label="Category"
-            value={state.categoryFilter}
-            options={categories}
-            onChange={(value) =>
-              dispatch({ type: "SET_CATEGORY_FILTER", payload: value })
-            }
-          />
-          <FilterSelect
-            label="Course"
-            value={state.courseFilter}
-            options={courses}
-            onChange={(value) =>
-              dispatch({ type: "SET_COURSE_FILTER", payload: value })
-            }
-          />
           <UploadContent />
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {books.length > 0 ? (
-          books.map((book: BookMaterial) => (
+        {state.filteredBooks.length > 0 ? (
+          state.filteredBooks.map((book: BookMaterial) => (
             <BookCard key={book.library_id} book={book} />
           ))
         ) : (

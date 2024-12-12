@@ -5,15 +5,15 @@
  */
 import {
   Card,
+  CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
 } from "@/components/ui/card";
-import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { SquareArrowOutUpRight } from "lucide-react";
+import Link from "next/link";
 
 export default function TaskDemo() {
   const tags = [
@@ -44,7 +44,7 @@ export default function TaskDemo() {
           <div className="p-4">
             {tags.map((tag) => (
               <>
-                <div className="flex flex-row justify-between text-sm">
+                <div className="flex flex-row justify-between text-sm" key={tag.label}>
                   <div className="font-medium">{tag.label}</div>
                   <Link
                     href={tag.link}

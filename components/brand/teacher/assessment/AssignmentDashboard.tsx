@@ -61,7 +61,17 @@ const fetchAssignments = async (sectionId: string) => {
 };
 
 // Main Component
-export default function AssignmentDashboard({ examEvaluation, sectionId, section_exclusive_contents, template_course }: { examEvaluation: () => void, sectionId: string, section_exclusive_contents: SectionExclusiveContent[], template_course: TemplateCourse }) {
+export default function AssignmentDashboard({
+  examEvaluation,
+  sectionId,
+  section_exclusive_contents,
+  template_course,
+}: {
+  examEvaluation: () => void;
+  sectionId: string;
+  section_exclusive_contents: SectionExclusiveContent[];
+  template_course: TemplateCourse;
+}) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { isAuthenticated } = useAuth();
 
@@ -201,7 +211,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
           if (error.response?.status === 422) {
             toast.error(
               error.response.data.detail ||
-              "Validation failed. Please check all fields.",
+                "Validation failed. Please check all fields.",
             );
           } else {
             toast.error("Failed to create assignment. Please try again.");
@@ -210,9 +220,8 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
       });
     }
   };
-
   const { data: Assignments, isLoading } = useQuery({
-    queryKey: queryClient.invalidateQueries(["assignments", sectionId]), // renders the component when the query is invalidated
+    queryKey: ["assignments", sectionId],
     queryFn: () => fetchAssignments(sectionId),
     enabled: !!sectionId && isAuthenticated,
     // staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
@@ -220,7 +229,8 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
   });
 
   const { mutate: deleteAssignment } = useMutation({
-    mutationFn: (assignmentId: string) => api.delete(`/assignment/${assignmentId}`),
+    mutationFn: (assignmentId: string) =>
+      api.delete(`/assignment/${assignmentId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignments", sectionId] });
       toast.success("Assignment deleted successfully");
@@ -328,6 +338,8 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
           activeTab: "setup",
         },
       });
+
+      dispatch({ type: ACTIONS.SET_IS_EDITING, payload: true });
 
       dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
       dispatch({ type: "SET_MODAL_OPEN", payload: true });
@@ -459,8 +471,8 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
 
           {state.currentStep === 2 && (
             <Step2
-              onNext={handleStep2Next}
-              onBack={handleBack}
+              onNext={(details) => handleStep2Next(details)}
+              onBack={() => handleBack(state.newAssignment)}
               selectedBooks={state.newAssignment.bookIds}
               selectedChapters={state.newAssignment.chapterIds}
               section_exclusive_contents={section_exclusive_contents}

@@ -5,7 +5,6 @@ export const courseSchema = z.object({
   template_description: z.string().min(1, "Description is required"),
   template_year: z.string().min(1, "Year is required"),
   department_id: z.string().uuid("Invalid department ID"),
-  template_course_access: z.array(z.string().uuid()),
   course_materials: z.array(z.string().uuid()),
 });
 

@@ -1,5 +1,5 @@
 import api from "@/lib/axios-config";
-import { aiGeneratedQuestionsAtom } from "@/store";
+import { aiGeneratedQuestionsAtom, questionConfigAtom } from "@/store";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
 import { toast } from "sonner";
@@ -16,33 +16,19 @@ export const useCreateAssignment = () => {
                     )
                         ? assignmentData.assignment_materials
                         : [],
-                    questions: assignmentData.questions.map((q) => {
-                        // Start with basic question formatting
-                        const formattedQuestion = {
-                            ...q,
-                            marks: Number(q.marks),
-                            options_for_mcq:
-                                q.question_type === "mcq"
-                                    ? q.options_for_mcq.map((opt: any) =>
-                                        typeof opt === "string" ? opt : opt.text,
-                                    )
-                                    : [],
-                            expected_answer: Array.isArray(q.expected_answer)
-                                ? q.expected_answer
+                    questions: assignmentData.questions.map((q) => ({
+                        ...q,
+                        marks: Number(q.marks),
+                        options_for_mcq:
+                            q.question_type === "mcq"
+                                ? q.options_for_mcq.map((opt: any) =>
+                                    typeof opt === "string" ? opt : opt.text,
+                                )
                                 : [],
-                        };
-
-                        // If the question is AI-generated, preserve any additional AI-specific fields
-                        if (q.isAiGenerated) {
-                            return {
-                                ...formattedQuestion,
-                                question_text: q.question_text || q.text, // Handle both formats
-                                ai_metadata: q.ai_metadata || {}, // Preserve any AI-specific metadata
-                            };
-                        }
-
-                        return formattedQuestion;
-                    }),
+                        expected_answer: Array.isArray(q.expected_answer)
+                            ? q.expected_answer
+                            : [],
+                    })),
                 };
 
                 // console.log("Formatted data being sent:", formattedData);
@@ -73,38 +59,19 @@ export const useUpdateAssignment = () => {
             try {
                 const formattedData = {
                     ...assignmentData,
-                    questions: assignmentData.questions.map((q) => {
-                        // Start with basic question formatting
-                        const formattedQuestion = {
-                            ...q,
-                            question_id: q.question_id, // Preserve the question ID
-                            marks: Number(q.marks),
-                            options_for_mcq:
-                                q.question_type === "mcq"
-                                    ? (q.options_for_mcq || []).map((opt: any) =>
-                                        typeof opt === "string" ? opt : opt.text || "",
-                                    )
-                                    : [],
-                            expected_answer: Array.isArray(q.expected_answer)
-                                ? q.expected_answer.map((ans) => String(ans || ""))
+                    questions: assignmentData.questions.map((q) => ({
+                        ...q,
+                        marks: Number(q.marks),
+                        options_for_mcq:
+                            q.question_type === "mcq"
+                                ? (q.options_for_mcq || []).map((opt: any) =>
+                                    typeof opt === "string" ? opt : opt.text || "",
+                                )
                                 : [],
-                            explanation: q.explanation || "",
-                            pattern_type: q.pattern_type || "",
-                            difficulty: q.difficulty || ""
-                        };
-
-                        // If the question is AI-generated, preserve AI-specific fields
-                        if (q.isAiGenerated) {
-                            return {
-                                ...formattedQuestion,
-                                question_text: q.question_text || q.text, // Handle both formats
-                                ai_metadata: q.ai_metadata || {}, // Preserve AI metadata
-                                isAiGenerated: true
-                            };
-                        }
-
-                        return formattedQuestion;
-                    }),
+                        expected_answer: Array.isArray(q.expected_answer)
+                            ? q.expected_answer.map((ans) => String(ans || ""))
+                            : [],
+                    })),
                     assignment_materials: Array.isArray(
                         assignmentData.assignment_materials,
                     )
@@ -135,9 +102,13 @@ export const useUpdateAssignment = () => {
     });
 };
 
-export const useGenerateAiQuestions = ({ aiGenerateQuestionsFormatted }: { aiGenerateQuestionsFormatted: any }) => {
+export const useGenerateAiQuestions = ({
+    aiGenerateQuestionsFormatted,
+}: {
+    aiGenerateQuestionsFormatted: any;
+}) => {
     const setAiQuestions = useSetAtom(aiGeneratedQuestionsAtom);
-    const queryClient = useQueryClient();
+    const setQuestionConfig = useSetAtom(questionConfigAtom);
 
     return useMutation({
         mutationFn: async (data: any) => {
@@ -145,31 +116,73 @@ export const useGenerateAiQuestions = ({ aiGenerateQuestionsFormatted }: { aiGen
                 const formData = new FormData();
                 const pdfResponse = await fetch(aiGenerateQuestionsFormatted.pdf_file);
                 const pdfBlob = await pdfResponse.blob();
-                formData.append('pdf_file', pdfBlob);
-                formData.append('question_bank_mcq', aiGenerateQuestionsFormatted.question_bank_mcq.toString());
-                formData.append('question_bank_broad', aiGenerateQuestionsFormatted.question_bank_broad.toString());
-                formData.append('adaptive_learning_mcq', aiGenerateQuestionsFormatted.adaptive_learning_mcq.toString());
-                formData.append('adaptive_learning_broad', aiGenerateQuestionsFormatted.adaptive_learning_broad.toString());
-                formData.append('application_based_mcq', aiGenerateQuestionsFormatted.application_based_mcq.toString());
-                formData.append('application_based_broad', aiGenerateQuestionsFormatted.application_based_broad.toString());
-                formData.append('writing_assignment_mcq', aiGenerateQuestionsFormatted.writing_assignment_mcq.toString());
-                formData.append('writing_assignment_broad', aiGenerateQuestionsFormatted.writing_assignment_broad.toString());
-                formData.append('scenario_based_mcq', aiGenerateQuestionsFormatted.scenario_based_mcq.toString());
-                formData.append('scenario_based_broad', aiGenerateQuestionsFormatted.scenario_based_broad.toString());
-                formData.append('total_mcq_questions', aiGenerateQuestionsFormatted.total_mcq_questions.toString());
-                formData.append('total_broad_questions', aiGenerateQuestionsFormatted.total_broad_questions.toString());
+                formData.append("pdf_file", pdfBlob);
+                formData.append(
+                    "question_bank_mcq",
+                    aiGenerateQuestionsFormatted.question_bank_mcq.toString(),
+                );
+                formData.append(
+                    "question_bank_broad",
+                    aiGenerateQuestionsFormatted.question_bank_broad.toString(),
+                );
+                formData.append(
+                    "adaptive_learning_mcq",
+                    aiGenerateQuestionsFormatted.adaptive_learning_mcq.toString(),
+                );
+                formData.append(
+                    "adaptive_learning_broad",
+                    aiGenerateQuestionsFormatted.adaptive_learning_broad.toString(),
+                );
+                formData.append(
+                    "application_based_mcq",
+                    aiGenerateQuestionsFormatted.application_based_mcq.toString(),
+                );
+                formData.append(
+                    "application_based_broad",
+                    aiGenerateQuestionsFormatted.application_based_broad.toString(),
+                );
+                formData.append(
+                    "writing_assignment_mcq",
+                    aiGenerateQuestionsFormatted.writing_assignment_mcq.toString(),
+                );
+                formData.append(
+                    "writing_assignment_broad",
+                    aiGenerateQuestionsFormatted.writing_assignment_broad.toString(),
+                );
+                formData.append(
+                    "scenario_based_mcq",
+                    aiGenerateQuestionsFormatted.scenario_based_mcq.toString(),
+                );
+                formData.append(
+                    "scenario_based_broad",
+                    aiGenerateQuestionsFormatted.scenario_based_broad.toString(),
+                );
+                formData.append(
+                    "total_mcq_questions",
+                    aiGenerateQuestionsFormatted.total_mcq_questions.toString(),
+                );
+                formData.append(
+                    "total_broad_questions",
+                    aiGenerateQuestionsFormatted.total_broad_questions.toString(),
+                );
 
-                const response = await api.post('/llm/assignment_questions', formData, {
+                const response = await api.post("/llm/assignment_questions", formData, {
                     headers: {
-                        'Content-Type': 'multipart/form-data'
-                    }
+                        "Content-Type": "multipart/form-data",
+                    },
                 });
-                setAiQuestions(response.data);
-                return response.data;
+                setAiQuestions(response.data.questions);
+                setQuestionConfig((prev) => ({
+                    ...prev,
+                    isQuestionsGenerated: true,
+                }));
 
+                return response.data;
             } catch (error: any) {
                 console.error("Generate questions error:", error.response?.data);
-                throw new Error(error.response?.data?.message || "Failed to generate questions");
+                throw new Error(
+                    error.response?.data?.message || "Failed to generate questions",
+                );
             }
         },
         onSuccess: () => {
@@ -177,6 +190,6 @@ export const useGenerateAiQuestions = ({ aiGenerateQuestionsFormatted }: { aiGen
         },
         onError: (error: Error) => {
             toast.error(error.message);
-        }
+        },
     });
 };
