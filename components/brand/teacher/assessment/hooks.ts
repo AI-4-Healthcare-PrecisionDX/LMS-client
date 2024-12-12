@@ -167,7 +167,7 @@ export const useGenerateAiQuestions = ({ aiGenerateQuestionsFormatted }: { aiGen
                         'Content-Type': 'multipart/form-data'
                     }
                 });
-                setAiQuestions(response.data);
+                setAiQuestions(response.data.questions);
                 return response.data;
 
             } catch (error: any) {

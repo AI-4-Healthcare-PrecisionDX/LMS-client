@@ -26,7 +26,7 @@ interface AiGeneratedQuestion {
 
 export default function QuestionsList({ state, dispatch, category }: { state: any, dispatch: any, category: string }) {
   const [pdfs, setPDFs] = useState<any[]>([]);
-  const aiGeneratedQuestions = useAtomValue(aiGeneratedQuestionsAtom).questions;
+  const aiGeneratedQuestions = useAtomValue(aiGeneratedQuestionsAtom);
   // console.log("aiGeneratedQuestions", aiGeneratedQuestions);
 
   useEffect(() => {
