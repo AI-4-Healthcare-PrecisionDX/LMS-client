@@ -1,8 +1,6 @@
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 
-import { QuestionConfigState } from "@/components/brand/teacher/assessment/assessmentModal/QuestionConfigurationCard";
-import { AiGeneratedQuestion } from "@/components/brand/teacher/assessment/assessmentModal/QuestionsList";
 import { questions_essay, questions_mcq } from "@/data";
 import { Book, User } from "@/types";
 
@@ -52,7 +50,7 @@ export const isAuthenticatedAtom = atomWithStorage<boolean>(
 );
 export const isLoggedInAtom = atomWithStorage<boolean>("isLoggedIn", false);
 export const userRoleAtom = atomWithStorage<string | null>("userRole", null);
-export const aiGeneratedQuestionsAtom = atomWithStorage<AiGeneratedQuestion[]>(
+export const aiGeneratedQuestionsAtom = atomWithStorage(
   "aiGeneratedQuestions",
   [
     {
@@ -77,7 +75,7 @@ export const selectedPdfAtom = atom<{
   pdfBytes: undefined,
 });
 
-export const questionConfigAtom = atom<QuestionConfigState>({
+export const questionConfigAtom = atom({
   patternCounts: {
     questionBank: { mcq: 0, broad: 0 },
     adaptiveLearning: { mcq: 0, broad: 0 },
