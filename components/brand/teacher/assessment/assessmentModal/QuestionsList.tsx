@@ -3,29 +3,62 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import api from "@/lib/axios-config";
+import { aiGeneratedQuestionsAtom } from "@/store";
 import { AnimatePresence } from "framer-motion";
+import { useAtomValue } from "jotai";
 import { Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Question } from "../types";
 import { MaterialView } from "./MaterialUpload";
 import QuestionCard from "./QuestionCard";
 import QuestionTypeButtons from "./QuestionTypeButtons";
 
-export default function QuestionsList({ state, dispatch, category }) {
-  const [pdfs, setPDFs] = useState([]);
-  // console.log(
-  //   "state.editingAssignment.assignment_materials",
-  //   state.editingAssignment.assignment_materials,
-  // );
+interface AiGeneratedQuestion {
+  type: string;
+  mcq: boolean;
+  difficulty: string;
+  question: string;
+  options: string[];
+  correct_answers: string[];
+  explanation: string;
+}
+
+export default function QuestionsList({ state, dispatch, category }: { state: any, dispatch: any, category: string }) {
+  const [pdfs, setPDFs] = useState<any[]>([]);
+  const aiGeneratedQuestions = useAtomValue(aiGeneratedQuestionsAtom).questions;
+  console.log("aiGeneratedQuestions", aiGeneratedQuestions);
+
   useEffect(() => {
-    // Load existing PDFs when editing
+    if (category === "ai-generated" && aiGeneratedQuestions?.length > 0) {
+      const formattedQuestions = aiGeneratedQuestions.map((q: AiGeneratedQuestion) => ({
+        question_id: crypto.randomUUID(), // Add unique ID for each question
+        question_type: q.mcq ? "mcq" : "broad",
+        question_text: q.question,
+        marks: q.difficulty === "easy" ? 2 : q.difficulty === "medium" ? 5 : 10,
+        options_for_mcq: q.mcq ? q.options : [],
+        expected_answer: q.mcq ? q.correct_answers : [q.correct_answers[0]],
+        explanation: q.explanation,
+        pattern_type: q.type,
+        difficulty: q.difficulty,
+        isAIGenerated: true,
+        isEditable: true // Add flag to allow editing
+      }));
+
+      dispatch({
+        type: "SET_QUESTIONS",
+        payload: formattedQuestions
+      });
+    }
+  }, [category, aiGeneratedQuestions, dispatch]);
+
+  useEffect(() => {
     const loadExistingPDFs = async () => {
       if (state.editingAssignment?.assignment_materials?.length > 0) {
         try {
           const existingPDFs = await Promise.all(
             state.editingAssignment.assignment_materials.map(
-              async (material) => {
-                // Extract the library_item_id from the material object
+              async (material: any) => {
                 const materialId = material.library_item_id;
 
                 try {
@@ -46,12 +79,10 @@ export default function QuestionsList({ state, dispatch, category }) {
             ),
           );
 
-          // Filter out any failed fetches
-          const validPDFs = existingPDFs.filter((pdf) => pdf !== null);
+          const validPDFs: any[] = existingPDFs.filter((pdf) => pdf !== null);
           console.log("existingPDFs", validPDFs);
 
           setPDFs(validPDFs);
-          // Also update the materials in the state
           dispatch({
             type: "SET_MATERIALS",
             payload: validPDFs,
@@ -70,19 +101,18 @@ export default function QuestionsList({ state, dispatch, category }) {
 
   const questions = state.questions || [];
   const totalMarks = questions.reduce(
-    (sum, q) => sum + (parseInt(q.marks) || 0),
+    (sum: number, q: Question) => sum + (Number(q.marks) || 0),
     0,
   );
 
-  const handlePDFsChange = (newPDFs) => {
+  const handlePDFsChange = (newPDFs: any) => {
     setPDFs(newPDFs);
-    // Make sure this dispatch is being called with the correct payload
     dispatch({
       type: "SET_MATERIALS",
       payload: newPDFs,
     });
-    console.log("Updated PDFs:", newPDFs); // Debug log
   };
+
 
   return (
     <Card className="shadow-lg">
@@ -90,9 +120,10 @@ export default function QuestionsList({ state, dispatch, category }) {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center">
             <Pencil className="w-5 h-5 mr-2" />
-            {category === "manual" ? "Questions" : "Generated Questions"}
+            Questions {/* Removed the conditional title */}
           </div>
-          {category === "manual" && <QuestionTypeButtons dispatch={dispatch} />}
+          {/* Allow QuestionTypeButtons regardless of category */}
+          <QuestionTypeButtons dispatch={dispatch} />
           <div className="flex gap-3">
             <Badge variant="outline" className="px-4 py-2">
               {totalMarks} Total marks
@@ -107,16 +138,19 @@ export default function QuestionsList({ state, dispatch, category }) {
         <MaterialView
           pdfs={pdfs}
           onPDFsChange={handlePDFsChange}
-          isEditing={!!state.editingAssignment}
         />
         <ScrollArea className="h-[600px] pr-4">
           <AnimatePresence>
-            {questions.map((question, index) => (
+            {questions.map((question: Question, index: number) => (
               <QuestionCard
-                key={question.id || index}
-                question={question}
+                key={question.question_id || index}
+                question={{
+                  ...question,
+                  // Add any additional AI-specific fields here if needed
+                  isAIGenerated: category === "ai-generated"
+                }}
                 index={index}
-                onUpdate={(index, field, value) =>
+                onUpdate={(index: number, field: string, value: any) =>
                   dispatch({
                     type: "UPDATE_QUESTION",
                     payload: { index, field, value },

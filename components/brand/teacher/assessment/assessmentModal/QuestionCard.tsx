@@ -16,11 +16,26 @@ const cardAnimation = {
 };
 
 // Header component with question metadata
-const QuestionHeader = ({ index, type, marks, onMarksChange, onDelete }) => (
+const QuestionHeader = ({ index, type, marks, difficulty, pattern_type, isAIGenerated, onMarksChange, onDelete }: {
+  index: number;
+  type: string;
+  marks: number;
+  difficulty?: string;
+  pattern_type?: string;
+  isAIGenerated?: boolean;
+  onMarksChange: (value: number) => void;
+  onDelete: () => void
+}) => (
   <div className="flex items-start justify-between mb-4">
     <div className="flex items-center space-x-4">
       <Badge variant="outline">Question {index + 1}</Badge>
       <Badge>{type === "mcq" ? "Multiple Choice" : "Broad Question"}</Badge>
+      {isAIGenerated && difficulty && (
+        <Badge variant="secondary">{difficulty}</Badge>
+      )}
+      {isAIGenerated && pattern_type && (
+        <Badge variant="secondary">{pattern_type}</Badge>
+      )}
       <div className="flex items-center space-x-2">
         <Label>Marks:</Label>
         <Input
@@ -43,8 +58,21 @@ const QuestionHeader = ({ index, type, marks, onMarksChange, onDelete }) => (
   </div>
 );
 
+// Add an Explanation section component
+const ExplanationSection = ({ explanation }: { explanation: string }) => (
+  <div className="mt-4">
+    <Label className="text-base">Explanation</Label>
+    <Textarea
+      value={explanation}
+      readOnly
+      rows={2}
+      className="mt-2 bg-muted"
+    />
+  </div>
+);
+
 // Question text input component
-const QuestionText = ({ value, onChange }) => (
+const QuestionText = ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
   <div>
     <Label className="text-base">Question Text</Label>
     <Textarea
@@ -62,6 +90,12 @@ const MCQOption = ({
   isCorrect,
   onOptionChange,
   onCorrectToggle,
+}: {
+  option: string;
+  index: number;
+  isCorrect: boolean;
+  onOptionChange: (value: string) => void;
+  onCorrectToggle: () => void;
 }) => (
   <div className="flex items-center space-x-3">
     <div className="flex-1">
@@ -83,7 +117,7 @@ const MCQOption = ({
 );
 
 // MCQ options section
-const MCQSection = ({ options, expectedAnswer, onUpdate }) => (
+const MCQSection = ({ options, expectedAnswer, onUpdate }: { options: string[]; expectedAnswer: string[]; onUpdate: (options: string[], expectedAnswer: string[]) => void }) => (
   <div className="space-y-4">
     <Label className="text-base">Options</Label>
     <div className="grid gap-3">
@@ -96,15 +130,7 @@ const MCQSection = ({ options, expectedAnswer, onUpdate }) => (
           onOptionChange={(value) => {
             const newOptions = [...options];
             newOptions[optionIndex] = value;
-            onUpdate(newOptions);
-            // const newExpectedAnswers =
-            //   expectedAnswer?.filter((ans) => ans !== options[optionIndex]) ||
-            //   [];
-            // if (newExpectedAnswers.includes(value)) {
-            //   onUpdate(newOptions, newExpectedAnswers);
-            // } else {
-            //   onUpdate(newOptions);
-            // }
+            onUpdate(newOptions, expectedAnswer);
           }}
           onCorrectToggle={() => {
             const currentExpectedAnswers = Array.isArray(expectedAnswer)
@@ -122,7 +148,7 @@ const MCQSection = ({ options, expectedAnswer, onUpdate }) => (
 );
 
 // Broad question answer section
-const BroadQuestionSection = ({ value, onChange }) => (
+const BroadQuestionSection = ({ value, onChange }: { value: string | string[]; onChange: (value: string | string[]) => void }) => (
   <div className="space-y-4">
     <div>
       <Label className="text-base">Expected Answer</Label>
@@ -137,19 +163,22 @@ const BroadQuestionSection = ({ value, onChange }) => (
 );
 
 // Main QuestionCard component
-export default function QuestionCard({ question, index, onUpdate, onDelete }) {
-  const handleFieldUpdate = (field, value) => {
+export default function QuestionCard({ question, index, onUpdate, onDelete }: { question: any; index: number; onUpdate: (index: number, field: string, value: any) => void; onDelete: (index: number) => void }) {
+  const handleFieldUpdate = (field: string, value: any) => {
     onUpdate(index, field, value);
   };
 
   return (
-    <motion.div {...cardAnimation} tabIndex="0">
+    <motion.div {...cardAnimation} tabIndex={index}>
       <Card className="mb-6 border-l-4 border-l-primary">
         <CardContent className="pt-6">
           <QuestionHeader
             index={index}
             type={question.question_type}
             marks={question.marks}
+            difficulty={question.difficulty}
+            pattern_type={question.pattern_type}
+            isAIGenerated={question.isAIGenerated}
             onMarksChange={(value) => handleFieldUpdate("marks", value)}
             onDelete={() => onDelete(index)}
           />
@@ -178,6 +207,9 @@ export default function QuestionCard({ question, index, onUpdate, onDelete }) {
                   handleFieldUpdate("expected_answer", value)
                 }
               />
+            )}
+            {question.isAIGenerated && question.explanation && (
+              <ExplanationSection explanation={question.explanation} />
             )}
           </div>
         </CardContent>

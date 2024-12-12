@@ -7,6 +7,12 @@ export default function FooterButtons({
   disabled = false,
   isPublishing = false,
   isEditing = false,
+}: {
+  onBack: () => void;
+  onPublish: () => void;
+  disabled?: boolean;
+  isPublishing?: boolean;
+  isEditing?: boolean;
 }) {
   const getButtonText = () => {
     if (isPublishing) {

@@ -40,7 +40,6 @@ import {
 import React, { useCallback, useReducer } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import PrivarySection from "../../student/library/privacy-card";
 import { reducer } from "../../student/library/reducer";
 import {
   State,
@@ -66,7 +65,7 @@ const initialState: State = {
 
 const category = ["Book", "Journal", "Thesis", "Notes", "Slides", "Others"];
 
-export default function TOC({ sectionId }: { sectionId: string}) {
+export default function TOC({ sectionId }: { sectionId: string }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const { uploadFile, error, loading } = useFileUpload();
@@ -209,8 +208,8 @@ export default function TOC({ sectionId }: { sectionId: string}) {
         payload: checked
           ? Array.from(new Set([...state.selectedItems, ...newSelected]))
           : state.selectedItems.filter(
-              (itemId) => !newSelected.includes(itemId),
-            ),
+            (itemId) => !newSelected.includes(itemId),
+          ),
       });
     },
     [state.toc, state.selectedItems],
@@ -349,7 +348,7 @@ export default function TOC({ sectionId }: { sectionId: string}) {
   return (
     <div className="p-4 max-w-6xl mx-auto">
       <h1 className="text-xl font-bold mb-4">Upload Your Material</h1>
-        <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <div className="mb-4">
           <Label htmlFor="bookName">Book Name</Label>
           <Input
@@ -404,10 +403,10 @@ export default function TOC({ sectionId }: { sectionId: string}) {
           )}
         </div>
 
-        <PrivarySection
+        {/* <PrivarySection
           isPrivate={state.isPrivate}
           onToggle={handlePrivacyToggle}
-        />
+        /> */}
         <div className="mb-4">
           <Label htmlFor="pdf-upload" className="block mb-2">
             Upload PDF (Required)
