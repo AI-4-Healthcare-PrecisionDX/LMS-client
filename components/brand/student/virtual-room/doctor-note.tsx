@@ -1,30 +1,33 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { doctorNoteAtom } from "@/store";
 import { useSetAtom } from "jotai";
-import { useState } from "react";
+import debounce from "lodash/debounce";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function DoctorNote() {
   const [note, setNote] = useState("");
-  const [isEditing, setIsEditing] = useState(true);
   const setDoctorNote = useSetAtom(doctorNoteAtom);
 
-  const handleSave = () => {
-    setIsEditing(false);
-    setDoctorNote(note);
-  };
+  const debouncedSetDoctorNote = useCallback(
+    (value: string) => {
+      setDoctorNote(value);
+    },
+    [setDoctorNote],
+  );
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
+  const debouncedHandler = useMemo(
+    () => debounce(debouncedSetDoctorNote, 500),
+    [debouncedSetDoctorNote],
+  );
+
+  useEffect(() => {
+    return () => {
+      debouncedHandler.cancel();
+    };
+  }, [debouncedHandler]);
 
   return (
     <Card className="mt-2 take-note">
@@ -32,31 +35,18 @@ export default function DoctorNote() {
         <h2 className="text-xl font-bold">Doctor's Notes</h2>
       </CardHeader>
       <CardContent>
-        {isEditing ? (
-          <Textarea
-            className="w-full min-h-[125px]"
-            placeholder="Enter notes here..."
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            style={{ resize: "none" }}
-          />
-        ) : (
-          <p className="min-h-[150px] p-2 border rounded-md">
-            {note || "No notes saved."}
-          </p>
-        )}
+        <Textarea
+          className="w-full min-h-[125px]"
+          placeholder="Enter notes here..."
+          value={note}
+          onChange={(e) => {
+            const newValue = e.target.value;
+            setNote(newValue);
+            debouncedHandler(newValue);
+          }}
+          style={{ resize: "none" }}
+        />
       </CardContent>
-      <CardFooter className="flex justify-end space-x-2">
-        {isEditing ? (
-          <Button className="save-note dark:text-white" onClick={handleSave}>
-            Save
-          </Button>
-        ) : (
-          <Button onClick={handleEdit} className="dark:text-white">
-            Edit
-          </Button>
-        )}
-      </CardFooter>
     </Card>
   );
 }
