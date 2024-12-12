@@ -2,6 +2,7 @@
 "use client";
 export const runtime = "edge";
 
+import CaseLoadingSkeleton from "@/components/brand/shared/loading";
 import CourseDetails from "@/components/brand/teacher/CourseDetails";
 import { SectionExclusiveContent } from "@/components/brand/teacher/materials/types";
 import { useAuth } from "@/hooks/use-auth";
@@ -51,7 +52,6 @@ interface TemplateCourse {
   department: any;
 }
 
-
 const fetchSection = async (sectionId: string): Promise<Section> => {
   const { data } = await api.get<Section>(`/section/${sectionId}`);
   return data;
@@ -75,7 +75,7 @@ const CoursePage = () => {
   });
 
   if (isLoading) {
-    return <LoadingSection />;
+    return <CaseLoadingSkeleton />;
   }
 
   if (isError) {

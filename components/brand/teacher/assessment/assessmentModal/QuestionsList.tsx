@@ -171,7 +171,7 @@ export default function QuestionsList({
     });
   };
 
-  return isGenerated ? (
+  return (
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
@@ -194,6 +194,12 @@ export default function QuestionsList({
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {!isGenerated && (
+          <p>
+            You can add questions from the question bank or generate questions
+            from the AI.
+          </p>
+        )}
         <MaterialView pdfs={pdfs} onPDFsChange={handlePDFsChange} />
         <ScrollArea className="h-[600px] pr-4">
           <AnimatePresence>
@@ -220,9 +226,5 @@ export default function QuestionsList({
         </ScrollArea>
       </CardContent>
     </Card>
-  ) : (
-    <div>
-      <p>No questions generated</p>
-    </div>
   );
 }

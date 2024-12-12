@@ -318,6 +318,8 @@ export default function AssignmentDashboard({
         },
       });
 
+      dispatch({ type: ACTIONS.SET_IS_EDITING, payload: true });
+
       dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
       dispatch({ type: "SET_MODAL_OPEN", payload: true });
     } catch (error) {
