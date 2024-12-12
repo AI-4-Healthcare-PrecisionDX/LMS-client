@@ -17,14 +17,13 @@ export const useCreateAssignment = () => {
                         ? assignmentData.assignment_materials
                         : [],
                     questions: assignmentData.questions.map((q) => {
-                        // Start with basic question formatting
                         const formattedQuestion = {
                             ...q,
                             marks: Number(q.marks),
                             options_for_mcq:
                                 q.question_type === "mcq"
-                                    ? q.options_for_mcq.map((opt: any) =>
-                                        typeof opt === "string" ? opt : opt.text,
+                                    ? (q.options_for_mcq || []).map((opt: string) =>
+                                        typeof opt === "string" ? opt : "",
                                     )
                                     : [],
                             expected_answer: Array.isArray(q.expected_answer)
@@ -32,20 +31,10 @@ export const useCreateAssignment = () => {
                                 : [],
                         };
 
-                        // If the question is AI-generated, preserve any additional AI-specific fields
-                        if (q.isAiGenerated) {
-                            return {
-                                ...formattedQuestion,
-                                question_text: q.question_text || q.text, // Handle both formats
-                                ai_metadata: q.ai_metadata || {}, // Preserve any AI-specific metadata
-                            };
-                        }
-
                         return formattedQuestion;
                     }),
                 };
 
-                // console.log("Formatted data being sent:", formattedData);
 
                 const response = await api.post(
                     "/assignment/create-assignment",
@@ -73,16 +62,23 @@ export const useUpdateAssignment = () => {
             try {
                 const formattedData = {
                     ...assignmentData,
+                    assignment_title: assignmentData.assignment_title,
+                    assignment_type: assignmentData.assignment_type,
+                    total_marks: Number(assignmentData.total_marks),
+                    number_of_questions: assignmentData.questions.length,
+                    start_time: assignmentData.start_time,
+                    deadline: assignmentData.deadline,
                     questions: assignmentData.questions.map((q) => {
-                        // Start with basic question formatting
                         const formattedQuestion = {
                             ...q,
-                            question_id: q.question_id, // Preserve the question ID
+                            question_id: q.question_id,
+                            question_text: String(q.question_text || ""),
+                            question_type: String(q.question_type || ""),
                             marks: Number(q.marks),
                             options_for_mcq:
                                 q.question_type === "mcq"
-                                    ? (q.options_for_mcq || []).map((opt: any) =>
-                                        typeof opt === "string" ? opt : opt.text || "",
+                                    ? (q.options_for_mcq || []).map((opt: string) =>
+                                        typeof opt === "string" ? opt : "",
                                     )
                                     : [],
                             expected_answer: Array.isArray(q.expected_answer)
@@ -92,16 +88,6 @@ export const useUpdateAssignment = () => {
                             pattern_type: q.pattern_type || "",
                             difficulty: q.difficulty || ""
                         };
-
-                        // If the question is AI-generated, preserve AI-specific fields
-                        if (q.isAiGenerated) {
-                            return {
-                                ...formattedQuestion,
-                                question_text: q.question_text || q.text, // Handle both formats
-                                ai_metadata: q.ai_metadata || {}, // Preserve AI metadata
-                                isAiGenerated: true
-                            };
-                        }
 
                         return formattedQuestion;
                     }),
@@ -117,6 +103,7 @@ export const useUpdateAssignment = () => {
                     `/assignment/${assignmentData.assignment_id}`,
                     formattedData,
                 );
+                console.log("response from update", response);
                 return response.data;
             } catch (error: any) {
                 console.error("Update error details:", error.response?.data);
@@ -135,7 +122,23 @@ export const useUpdateAssignment = () => {
     });
 };
 
-export const useGenerateAiQuestions = ({ aiGenerateQuestionsFormatted }: { aiGenerateQuestionsFormatted: any }) => {
+interface AiGenerateQuestionsFormatted {
+    pdf_file: string;
+    question_bank_mcq: number;
+    question_bank_broad: number;
+    adaptive_learning_mcq: number;
+    adaptive_learning_broad: number;
+    application_based_mcq: number;
+    application_based_broad: number;
+    writing_assignment_mcq: number;
+    writing_assignment_broad: number;
+    scenario_based_mcq: number;
+    scenario_based_broad: number;
+    total_mcq_questions: number;
+    total_broad_questions: number;
+}
+
+export const useGenerateAiQuestions = ({ aiGenerateQuestionsFormatted }: { aiGenerateQuestionsFormatted: AiGenerateQuestionsFormatted }) => {
     const setAiQuestions = useSetAtom(aiGeneratedQuestionsAtom);
     const queryClient = useQueryClient();
 

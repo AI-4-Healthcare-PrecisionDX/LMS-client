@@ -33,11 +33,11 @@ export default function Step3({
     (sum: number, q: Question) => sum + (Number(q.marks) || 0),
     0,
   );
-  // console.log("selectedPdf", state.newAssignment.selectedPdf);
   const selectedPdf = state.newAssignment.selectedPdf;
 
   const handlePublish = () => {
     const questions = Array.isArray(state.questions) ? state.questions : [];
+    console.log("questions inside handlePublish", questions);
 
     const assignment_materials = Array.isArray(state.materials)
       ? state.materials.map((material: any) => material.library_id)
@@ -64,10 +64,6 @@ export default function Step3({
           expected_answer: Array.isArray(q.expected_answer)
             ? q.expected_answer.map((ans: string) => String(ans || ""))
             : [],
-          explanation: q.explanation, // Preserve AI explanation
-          pattern_type: q.pattern_type, // Preserve AI pattern type
-          difficulty: q.difficulty, // Preserve AI difficulty
-          isAIGenerated: q.isAIGenerated // Preserve AI generation flag
         })),
         assignment_materials,
       };
@@ -96,10 +92,6 @@ export default function Step3({
           expected_answer: Array.isArray(q.expected_answer)
             ? q.expected_answer.map((ans: string) => String(ans || ""))
             : [],
-          explanation: q.explanation,
-          pattern_type: q.pattern_type,
-          difficulty: q.difficulty,
-          isAIGenerated: q.isAIGenerated
         })),
       };
 

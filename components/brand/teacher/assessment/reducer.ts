@@ -38,13 +38,7 @@ const updateQuestionField = (question: Question, field: string, value: any) => {
 
     return updatedQuestion;
   }
-  // Handle AI-specific fields
-  if (["pattern_type", "difficulty", "explanation"].includes(field)) {
-    return {
-      ...question,
-      [field]: value,
-    };
-  }
+
 
   // Handle expected_answer update for MCQ
   if (field === "expected_answer" && question.question_type === "mcq") {
@@ -221,25 +215,6 @@ export function reducer(state: any, action: any) {
         ...state,
         materials: action.payload,
       };
-    // ai-generated
-    // case ACTIONS.UPDATE_PATTERN_COUNT: {
-    //   const { pattern, type, value } = action.payload;
-    //   return {
-    //     ...state,
-    //     patternCounts: {
-    //       ...state.patternCounts,
-    //       [pattern]: {
-    //         ...state.patternCounts[pattern],
-    //         [type]: value,
-    //       },
-    //     },
-    //   };
-    // }
-    // case ACTIONS.SET_QUESTIONS_GENERATED:
-    //   return {
-    //     ...state,
-    //     isQuestionsGenerated: action.payload,
-    //   };
     default:
       return state;
   }

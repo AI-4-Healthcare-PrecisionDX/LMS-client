@@ -140,10 +140,6 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
           marks: Number(q.marks) || 0,
           options_for_mcq: q.options_for_mcq || [],
           expected_answer: q.expected_answer || [],
-          explanation: q.explanation,
-          pattern_type: q.pattern_type,
-          difficulty: q.difficulty,
-          isAIGenerated: q.isAIGenerated // Preserve AI generation flag
         }))
         : [];
 
@@ -167,7 +163,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
         start_time:
           state.start_time || finalAssignment.start_time || new Date(),
         deadline: state.deadline || finalAssignment.deadline || new Date(),
-        questions: questions, // Use the mapped questions array
+        questions: questions,
         assignment_materials: assignment_materials,
       };
 
@@ -253,10 +249,6 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
         marks: Number(q.marks) || 0,
         options_for_mcq: q.options_for_mcq || [],
         expected_answer: q.expected_answer || [],
-        explanation: q.explanation,
-        pattern_type: q.pattern_type,
-        difficulty: q.difficulty,
-        isAIGenerated: q.isAIGenerated
       }))
       : [];
 
@@ -290,9 +282,8 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
       const { data: assignmentData } = await api.get(
         `/assignment/${assignmentId}`,
       );
-      // console.log("assignment materials", assignmentData.assignment_materials);
+      console.log("assignmentData from handleEdit", assignmentData);
 
-      // Transform the data to match the expected structure
       const transformedData = {
         ...assignmentData,
         start_time: new Date(assignmentData.start_time),
@@ -304,12 +295,6 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
           marks: q.marks,
           options_for_mcq: q.options_for_mcq || [],
           expected_answer: q.expected_answer || [],
-          explanation: q.explanation || '',
-          pattern_type: q.pattern_type || '',
-          difficulty: q.difficulty || '',
-          isAiGenerated: q.isAiGenerated || false,
-          ai_metadata: q.ai_metadata || {},
-          text: q.text // Include text field as some AI questions might use this
         })),
         assignment_materials: assignmentData.assignment_materials || []
       };
@@ -325,7 +310,7 @@ export default function AssignmentDashboard({ examEvaluation, sectionId, section
           newAssignment: {
             category: transformedData.assignment_type,
           },
-          activeTab: "setup",
+          activeTab: "questions",
         },
       });
 

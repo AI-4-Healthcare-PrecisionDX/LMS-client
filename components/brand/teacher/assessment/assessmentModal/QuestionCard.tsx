@@ -16,26 +16,17 @@ const cardAnimation = {
 };
 
 // Header component with question metadata
-const QuestionHeader = ({ index, type, marks, difficulty, pattern_type, isAIGenerated, onMarksChange, onDelete }: {
+const QuestionHeader = ({ index, type, marks, onMarksChange, onDelete }: {
   index: number;
   type: string;
   marks: number;
-  difficulty?: string;
-  pattern_type?: string;
-  isAIGenerated?: boolean;
   onMarksChange: (value: number) => void;
   onDelete: () => void
 }) => (
   <div className="flex items-start justify-between mb-4">
     <div className="flex items-center space-x-4">
       <Badge variant="outline">Question {index + 1}</Badge>
-      <Badge>{type === "mcq" ? "Multiple Choice" : "Broad Question"}</Badge>
-      {isAIGenerated && difficulty && (
-        <Badge variant="secondary">{difficulty}</Badge>
-      )}
-      {isAIGenerated && pattern_type && (
-        <Badge variant="secondary">{pattern_type}</Badge>
-      )}
+      <Badge variant="outline" className="bg-primary text-white">{type}</Badge>
       <div className="flex items-center space-x-2">
         <Label>Marks:</Label>
         <Input
@@ -55,19 +46,6 @@ const QuestionHeader = ({ index, type, marks, difficulty, pattern_type, isAIGene
       <Trash2 className="w-4 h-4 mr-1" />
       Delete
     </Button>
-  </div>
-);
-
-// Add an Explanation section component
-const ExplanationSection = ({ explanation }: { explanation: string }) => (
-  <div className="mt-4">
-    <Label className="text-base">Explanation</Label>
-    <Textarea
-      value={explanation}
-      readOnly
-      rows={2}
-      className="mt-2 bg-muted"
-    />
   </div>
 );
 
@@ -176,9 +154,6 @@ export default function QuestionCard({ question, index, onUpdate, onDelete }: { 
             index={index}
             type={question.question_type}
             marks={question.marks}
-            difficulty={question.difficulty}
-            pattern_type={question.pattern_type}
-            isAIGenerated={question.isAIGenerated}
             onMarksChange={(value) => handleFieldUpdate("marks", value)}
             onDelete={() => onDelete(index)}
           />
@@ -207,9 +182,6 @@ export default function QuestionCard({ question, index, onUpdate, onDelete }: { 
                   handleFieldUpdate("expected_answer", value)
                 }
               />
-            )}
-            {question.isAIGenerated && question.explanation && (
-              <ExplanationSection explanation={question.explanation} />
             )}
           </div>
         </CardContent>

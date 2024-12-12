@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { CourseMaterial, SectionExclusiveContent } from "@/components/brand/teacher/materials/types";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -60,8 +61,8 @@ interface TemplateCourse {
   admin_id: string;
   created_at: string;
   updated_at: string;
-  template_course_access: any[];
-  course_materials: any[];
+  // template_course_access: any[];
+  course_materials: CourseMaterial[];
 }
 
 interface Section {
@@ -77,7 +78,7 @@ interface Section {
   teacher: Teacher;
   template_course: TemplateCourse;
   student_count: number | null;
-  section_exclusive_contents: any[];
+  section_exclusive_contents: SectionExclusiveContent[];
 }
 
 interface DashboardState {
@@ -139,7 +140,7 @@ function reducer(
   }
 }
 
-const PageHeader = ({teacherSecData}: {teacherSecData: Section[]}) => {
+const PageHeader = ({ teacherSecData }: { teacherSecData: Section[] }) => {
   const firstName = teacherSecData?.[0]?.teacher?.user?.first_name || 'User';
 
   return (

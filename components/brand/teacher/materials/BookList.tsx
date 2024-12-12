@@ -4,7 +4,6 @@ import { TourProvider } from "@reactour/tour";
 import { QueryClient, useMutation } from "@tanstack/react-query";
 import { Book, EllipsisVertical, Loader2, Search } from "lucide-react";
 import { useState, type ReactElement } from "react";
-// import { pdfjs } from "react-pdf";
 
 const queryClient = new QueryClient();
 
@@ -46,7 +45,7 @@ import { defaultLayoutPlugin } from "@react-pdf-viewer/default-layout";
 import { toast } from "sonner";
 import { useFilteredContents } from "../materials";
 import TOC from "./TOC";
-import { SectionExclusiveContent, Step, TemplateCourse } from "./types";
+import { LibraryItem, SectionExclusiveContent, Step, TemplateCourse } from "./types";
 
 // Set up the worker for react-pdf
 // pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
@@ -120,7 +119,6 @@ function BookList({
     },
     onSuccess: () => {
       toast.success("The book has been successfully deleted.");
-      // Invalidate and refetch the contents
       queryClient.invalidateQueries({
         queryKey: ["filteredContents"],
       });
@@ -130,7 +128,7 @@ function BookList({
     },
   });
 
-  const getPdfUrl = async (library_item: any) => {
+  const getPdfUrl = async (library_item: LibraryItem) => {
     setIsDialogOpen(true);
     setIsLoadingPdf(true);
     try {

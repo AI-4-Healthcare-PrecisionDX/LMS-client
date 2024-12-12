@@ -27,7 +27,7 @@ interface AiGeneratedQuestion {
 export default function QuestionsList({ state, dispatch, category }: { state: any, dispatch: any, category: string }) {
   const [pdfs, setPDFs] = useState<any[]>([]);
   const aiGeneratedQuestions = useAtomValue(aiGeneratedQuestionsAtom).questions;
-  console.log("aiGeneratedQuestions", aiGeneratedQuestions);
+  // console.log("aiGeneratedQuestions", aiGeneratedQuestions);
 
   useEffect(() => {
     if (category === "ai-generated" && aiGeneratedQuestions?.length > 0) {
@@ -146,7 +146,6 @@ export default function QuestionsList({ state, dispatch, category }: { state: an
                 key={question.question_id || index}
                 question={{
                   ...question,
-                  // Add any additional AI-specific fields here if needed
                   isAIGenerated: category === "ai-generated"
                 }}
                 index={index}

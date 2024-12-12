@@ -36,6 +36,22 @@ interface PatternCounts {
   }
 }
 
+interface AiGenerateQuestionsFormatted {
+  pdf_file: string;
+  question_bank_mcq: number;
+  question_bank_broad: number;
+  adaptive_learning_mcq: number;
+  adaptive_learning_broad: number;
+  application_based_mcq: number;
+  application_based_broad: number;
+  writing_assignment_mcq: number;
+  writing_assignment_broad: number;
+  scenario_based_mcq: number;
+  scenario_based_broad: number;
+  total_mcq_questions: number;
+  total_broad_questions: number;
+}
+
 const patterns = [
   { key: "questionBank" as PatternKey, label: "Simple Question", icon: BookOpen },
   { key: "adaptiveLearning" as PatternKey, label: "Adaptive Learning", icon: GraduationCap },
@@ -114,7 +130,7 @@ export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf
   };
 
 
-  const aiGenerateQuestionsFormatted = {
+  const aiGenerateQuestionsFormatted: AiGenerateQuestionsFormatted = {
     pdf_file: selectedPdf,
     question_bank_mcq: state.patternCounts.questionBank.mcq,
     question_bank_broad: state.patternCounts.questionBank.broad,

@@ -46,8 +46,33 @@ interface TemplateCourse {
   admin_id: string;
   created_at: string;
   updated_at: string;
-  course_materials: any[];
-  department: any;
+  course_materials: CourseMaterial[];
+  department: Department;
+}
+
+interface Department {
+  department_name: string;
+  department_id: string;
+  branch_id: string;
+  updated_at: string;
+}
+
+interface LibraryItem {
+  material_type: string;
+  material_title: string;
+  material_description: string | null;
+  author: string;
+  visibility: boolean;
+  library_id: string;
+  updated_at: string;
+  created_at: string;
+  user_id: string;
+}
+
+interface CourseMaterial {
+  library_item: LibraryItem;
+  created_at: string;
+  updated_at: string;
 }
 
 interface PageProps {
