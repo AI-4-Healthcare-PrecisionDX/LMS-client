@@ -1,5 +1,5 @@
 import api from "@/lib/axios-config";
-import { aiGeneratedQuestionsAtom, questionConfigAtom } from "@/store";
+import { aiGeneratedQuestionsAtom } from "@/store";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSetAtom } from "jotai";
 import { toast } from "sonner";
@@ -16,22 +16,25 @@ export const useCreateAssignment = () => {
                     )
                         ? assignmentData.assignment_materials
                         : [],
-                    questions: assignmentData.questions.map((q) => ({
-                        ...q,
-                        marks: Number(q.marks),
-                        options_for_mcq:
-                            q.question_type === "mcq"
-                                ? q.options_for_mcq.map((opt: any) =>
-                                    typeof opt === "string" ? opt : opt.text,
-                                )
+                    questions: assignmentData.questions.map((q) => {
+                        const formattedQuestion = {
+                            ...q,
+                            marks: Number(q.marks),
+                            options_for_mcq:
+                                q.question_type === "mcq"
+                                    ? (q.options_for_mcq || []).map((opt: string) =>
+                                        typeof opt === "string" ? opt : "",
+                                    )
+                                    : [],
+                            expected_answer: Array.isArray(q.expected_answer)
+                                ? q.expected_answer
                                 : [],
-                        expected_answer: Array.isArray(q.expected_answer)
-                            ? q.expected_answer
-                            : [],
-                    })),
+                        };
+
+                        return formattedQuestion;
+                    }),
                 };
 
-                // console.log("Formatted data being sent:", formattedData);
 
                 const response = await api.post(
                     "/assignment/create-assignment",
@@ -59,19 +62,35 @@ export const useUpdateAssignment = () => {
             try {
                 const formattedData = {
                     ...assignmentData,
-                    questions: assignmentData.questions.map((q) => ({
-                        ...q,
-                        marks: Number(q.marks),
-                        options_for_mcq:
-                            q.question_type === "mcq"
-                                ? (q.options_for_mcq || []).map((opt: any) =>
-                                    typeof opt === "string" ? opt : opt.text || "",
-                                )
+                    assignment_title: assignmentData.assignment_title,
+                    assignment_type: assignmentData.assignment_type,
+                    total_marks: Number(assignmentData.total_marks),
+                    number_of_questions: assignmentData.questions.length,
+                    start_time: assignmentData.start_time,
+                    deadline: assignmentData.deadline,
+                    questions: assignmentData.questions.map((q) => {
+                        const formattedQuestion = {
+                            ...q,
+                            question_id: q.question_id,
+                            question_text: String(q.question_text || ""),
+                            question_type: String(q.question_type || ""),
+                            marks: Number(q.marks),
+                            options_for_mcq:
+                                q.question_type === "mcq"
+                                    ? (q.options_for_mcq || []).map((opt: string) =>
+                                        typeof opt === "string" ? opt : "",
+                                    )
+                                    : [],
+                            expected_answer: Array.isArray(q.expected_answer)
+                                ? q.expected_answer.map((ans) => String(ans || ""))
                                 : [],
-                        expected_answer: Array.isArray(q.expected_answer)
-                            ? q.expected_answer.map((ans) => String(ans || ""))
-                            : [],
-                    })),
+                            explanation: q.explanation || "",
+                            pattern_type: q.pattern_type || "",
+                            difficulty: q.difficulty || ""
+                        };
+
+                        return formattedQuestion;
+                    }),
                     assignment_materials: Array.isArray(
                         assignmentData.assignment_materials,
                     )
@@ -84,6 +103,7 @@ export const useUpdateAssignment = () => {
                     `/assignment/${assignmentData.assignment_id}`,
                     formattedData,
                 );
+                console.log("response from update", response);
                 return response.data;
             } catch (error: any) {
                 console.error("Update error details:", error.response?.data);
@@ -102,13 +122,25 @@ export const useUpdateAssignment = () => {
     });
 };
 
-export const useGenerateAiQuestions = ({
-    aiGenerateQuestionsFormatted,
-}: {
-    aiGenerateQuestionsFormatted: any;
-}) => {
+interface AiGenerateQuestionsFormatted {
+    pdf_file: string;
+    question_bank_mcq: number;
+    question_bank_broad: number;
+    adaptive_learning_mcq: number;
+    adaptive_learning_broad: number;
+    application_based_mcq: number;
+    application_based_broad: number;
+    writing_assignment_mcq: number;
+    writing_assignment_broad: number;
+    scenario_based_mcq: number;
+    scenario_based_broad: number;
+    total_mcq_questions: number;
+    total_broad_questions: number;
+}
+
+export const useGenerateAiQuestions = ({ aiGenerateQuestionsFormatted }: { aiGenerateQuestionsFormatted: AiGenerateQuestionsFormatted }) => {
     const setAiQuestions = useSetAtom(aiGeneratedQuestionsAtom);
-    const setQuestionConfig = useSetAtom(questionConfigAtom);
+    const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: async (data: any) => {
@@ -116,73 +148,31 @@ export const useGenerateAiQuestions = ({
                 const formData = new FormData();
                 const pdfResponse = await fetch(aiGenerateQuestionsFormatted.pdf_file);
                 const pdfBlob = await pdfResponse.blob();
-                formData.append("pdf_file", pdfBlob);
-                formData.append(
-                    "question_bank_mcq",
-                    aiGenerateQuestionsFormatted.question_bank_mcq.toString(),
-                );
-                formData.append(
-                    "question_bank_broad",
-                    aiGenerateQuestionsFormatted.question_bank_broad.toString(),
-                );
-                formData.append(
-                    "adaptive_learning_mcq",
-                    aiGenerateQuestionsFormatted.adaptive_learning_mcq.toString(),
-                );
-                formData.append(
-                    "adaptive_learning_broad",
-                    aiGenerateQuestionsFormatted.adaptive_learning_broad.toString(),
-                );
-                formData.append(
-                    "application_based_mcq",
-                    aiGenerateQuestionsFormatted.application_based_mcq.toString(),
-                );
-                formData.append(
-                    "application_based_broad",
-                    aiGenerateQuestionsFormatted.application_based_broad.toString(),
-                );
-                formData.append(
-                    "writing_assignment_mcq",
-                    aiGenerateQuestionsFormatted.writing_assignment_mcq.toString(),
-                );
-                formData.append(
-                    "writing_assignment_broad",
-                    aiGenerateQuestionsFormatted.writing_assignment_broad.toString(),
-                );
-                formData.append(
-                    "scenario_based_mcq",
-                    aiGenerateQuestionsFormatted.scenario_based_mcq.toString(),
-                );
-                formData.append(
-                    "scenario_based_broad",
-                    aiGenerateQuestionsFormatted.scenario_based_broad.toString(),
-                );
-                formData.append(
-                    "total_mcq_questions",
-                    aiGenerateQuestionsFormatted.total_mcq_questions.toString(),
-                );
-                formData.append(
-                    "total_broad_questions",
-                    aiGenerateQuestionsFormatted.total_broad_questions.toString(),
-                );
+                formData.append('pdf_file', pdfBlob);
+                formData.append('question_bank_mcq', aiGenerateQuestionsFormatted.question_bank_mcq.toString());
+                formData.append('question_bank_broad', aiGenerateQuestionsFormatted.question_bank_broad.toString());
+                formData.append('adaptive_learning_mcq', aiGenerateQuestionsFormatted.adaptive_learning_mcq.toString());
+                formData.append('adaptive_learning_broad', aiGenerateQuestionsFormatted.adaptive_learning_broad.toString());
+                formData.append('application_based_mcq', aiGenerateQuestionsFormatted.application_based_mcq.toString());
+                formData.append('application_based_broad', aiGenerateQuestionsFormatted.application_based_broad.toString());
+                formData.append('writing_assignment_mcq', aiGenerateQuestionsFormatted.writing_assignment_mcq.toString());
+                formData.append('writing_assignment_broad', aiGenerateQuestionsFormatted.writing_assignment_broad.toString());
+                formData.append('scenario_based_mcq', aiGenerateQuestionsFormatted.scenario_based_mcq.toString());
+                formData.append('scenario_based_broad', aiGenerateQuestionsFormatted.scenario_based_broad.toString());
+                formData.append('total_mcq_questions', aiGenerateQuestionsFormatted.total_mcq_questions.toString());
+                formData.append('total_broad_questions', aiGenerateQuestionsFormatted.total_broad_questions.toString());
 
-                const response = await api.post("/llm/assignment_questions", formData, {
+                const response = await api.post('/llm/assignment_questions', formData, {
                     headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
+                        'Content-Type': 'multipart/form-data'
+                    }
                 });
                 setAiQuestions(response.data.questions);
-                setQuestionConfig((prev) => ({
-                    ...prev,
-                    isQuestionsGenerated: true,
-                }));
-
                 return response.data;
+
             } catch (error: any) {
                 console.error("Generate questions error:", error.response?.data);
-                throw new Error(
-                    error.response?.data?.message || "Failed to generate questions",
-                );
+                throw new Error(error.response?.data?.message || "Failed to generate questions");
             }
         },
         onSuccess: () => {
@@ -190,6 +180,6 @@ export const useGenerateAiQuestions = ({
         },
         onError: (error: Error) => {
             toast.error(error.message);
-        },
+        }
     });
 };
