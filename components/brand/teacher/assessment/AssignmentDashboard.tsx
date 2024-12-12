@@ -61,17 +61,7 @@ const fetchAssignments = async (sectionId: string) => {
 };
 
 // Main Component
-export default function AssignmentDashboard({
-  examEvaluation,
-  sectionId,
-  section_exclusive_contents,
-  template_course,
-}: {
-  examEvaluation: () => void;
-  sectionId: string;
-  section_exclusive_contents: SectionExclusiveContent[];
-  template_course: TemplateCourse;
-}) {
+export default function AssignmentDashboard({ examEvaluation, sectionId, section_exclusive_contents, template_course }: { examEvaluation: () => void, sectionId: string, section_exclusive_contents: SectionExclusiveContent[], template_course: TemplateCourse }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { isAuthenticated } = useAuth();
 
@@ -150,10 +140,6 @@ export default function AssignmentDashboard({
           marks: Number(q.marks) || 0,
           options_for_mcq: q.options_for_mcq || [],
           expected_answer: q.expected_answer || [],
-          explanation: q.explanation,
-          pattern_type: q.pattern_type,
-          difficulty: q.difficulty,
-          isAIGenerated: q.isAIGenerated // Preserve AI generation flag
         }))
         : [];
 
@@ -177,7 +163,7 @@ export default function AssignmentDashboard({
         start_time:
           state.start_time || finalAssignment.start_time || new Date(),
         deadline: state.deadline || finalAssignment.deadline || new Date(),
-        questions: questions, // Use the mapped questions array
+        questions: questions,
         assignment_materials: assignment_materials,
       };
 
@@ -202,6 +188,7 @@ export default function AssignmentDashboard({
           });
           dispatch({ type: ACTIONS.SET_MODAL_OPEN, payload: false });
           toast.success("Assignment created successfully");
+          window.location.reload();
         },
         onError: (error: any) => {
           console.error(
@@ -211,7 +198,7 @@ export default function AssignmentDashboard({
           if (error.response?.status === 422) {
             toast.error(
               error.response.data.detail ||
-                "Validation failed. Please check all fields.",
+              "Validation failed. Please check all fields.",
             );
           } else {
             toast.error("Failed to create assignment. Please try again.");
@@ -220,8 +207,9 @@ export default function AssignmentDashboard({
       });
     }
   };
+
   const { data: Assignments, isLoading } = useQuery({
-    queryKey: ["assignments", sectionId],
+    queryKey: ["assignments", sectionId], // renders the component when the query is invalidated
     queryFn: () => fetchAssignments(sectionId),
     enabled: !!sectionId && isAuthenticated,
     // staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
@@ -229,8 +217,7 @@ export default function AssignmentDashboard({
   });
 
   const { mutate: deleteAssignment } = useMutation({
-    mutationFn: (assignmentId: string) =>
-      api.delete(`/assignment/${assignmentId}`),
+    mutationFn: (assignmentId: string) => api.delete(`/assignment/${assignmentId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["assignments", sectionId] });
       toast.success("Assignment deleted successfully");
@@ -263,10 +250,6 @@ export default function AssignmentDashboard({
         marks: Number(q.marks) || 0,
         options_for_mcq: q.options_for_mcq || [],
         expected_answer: q.expected_answer || [],
-        explanation: q.explanation,
-        pattern_type: q.pattern_type,
-        difficulty: q.difficulty,
-        isAIGenerated: q.isAIGenerated
       }))
       : [];
 
@@ -300,9 +283,8 @@ export default function AssignmentDashboard({
       const { data: assignmentData } = await api.get(
         `/assignment/${assignmentId}`,
       );
-      // console.log("assignment materials", assignmentData.assignment_materials);
+      console.log("assignmentData from handleEdit", assignmentData);
 
-      // Transform the data to match the expected structure
       const transformedData = {
         ...assignmentData,
         start_time: new Date(assignmentData.start_time),
@@ -314,12 +296,6 @@ export default function AssignmentDashboard({
           marks: q.marks,
           options_for_mcq: q.options_for_mcq || [],
           expected_answer: q.expected_answer || [],
-          explanation: q.explanation || '',
-          pattern_type: q.pattern_type || '',
-          difficulty: q.difficulty || '',
-          isAiGenerated: q.isAiGenerated || false,
-          ai_metadata: q.ai_metadata || {},
-          text: q.text // Include text field as some AI questions might use this
         })),
         assignment_materials: assignmentData.assignment_materials || []
       };
@@ -335,11 +311,9 @@ export default function AssignmentDashboard({
           newAssignment: {
             category: transformedData.assignment_type,
           },
-          activeTab: "setup",
+          activeTab: "questions",
         },
       });
-
-      dispatch({ type: ACTIONS.SET_IS_EDITING, payload: true });
 
       dispatch({ type: "SET_CURRENT_STEP", payload: 3 });
       dispatch({ type: "SET_MODAL_OPEN", payload: true });
@@ -471,8 +445,8 @@ export default function AssignmentDashboard({
 
           {state.currentStep === 2 && (
             <Step2
-              onNext={(details) => handleStep2Next(details)}
-              onBack={() => handleBack(state.newAssignment)}
+              onNext={handleStep2Next}
+              onBack={handleBack}
               selectedBooks={state.newAssignment.bookIds}
               selectedChapters={state.newAssignment.chapterIds}
               section_exclusive_contents={section_exclusive_contents}
