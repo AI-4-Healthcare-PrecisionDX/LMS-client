@@ -134,8 +134,8 @@ export default function Step3({
               <TabsTrigger
                 value="questions"
                 className="text-lg py-3"
-                // Remove the category condition to allow access to questions tab
-                disabled={!state.assignment_title}
+                // Allow access to questions tab if there are questions or if assignment title is set
+                disabled={!state.assignment_title && state.questions.length === 0}
               >
                 <Edit3 className="w-4 h-4 mr-2" />
                 Questions
@@ -148,6 +148,9 @@ export default function Step3({
                 dispatch={dispatch}
                 category={category}
                 selectedPdf={selectedPdf}
+                onQuestionsGenerated={() => 
+                  dispatch({ type: "SET_ACTIVE_TAB", payload: "questions" })
+                }
               />
             </TabsContent>
 

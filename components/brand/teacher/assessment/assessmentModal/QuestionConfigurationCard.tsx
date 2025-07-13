@@ -65,7 +65,13 @@ const questionTypes = [
   { key: "broad" as QuestionType, label: "Broad Questions", icon: Edit3 },
 ] as const;
 
-export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf: string }) {
+export default function QuestionConfigurationCard({ 
+  selectedPdf, 
+  onQuestionsGenerated 
+}: { 
+  selectedPdf: string;
+  onQuestionsGenerated?: () => void;
+}) {
   // console.log("selectedPdf", selectedPdf);
   const [state, setState] = useState<{
     patternCounts: PatternCounts;
@@ -160,6 +166,9 @@ export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf
         ...prev,
         isQuestionsGenerated: true,
       }));
+      
+      // Automatically switch to questions tab/step after successful generation
+      onQuestionsGenerated?.();
     } catch (error) {
       console.error("Failed to generate questions:", error);
       toast.error("Failed to generate questions. Please try again.");
@@ -310,7 +319,6 @@ export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf
             size="lg"
             onClick={handleGenerateQuestions}
             disabled={
-              state.isQuestionsGenerated ||
               totalPatternQuestions === 0 ||
               generateQuestionsMutation.isPending
             }
@@ -318,7 +326,7 @@ export default function QuestionConfigurationCard({ selectedPdf }: { selectedPdf
             {generateQuestionsMutation.isPending
               ? "Generating..."
               : state.isQuestionsGenerated
-                ? "Questions Generated"
+                ? "Regenerate Questions"
                 : "Generate Questions"}
           </Button>
         </div>

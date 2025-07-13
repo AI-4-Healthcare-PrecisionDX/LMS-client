@@ -186,7 +186,7 @@ export function getStudentMenuList(pathname: string): Group[] {
           submenus: [],
         },
         {
-          href: "https://learning-platform.diagnotech-ai.com/",
+          href: "https://radiology-annotation-client.pages.dev/dashboard",
           label: "Radiology Practice",
           active: false,
           icon: PencilLine,
